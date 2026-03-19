@@ -202,7 +202,7 @@ ClubTableTracker/
     "ClientId": "your-google-oauth-client-id"
   },
   "ConnectionStrings": {
-    "Default": "Data Source=clubtracker.db"
+    "Default": "Server=localhost;Database=clubtracker;User=root;Password=your-password;"
   }
 }
 ```
@@ -212,7 +212,7 @@ ClubTableTracker/
 | `MasterKey` | Ключ системного администратора. Передаётся в заголовке `X-Master-Key`. Смените перед деплоем! |
 | `Jwt:Secret` | Секрет для подписи JWT-токенов. Минимум 32 символа. Смените перед деплоем! |
 | `Google:ClientId` | Client ID из [Google Cloud Console](https://console.cloud.google.com/). Используется сервером для верификации подписи Google ID-токена. |
-| `ConnectionStrings:Default` | Строка подключения к SQLite. Файл БД создаётся автоматически при первом запуске. |
+| `ConnectionStrings:Default` | Строка подключения к MySQL. Пример: `Server=localhost;Database=clubtracker;User=root;Password=your-password;` Используйте отдельного пользователя с минимальными привилегиями в продакшене. |
 
 ### Фронтенд (`.env`)
 
@@ -334,4 +334,4 @@ BookingParticipant
   └── UserId             → AppUser
 ```
 
-База данных SQLite создаётся автоматически при первом запуске приложения (`db.Database.EnsureCreated()`).
+База данных MySQL создаётся автоматически при первом запуске приложения (`db.Database.EnsureCreated()`). Убедитесь, что MySQL-сервер запущен и пользователь из строки подключения имеет права на создание базы данных.

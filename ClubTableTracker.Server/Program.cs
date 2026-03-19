@@ -10,7 +10,11 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=clubtracker.db"));
+{
+    var connectionString = builder.Configuration.GetConnectionString("Default")
+        ?? "Server=localhost;Database=clubtracker;User=root;Password=your-password;";
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+});
 
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "default-secret-key-at-least-32-chars!!";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
