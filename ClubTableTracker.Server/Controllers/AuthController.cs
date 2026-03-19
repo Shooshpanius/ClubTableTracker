@@ -27,6 +27,11 @@ public class AuthController : ControllerBase
     [HttpPost("google")]
     public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest req)
     {
+        if (string.IsNullOrEmpty(req.Credential))
+        {
+            return BadRequest("Credential is required");
+        }
+
         var clientId = _config["Google:ClientId"];
         if (string.IsNullOrEmpty(clientId))
         {
@@ -45,6 +50,11 @@ public class AuthController : ControllerBase
         {
             _logger.LogWarning(ex, "Google ID token validation failed.");
             return BadRequest("Invalid credential");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during Google token validation.");
+            return StatusCode(500, "An error occurred while validating the credential");
         }
 
         var email = payload.Email ?? "";
