@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="clubtabletracker.client/clubtabletracker.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="ClubTableTracker.Server/ClubTableTracker.Server.csproj" />
+</Solution>

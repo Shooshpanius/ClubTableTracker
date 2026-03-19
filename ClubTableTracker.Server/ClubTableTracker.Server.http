@@ -1,0 +1,6 @@
+@ClubTableTracker.Server_HostAddress = http://localhost:5037
+
+GET {{ClubTableTracker.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
