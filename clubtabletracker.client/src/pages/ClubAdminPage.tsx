@@ -52,7 +52,7 @@ export default function ClubAdminPage() {
     const body = {
       number: editingTable.number || '',
       size: editingTable.size || 'Medium',
-      supportedGames: selectedGames.join(','),
+      supportedGames: selectedGames.join('|'),
       x: editingTable.x || 0,
       y: editingTable.y || 0,
       width: editingTable.width || 100,
@@ -127,7 +127,7 @@ export default function ClubAdminPage() {
 
       {tab === 'map' && (
         <>
-          <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split(',').filter(Boolean) : []) }} />
+          <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(Boolean) : []) }} />
           <div style={{ ...cardStyle, marginTop: 16 }}>
             <h3>Add New Table</h3>
             <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60 }); setSelectedGames([]) }}>+ Add Table</button>
@@ -165,9 +165,9 @@ export default function ClubAdminPage() {
             <div key={t.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <strong>Table #{t.number}</strong> — {t.size}
-                <div style={{ color: '#aaa', fontSize: 13 }}>{t.supportedGames.replace(/,/g, ', ')}</div>
+                <div style={{ color: '#aaa', fontSize: 13 }}>{t.supportedGames ? t.supportedGames.split('|').filter(Boolean).join(', ') : ''}</div>
               </div>
-              <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames.split(',').filter(Boolean)) }}>Edit</button>
+              <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames.split('|').filter(Boolean)) }}>Edit</button>
             </div>
           ))}
         </>
