@@ -3,6 +3,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import ClubMap from '../components/ClubMap'
 import BookingForm from '../components/BookingForm'
 import Schedule from '../components/Schedule'
+import { isGoogleConfigured } from '../googleConfig'
 
 interface User { id: string; email: string; name: string }
 interface Club { id: number; name: string; description: string }
@@ -100,6 +101,7 @@ export default function HomePage() {
 
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
+  const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
 
   return (
     <div style={{ padding: 40 }}>
@@ -111,7 +113,9 @@ export default function HomePage() {
             <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Logout</button>
           </div>
         ) : (
-          <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
+          isGoogleConfigured
+            ? <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
+            : <span style={warnStyle}>⚠️ Google login is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code> in your <code>.env</code> file.</span>
         )}
       </div>
 
