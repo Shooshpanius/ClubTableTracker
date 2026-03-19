@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /ClubTableTracker.Server/clubtracker.db
 /ClubTableTracker.Server/clubtracker.db-shm
 /ClubTableTracker.Server/clubtracker.db-wal
+/ClubTableTracker.Server/appsettings.Development.json
