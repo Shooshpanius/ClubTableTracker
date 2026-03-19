@@ -48,13 +48,16 @@ public class BookingController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
+        if (req.StartTime >= req.EndTime) return BadRequest("End time must be after start time");
+        if (req.StartTime < DateTime.UtcNow) return BadRequest("Booking must be in the future");
+
         var table = _db.GameTables.Find(req.TableId);
         if (table == null) return NotFound("Table not found");
 
         var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == table.ClubId && m.Status == "Approved");
         if (!isMember) return Forbid();
 
-        // Check for conflicts (max 2 players)
+        // Check for conflicts (max 2 players simultaneously)
         var overlapping = _db.Bookings
             .Include(b => b.Participants)
             .Where(b => b.TableId == req.TableId &&

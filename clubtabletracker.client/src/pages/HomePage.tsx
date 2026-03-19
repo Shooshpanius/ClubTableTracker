@@ -22,7 +22,7 @@ export default function HomePage() {
   const [view, setView] = useState<'map' | 'schedule'>('map')
 
   useEffect(() => {
-    fetch('/api/club').then(r => r.json()).then(setClubs).catch(() => {})
+    fetch('/api/club').then(r => r.json()).then(setClubs).catch(err => console.error('Failed to load clubs:', err))
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]))
       setUser({
@@ -31,7 +31,7 @@ export default function HomePage() {
         name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
       })
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(setMemberships).catch(() => {})
+        .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))
     }
   }, [token])
 

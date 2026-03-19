@@ -17,7 +17,7 @@ export default function ClubMap({ tables, bookings, onTableClick, selectedTableI
       <div style={{ position: 'relative', width: 800, height: 500, minWidth: 800 }}>
         {tables.map(table => {
           const count = getBookingCount(table.id)
-          const color = count === 0 ? '#1a4a1a' : count === 1 ? '#4a4a1a' : '#4a1a1a'
+          const color = count === 0 ? '#1a4a1a' : count >= 2 ? '#4a1a1a' : '#4a4a1a'
           const borderColor = table.id === selectedTableId ? '#e94560' : '#0f3460'
           return (
             <div key={table.id}
