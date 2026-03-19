@@ -78,6 +78,29 @@ public class ClubAdminController : ControllerBase
         return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height });
     }
 
+    [HttpPost("tables/{id}/copy")]
+    public IActionResult CopyTable(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var source = _db.GameTables.FirstOrDefault(t => t.Id == id && t.ClubId == club.Id);
+        if (source == null) return NotFound();
+        var copy = new GameTable
+        {
+            ClubId = club.Id,
+            Number = source.Number + " (Copy)",
+            Size = source.Size,
+            SupportedGames = source.SupportedGames,
+            X = source.X + 20,
+            Y = source.Y + 20,
+            Width = source.Width,
+            Height = source.Height
+        };
+        _db.GameTables.Add(copy);
+        _db.SaveChanges();
+        return Ok(new { copy.Id, copy.ClubId, copy.Number, copy.Size, copy.SupportedGames, copy.X, copy.Y, copy.Width, copy.Height });
+    }
+
     [HttpDelete("tables/{id}")]
     public IActionResult DeleteTable(int id)
     {

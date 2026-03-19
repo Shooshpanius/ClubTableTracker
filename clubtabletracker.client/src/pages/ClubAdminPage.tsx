@@ -80,6 +80,11 @@ export default function ClubAdminPage() {
     setTables(tables.filter(t => t.id !== id))
   }
 
+  const copyTable = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/tables/${id}/copy`, { method: 'POST', headers: { 'X-Club-Key': clubKey } })
+    if (res.ok) { setTables([...tables, await res.json()]) }
+  }
+
   const updateMembership = async (id: number, action: 'approve' | 'reject') => {
     const res = await fetch(`/api/clubadmin/memberships/${id}/${action}`, {
       method: 'POST', headers: { 'X-Club-Key': clubKey }
@@ -167,7 +172,10 @@ export default function ClubAdminPage() {
                 <strong>Table #{t.number}</strong> — {t.size}
                 <div style={{ color: '#aaa', fontSize: 13 }}>{t.supportedGames ? t.supportedGames.split('|').filter(Boolean).join(', ') : ''}</div>
               </div>
-              <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames.split('|').filter(Boolean)) }}>Edit</button>
+              <div>
+                <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames.split('|').filter(Boolean)) }}>Edit</button>
+                <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => copyTable(t.id)}>Copy</button>
+              </div>
             </div>
           ))}
         </>
