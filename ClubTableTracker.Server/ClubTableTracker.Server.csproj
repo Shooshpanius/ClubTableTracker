@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <SpaRoot>..\clubtabletracker.client</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
-    <SpaProxyServerUrl>https://localhost:57194</SpaProxyServerUrl>
+    <SpaProxyServerUrl>http://localhost:57194</SpaProxyServerUrl>
   </PropertyGroup>
 
   <ItemGroup>
