@@ -225,7 +225,7 @@ ClubTableTracker/
 1. Откройте [Google Cloud Console](https://console.cloud.google.com/)
 2. Создайте проект и перейдите в **APIs & Services → Credentials**
 3. Создайте **OAuth 2.0 Client ID** типа **Web application**
-4. В разделе **Authorised JavaScript origins** добавьте `https://localhost:5173`
+4. В разделе **Authorised JavaScript origins** добавьте `https://localhost:5173` (для локальной разработки) и `https://club.wh40kcards.ru` (для продакшена)
 5. Скопируйте Client ID и вставьте:
    - в `appsettings.json` → `Google:ClientId` (для верификации токена на сервере)
    - в `.env` → `VITE_GOOGLE_CLIENT_ID` (для кнопки входа на фронтенде)
