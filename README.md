@@ -198,6 +198,9 @@ ClubTableTracker/
   "Jwt": {
     "Secret": "your-secret-key-at-least-32-characters-long!!"
   },
+  "Google": {
+    "ClientId": "your-google-oauth-client-id"
+  },
   "ConnectionStrings": {
     "Default": "Data Source=clubtracker.db"
   }
@@ -208,6 +211,7 @@ ClubTableTracker/
 |---|---|
 | `MasterKey` | Ключ системного администратора. Передаётся в заголовке `X-Master-Key`. Смените перед деплоем! |
 | `Jwt:Secret` | Секрет для подписи JWT-токенов. Минимум 32 символа. Смените перед деплоем! |
+| `Google:ClientId` | Client ID из [Google Cloud Console](https://console.cloud.google.com/). Используется сервером для верификации подписи Google ID-токена. |
 | `ConnectionStrings:Default` | Строка подключения к SQLite. Файл БД создаётся автоматически при первом запуске. |
 
 ### Фронтенд (`.env`)
@@ -222,7 +226,9 @@ ClubTableTracker/
 2. Создайте проект и перейдите в **APIs & Services → Credentials**
 3. Создайте **OAuth 2.0 Client ID** типа **Web application**
 4. В разделе **Authorised JavaScript origins** добавьте `https://localhost:5173`
-5. Скопируйте Client ID и вставьте в `.env`
+5. Скопируйте Client ID и вставьте:
+   - в `appsettings.json` → `Google:ClientId` (для верификации токена на сервере)
+   - в `.env` → `VITE_GOOGLE_CLIENT_ID` (для кнопки входа на фронтенде)
 
 ---
 

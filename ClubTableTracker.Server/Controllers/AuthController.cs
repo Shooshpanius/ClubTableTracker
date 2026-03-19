@@ -1,3 +1,4 @@
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,32 +15,41 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(AppDbContext db, IConfiguration config)
+    public AuthController(AppDbContext db, IConfiguration config, ILogger<AuthController> logger)
     {
         _db = db;
         _config = config;
+        _logger = logger;
     }
 
     [HttpPost("google")]
-    public IActionResult GoogleLogin([FromBody] GoogleLoginRequest req)
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest req)
     {
-        // Decode Google JWT ID token without verifying signature (dev mode).
-        // In production, verify against Google's public keys.
-        JwtSecurityToken googleToken;
+        var clientId = _config["Google:ClientId"];
+        if (string.IsNullOrEmpty(clientId))
+        {
+            _logger.LogWarning("Google:ClientId is not configured. Audience validation will be skipped.");
+        }
+
+        GoogleJsonWebSignature.Payload payload;
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            googleToken = handler.ReadJwtToken(req.Credential);
+            var validationSettings = string.IsNullOrEmpty(clientId)
+                ? null
+                : new GoogleJsonWebSignature.ValidationSettings { Audience = new[] { clientId } };
+            payload = await GoogleJsonWebSignature.ValidateAsync(req.Credential, validationSettings);
         }
-        catch
+        catch (InvalidJwtException ex)
         {
+            _logger.LogWarning(ex, "Google ID token validation failed.");
             return BadRequest("Invalid credential");
         }
 
-        var email = googleToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "";
-        var name = googleToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? "";
-        var googleId = googleToken.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "";
+        var email = payload.Email ?? "";
+        var name = payload.Name ?? "";
+        var googleId = payload.Subject ?? "";
 
         if (string.IsNullOrEmpty(email)) return BadRequest("No email in token");
 
