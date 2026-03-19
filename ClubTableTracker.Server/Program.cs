@@ -45,6 +45,12 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
 }
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups";
+    await next();
+});
+
 app.UseDefaultFiles();
 app.MapStaticAssets();
 

@@ -63,21 +63,30 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(email)) return BadRequest("No email in token");
 
-        var user = _db.Users.FirstOrDefault(u => u.GoogleId == googleId);
-        if (user == null)
+        AppUser? user = null;
+        try
         {
-            user = new AppUser
+            user = _db.Users.FirstOrDefault(u => u.GoogleId == googleId);
+            if (user == null)
             {
-                Id = Guid.NewGuid().ToString(),
-                Email = email,
-                Name = name,
-                GoogleId = googleId
-            };
-            _db.Users.Add(user);
-            _db.SaveChanges();
+                user = new AppUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Email = email,
+                    Name = name,
+                    GoogleId = googleId
+                };
+                _db.Users.Add(user);
+                _db.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Database error while processing Google login.");
+            return StatusCode(500, "An error occurred while processing the login");
         }
 
-        var jwt = GenerateJwt(user);
+        var jwt = GenerateJwt(user!);
         return Ok(new { token = jwt, user = new { user.Id, user.Email, user.Name } });
     }
 
