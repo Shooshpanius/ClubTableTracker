@@ -44,6 +44,7 @@ export default function ClubAdminPage() {
 
   useEffect(() => {
     if (clubKey) login()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const saveTable = async () => {

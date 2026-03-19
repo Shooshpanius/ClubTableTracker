@@ -34,6 +34,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (masterKey) loadClubs(masterKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const createClub = async () => {
