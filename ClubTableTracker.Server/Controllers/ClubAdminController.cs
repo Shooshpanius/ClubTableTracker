@@ -32,7 +32,10 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        var tables = _db.GameTables.Where(t => t.ClubId == club.Id).ToList();
+        var tables = _db.GameTables
+            .Where(t => t.ClubId == club.Id)
+            .Select(t => new { t.Id, t.ClubId, t.Number, t.Size, t.SupportedGames, t.X, t.Y, t.Width, t.Height })
+            .ToList();
         return Ok(tables);
     }
 
@@ -54,7 +57,7 @@ public class ClubAdminController : ControllerBase
         };
         _db.GameTables.Add(table);
         _db.SaveChanges();
-        return Ok(table);
+        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height });
     }
 
     [HttpPut("tables/{id}")]
@@ -72,7 +75,7 @@ public class ClubAdminController : ControllerBase
         table.Width = req.Width;
         table.Height = req.Height;
         _db.SaveChanges();
-        return Ok(table);
+        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height });
     }
 
     [HttpDelete("tables/{id}")]
