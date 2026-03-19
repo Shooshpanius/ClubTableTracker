@@ -10,7 +10,7 @@ export default function TableCard({ table, onClick }: Props) {
     }}>
       <h4 style={{ margin: '0 0 4px' }}>Table #{table.number}</h4>
       <div style={{ color: '#aaa', fontSize: 13 }}>Size: {table.size}</div>
-      <div style={{ color: '#aaa', fontSize: 13 }}>Games: {table.supportedGames.replace(/,/g, ', ') || 'N/A'}</div>
+      <div style={{ color: '#aaa', fontSize: 13 }}>Games: {table.supportedGames ? table.supportedGames.split('|').filter(Boolean).join(', ') : 'N/A'}</div>
     </div>
   )
 }
