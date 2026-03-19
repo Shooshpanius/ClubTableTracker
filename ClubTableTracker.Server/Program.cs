@@ -32,7 +32,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("https://localhost:5173", "http://localhost:5173")
+        policy.WithOrigins("https://localhost:5173", "http://localhost:5173", "https://club.wh40kcards.ru")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
