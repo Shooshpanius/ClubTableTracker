@@ -25,7 +25,9 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/club').then(r => r.json()).then(setClubs).catch(err => console.error('Failed to load clubs:', err))
     if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]))
+      const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+      const payload = JSON.parse(new TextDecoder().decode(bytes))
       setUser({
         id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
         email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
