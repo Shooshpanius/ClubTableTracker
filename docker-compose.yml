@@ -1,55 +1,57 @@
 services:
-  front40club:
-    build:
-      context: ./clubtabletracker.client
-      args:
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-    container_name: front40club
-    ports:
-      - "80:80"
-    depends_on:
-      - back40club
-    networks:
-      - clubnet
+
+
+#########################################################################################################################################
+#       Application CLUB
+#########################################################################################################################################
+
 
   back40club:
-    build:
-      context: ./ClubTableTracker.Server
     container_name: back40club
+    image: back40club:local
+    restart: always
     environment:
-      - Google__ClientId=${VITE_GOOGLE_CLIENT_ID}
-      - Jwt__Secret=${JWT_SECRET}
-      - MasterKey=${MASTER_KEY}
-      - ConnectionStrings__Default=Server=db;Database=clubtracker;User=${DB_USER};Password=${DB_PASSWORD};
+      ConnectionStrings__Default: Server=*;Port=*;Database=*;User=*;Password=*
+      Google__ClientId: *
+      Jwt__Key: $${JWT_KEY:*}
+      Jwt__Issuer: *
+      Jwt__Audience: *
+      VITE_GOOGLE_CLIENT_ID: *
     depends_on:
-      db:
-        condition: service_healthy
+      - mariadb40club
+
+
+  front40club:
+    container_name: front40club
+    image: front40club:local
     ports:
-      - "8080:8080"
-    networks:
-      - clubnet
-
-  db:
-    image: mysql:8
-    container_name: db
+      - "85:80"
+    restart: always
     environment:
-      - MYSQL_DATABASE=clubtracker
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - clubnet
+      VITE_GOOGLE_CLIENT_ID: *
+    depends_on:
+      - back40club
 
-networks:
-  clubnet:
-    driver: bridge
+
+  mariadb40club:
+    container_name: mariadb40club
+    image: mariadb:local
+    environment:
+      MYSQL_ROOT_PASSWORD: *
+      MYSQL_DATABASE: *
+      MYSQL_USER: *
+      MYSQL_PASSWORD: *
+    volumes:
+      - db_data40club:/var/lib/mysql
+    restart: always
+
+
 
 volumes:
-  db_data:
+   db_data40club:
+      driver: local
+      driver_opts:
+         type: none
+         o: bind
+         device: /opt/docker/data/mariadb40club
+ #  proxy-config:
