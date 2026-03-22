@@ -202,10 +202,21 @@ ClubTableTracker/
    DB_ROOT_PASSWORD=rootstrongpassword
    ```
 
-2. Соберите и запустите контейнеры:
+2. Убедитесь, что директория для данных MariaDB существует на хосте:
+   ```bash
+   mkdir -p /opt/docker/data/mariadb40club
+   ```
+
+3. Соберите и запустите контейнеры:
    ```bash
    docker compose up --build -d
    ```
+
+   Docker Compose автоматически:
+   - соберёт образы бэкенда и фронтенда из Dockerfile в проекте;
+   - встроит `VITE_GOOGLE_CLIENT_ID` в статические файлы фронтенда на этапе сборки;
+   - передаст секреты (`JWT_SECRET`, `MASTER_KEY`, `DB_*`) в бэкенд как переменные окружения;
+   - дождётся готовности MariaDB перед запуском бэкенда (health check).
 
 > **Важно:** Значение `VITE_GOOGLE_CLIENT_ID` в `.env` должно совпадать с Client ID, для которого в Google Cloud Console добавлен `https://club.wh40kcards.ru` в раздел **Authorised JavaScript origins**. Несоответствие Client ID приведёт к ошибке `origin_mismatch`.
 

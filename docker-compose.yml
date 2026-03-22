@@ -8,42 +8,51 @@ services:
 
   back40club:
     container_name: back40club
-    image: back40club:local
+    build:
+      context: ./ClubTableTracker.Server
     restart: always
     environment:
-      ConnectionStrings__Default: Server=*;Port=*;Database=*;User=*;Password=*
-      Google__ClientId: *
-      Jwt__Key: $${JWT_KEY:*}
-      Jwt__Issuer: *
-      Jwt__Audience: *
-      VITE_GOOGLE_CLIENT_ID: *
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=mariadb40club;Port=3306;Database=clubtracker;User=${DB_USER};Password=${DB_PASSWORD};
+      Google__ClientId: ${VITE_GOOGLE_CLIENT_ID}
+      Jwt__Secret: ${JWT_SECRET}
+      MasterKey: ${MASTER_KEY}
     depends_on:
-      - mariadb40club
+      mariadb40club:
+        condition: service_healthy
 
 
   front40club:
     container_name: front40club
-    image: front40club:local
+    build:
+      context: ./clubtabletracker.client
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     ports:
       - "85:80"
     restart: always
-    environment:
-      VITE_GOOGLE_CLIENT_ID: *
     depends_on:
       - back40club
 
 
   mariadb40club:
     container_name: mariadb40club
-    image: mariadb:local
+    image: mariadb:lts
     environment:
-      MYSQL_ROOT_PASSWORD: *
-      MYSQL_DATABASE: *
-      MYSQL_USER: *
-      MYSQL_PASSWORD: *
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: clubtracker
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db_data40club:/var/lib/mysql
     restart: always
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 
 
@@ -54,4 +63,3 @@ volumes:
          type: none
          o: bind
          device: /opt/docker/data/mariadb40club
- #  proxy-config:
