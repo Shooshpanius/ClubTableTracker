@@ -26,8 +26,10 @@ export default function HomePage() {
     fetch('/api/club').then(r => r.json()).then(setClubs).catch(err => console.error('Failed to load clubs:', err))
     if (token) {
       const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
-      const payload = JSON.parse(new TextDecoder().decode(bytes))
+      const jsonPayload = decodeURIComponent(
+        atob(base64).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+      )
+      const payload = JSON.parse(jsonPayload)
       setUser({
         id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
         email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
