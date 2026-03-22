@@ -146,7 +146,7 @@ ClubTableTracker/
 - [Node.js 18+](https://nodejs.org/)
 - Аккаунт Google Cloud (для настройки OAuth)
 
-### Установка
+### Локальная разработка
 
 1. Клонируйте репозиторий:
    ```bash
@@ -185,6 +185,29 @@ ClubTableTracker/
    - API (Swagger): `https://localhost:PORT/openapi` (только в режиме разработки)
 
 > **Важно:** После каждого `git pull`, содержащего изменения в `package.json`, необходимо заново выполнить `npm install` в директории `clubtabletracker.client`. Без этого Vite выдаст ошибки `Failed to resolve import`.
+
+### Деплой через Docker Compose
+
+1. Скопируйте `.env.example` в `.env` в корне проекта и заполните все значения:
+   ```bash
+   cp .env.example .env
+   ```
+   Пример заполненного `.env`:
+   ```
+   VITE_GOOGLE_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
+   JWT_SECRET=my-super-secret-key-32-chars-min!!
+   MASTER_KEY=my-master-key
+   DB_USER=clubuser
+   DB_PASSWORD=strongpassword
+   DB_ROOT_PASSWORD=rootstrongpassword
+   ```
+
+2. Соберите и запустите контейнеры:
+   ```bash
+   docker compose up --build -d
+   ```
+
+> **Важно:** Значение `VITE_GOOGLE_CLIENT_ID` в `.env` должно совпадать с Client ID, для которого в Google Cloud Console добавлен `https://club.wh40kcards.ru` в раздел **Authorised JavaScript origins**. Несоответствие Client ID приведёт к ошибке `origin_mismatch`.
 
 ---
 
