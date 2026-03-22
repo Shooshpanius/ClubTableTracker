@@ -207,16 +207,28 @@ ClubTableTracker/
    mkdir -p /opt/docker/data/mariadb40club
    ```
 
-3. Соберите и запустите контейнеры:
+3. Соберите образы (один раз, или после каждого обновления кода):
    ```bash
-   docker compose up --build -d
+   # Бэкенд
+   docker build -t back40club:local ./ClubTableTracker.Server
+
+   # Фронтенд — VITE_GOOGLE_CLIENT_ID здесь не нужен:
+   # значение подставляется при старте контейнера, не при сборке
+   docker build -t front40club:local ./clubtabletracker.client
+   ```
+
+4. Запустите стек:
+   ```bash
+   docker compose up -d
    ```
 
    Docker Compose автоматически:
-   - соберёт образы бэкенда и фронтенда из Dockerfile в проекте;
-   - встроит `VITE_GOOGLE_CLIENT_ID` в статические файлы фронтенда на этапе сборки;
+   - подхватит значение `VITE_GOOGLE_CLIENT_ID` из `.env` и передаст его в контейнер `front40club` как переменную окружения;
+   - скрипт запуска контейнера (`entrypoint.sh`) подставит это значение в собранные JS-файлы до старта nginx;
    - передаст секреты (`JWT_SECRET`, `MASTER_KEY`, `DB_*`) в бэкенд как переменные окружения;
    - дождётся готовности MariaDB перед запуском бэкенда (health check).
+
+> **Почему не `--build`:** `docker-compose.yml` использует готовые образы (`image: front40club:local`), поэтому флаг `--build` не нужен. `VITE_GOOGLE_CLIENT_ID` вшивается в JS **во время запуска** контейнера (не сборки), благодаря чему одним образом можно пользоваться с любым Client ID.
 
 > **Важно:** Значение `VITE_GOOGLE_CLIENT_ID` в `.env` должно совпадать с Client ID, для которого в Google Cloud Console добавлен `https://club.wh40kcards.ru` в раздел **Authorised JavaScript origins**. Несоответствие Client ID приведёт к ошибке `origin_mismatch`.
 
