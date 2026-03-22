@@ -8,8 +8,7 @@ services:
 
   back40club:
     container_name: back40club
-    build:
-      context: ./ClubTableTracker.Server
+    image: back40club:local
     restart: always
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -25,10 +24,9 @@ services:
 
   front40club:
     container_name: front40club
-    build:
-      context: ./clubtabletracker.client
-      args:
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    image: front40club:local
+    environment:
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     ports:
       - "85:80"
     restart: always
@@ -53,6 +51,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
 
 
 
