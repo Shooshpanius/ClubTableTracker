@@ -6,13 +6,37 @@ interface Props {
   table: GameTable
   token: string
   onBooked: () => void
+  selectedDate: Date
   initialStartTime?: string
   initialEndTime?: string
 }
 
-export default function BookingForm({ table, token, onBooked, initialStartTime = '', initialEndTime = '' }: Props) {
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
+function extractTime(datetimeOrTime: string): string {
+  if (!datetimeOrTime) return ''
+  const tIndex = datetimeOrTime.indexOf('T')
+  return tIndex >= 0 ? datetimeOrTime.slice(tIndex + 1, tIndex + 6) : datetimeOrTime.slice(0, 5)
+}
+
+const TIME_RE = /^(\d{2}):(\d{2})$/
+
+function buildDatetime(date: Date, time: string): string | null {
+  const match = TIME_RE.exec(time)
+  if (!match) return null
+  const h = parseInt(match[1], 10)
+  const m = parseInt(match[2], 10)
+  const d = new Date(date)
+  d.setHours(h, m, 0, 0)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const mins = String(d.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${mins}`
+}
+
+export default function BookingForm({ table, token, onBooked, selectedDate, initialStartTime = '', initialEndTime = '' }: Props) {
+  const [startTime, setStartTime] = useState(() => extractTime(initialStartTime))
+  const [endTime, setEndTime] = useState(() => extractTime(initialEndTime))
   const [gameSystem, setGameSystem] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,14 +44,17 @@ export default function BookingForm({ table, token, onBooked, initialStartTime =
   const games = table.supportedGames ? table.supportedGames.split('|').filter(Boolean) : []
 
   const book = async () => {
-    if (!startTime || !endTime) { setError('Please select start and end times'); return }
-    if (new Date(startTime) >= new Date(endTime)) { setError('End time must be after start time'); return }
+    if (!startTime || !endTime) { setError('Выберите время начала и окончания'); return }
+    const startDatetime = buildDatetime(selectedDate, startTime)
+    const endDatetime = buildDatetime(selectedDate, endTime)
+    if (!startDatetime || !endDatetime) { setError('Некорректный формат времени'); return }
+    if (new Date(startDatetime) >= new Date(endDatetime)) { setError('Время окончания должно быть позже времени начала'); return }
     setLoading(true)
     setError('')
     const res = await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tableId: table.id, startTime, endTime, gameSystem: gameSystem || null })
+      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null })
     })
     setLoading(false)
     if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); onBooked() }
@@ -47,10 +74,10 @@ export default function BookingForm({ table, token, onBooked, initialStartTime =
     <div>
       <h4>Book Table #{table.number}</h4>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <label style={{ color: '#aaa', fontSize: 13 }}>Start:</label>
-        <input style={inputStyle} type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} />
-        <label style={{ color: '#aaa', fontSize: 13 }}>End:</label>
-        <input style={inputStyle} type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} />
+        <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
+        <input style={inputStyle} type="time" step={900} value={startTime} onChange={e => setStartTime(e.target.value)} />
+        <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
+        <input style={inputStyle} type="time" step={900} value={endTime} onChange={e => setEndTime(e.target.value)} />
       </div>
       {games.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

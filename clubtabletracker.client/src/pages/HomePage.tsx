@@ -315,6 +315,7 @@ export default function HomePage() {
                               table={table}
                               token={token}
                               onBooked={onBookingCreated}
+                              selectedDate={selectedDate}
                               initialStartTime={bookingStart}
                               initialEndTime={bookingEnd}
                             />
@@ -391,6 +392,7 @@ export default function HomePage() {
                       table={selectedTable}
                       token={token}
                       onBooked={onBookingCreated}
+                      selectedDate={selectedDate}
                       initialStartTime={bookingStart}
                       initialEndTime={bookingEnd}
                     />
