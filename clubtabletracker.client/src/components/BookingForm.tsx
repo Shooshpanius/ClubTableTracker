@@ -111,10 +111,14 @@ export default function BookingForm({ table, token, onBooked, selectedDate, init
     <div>
       <h4>Book Table #{table.number}</h4>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
-        <TimeSelect style={inputStyle} value={startTime} onChange={setStartTime} />
-        <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
-        <TimeSelect style={inputStyle} value={endTime} onChange={setEndTime} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
+          <TimeSelect style={inputStyle} value={startTime} onChange={setStartTime} />
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
+          <TimeSelect style={inputStyle} value={endTime} onChange={setEndTime} />
+        </span>
       </div>
       {games.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
