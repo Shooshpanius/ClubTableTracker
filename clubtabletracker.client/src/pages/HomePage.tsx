@@ -337,6 +337,7 @@ export default function HomePage() {
                             openTime={selectedClub.openTime}
                             closeTime={selectedClub.closeTime}
                             selectedDate={selectedDate}
+                            currentUserId={user?.id}
                             onSlotClick={user ? handleSlotClick : undefined}
                             onBookingClick={user ? joinBooking : undefined}
                             isSelected={isSelected}
@@ -396,6 +397,7 @@ export default function HomePage() {
                           openTime={selectedClub.openTime}
                           closeTime={selectedClub.closeTime}
                           selectedDate={selectedDate}
+                          currentUserId={user?.id}
                           onSlotClick={user ? handleSlotClick : undefined}
                           onBookingClick={user ? joinBooking : undefined}
                           isSelected={selectedTable?.id === table.id}
