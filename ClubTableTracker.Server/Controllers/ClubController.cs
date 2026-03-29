@@ -18,7 +18,7 @@ public class ClubController : ControllerBase
     [HttpGet]
     public IActionResult GetClubs()
     {
-        var clubs = _db.Clubs.Select(c => new { c.Id, c.Name, c.Description }).ToList();
+        var clubs = _db.Clubs.Select(c => new { c.Id, c.Name, c.Description, c.OpenTime, c.CloseTime }).ToList();
         return Ok(clubs);
     }
 
@@ -63,7 +63,7 @@ public class ClubController : ControllerBase
         var memberships = _db.Memberships
             .Include(m => m.Club)
             .Where(m => m.UserId == userId)
-            .Select(m => new { m.Id, m.Status, m.AppliedAt, Club = new { m.Club.Id, m.Club.Name, m.Club.Description } })
+            .Select(m => new { m.Id, m.Status, m.AppliedAt, Club = new { m.Club.Id, m.Club.Name, m.Club.Description, m.Club.OpenTime, m.Club.CloseTime } })
             .ToList();
         return Ok(memberships);
     }

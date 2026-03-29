@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 
-interface ClubInfo { id: number; name: string; description: string }
+interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
 
@@ -17,15 +17,21 @@ export default function ClubAdminPage() {
   const [tables, setTables] = useState<GameTable[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'map' | 'members'>('map')
+  const [tab, setTab] = useState<'map' | 'members' | 'settings'>('map')
   const [editingTable, setEditingTable] = useState<Partial<GameTable> | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[]>([])
+  const [openTime, setOpenTime] = useState('10:00')
+  const [closeTime, setCloseTime] = useState('22:00')
+  const [settingsSaved, setSettingsSaved] = useState(false)
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
     const res = await fetch('/api/clubadmin/me', { headers: { 'X-Club-Key': clubKey } })
     if (res.ok) {
-      setClub(await res.json())
+      const data = await res.json()
+      setClub(data)
+      setOpenTime(data.openTime || '10:00')
+      setCloseTime(data.closeTime || '22:00')
       setError('')
       loadData(clubKey)
     } else {
@@ -92,6 +98,20 @@ export default function ClubAdminPage() {
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: action === 'approve' ? 'Approved' : 'Rejected' } : m))
   }
 
+  const saveSettings = async () => {
+    const res = await fetch('/api/clubadmin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ openTime, closeTime })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClub(prev => prev ? { ...prev, openTime: data.openTime, closeTime: data.closeTime } : prev)
+      setSettingsSaved(true)
+      setTimeout(() => setSettingsSaved(false), 2000)
+    }
+  }
+
   const updateTablePosition = async (id: number, x: number, y: number) => {
     const table = tables.find(t => t.id === id)
     if (!table) return
@@ -128,6 +148,7 @@ export default function ClubAdminPage() {
       <div style={{ marginBottom: 16 }}>
         <button style={{ ...btnStyle, background: tab === 'map' ? '#e94560' : '#533483' }} onClick={() => setTab('map')}>Map Editor</button>
         <button style={{ ...btnStyle, background: tab === 'members' ? '#e94560' : '#533483' }} onClick={() => setTab('members')}>Members ({memberships.filter(m => m.status === 'Pending').length} pending)</button>
+        <button style={{ ...btnStyle, background: tab === 'settings' ? '#e94560' : '#533483' }} onClick={() => setTab('settings')}>Настройки</button>
       </div>
 
       {tab === 'map' && (
@@ -201,6 +222,24 @@ export default function ClubAdminPage() {
             </div>
           ))}
         </>
+      )}
+
+      {tab === 'settings' && (
+        <div style={cardStyle}>
+          <h3>Часы работы клуба</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Открытие</label>
+              <input style={inputStyle} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Закрытие</label>
+              <input style={inputStyle} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
+            </div>
+            <button style={{ ...btnStyle, marginTop: 18 }} onClick={saveSettings}>Сохранить</button>
+            {settingsSaved && <span style={{ color: '#4caf50', marginTop: 18 }}>✓ Сохранено</span>}
+          </div>
+        </div>
       )}
     </div>
   )

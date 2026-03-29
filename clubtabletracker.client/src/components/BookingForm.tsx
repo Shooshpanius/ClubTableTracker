@@ -6,11 +6,13 @@ interface Props {
   table: GameTable
   token: string
   onBooked: () => void
+  initialStartTime?: string
+  initialEndTime?: string
 }
 
-export default function BookingForm({ table, token, onBooked }: Props) {
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
+export default function BookingForm({ table, token, onBooked, initialStartTime = '', initialEndTime = '' }: Props) {
+  const [startTime, setStartTime] = useState(initialStartTime)
+  const [endTime, setEndTime] = useState(initialEndTime)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
