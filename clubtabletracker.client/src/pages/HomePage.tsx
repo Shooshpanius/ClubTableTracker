@@ -16,12 +16,6 @@ function useIsMobile(breakpoint = 768): boolean {
   return isMobile
 }
 
-function toDateInputValue(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 interface User { id: string; email: string; name: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
@@ -231,27 +225,12 @@ export default function HomePage() {
           {isMobile ? (
             /* ===== MOBILE LAYOUT ===== */
             <div>
-              {/* Date picker instead of calendar */}
+              {/* Calendar with booking highlights */}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ color: '#ffc107', fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 6 }}>
-                  📅 Выберите дату
-                </label>
-                <input
-                  type="date"
-                  value={toDateInputValue(selectedDate)}
-                  onChange={e => {
-                    const [y, m, d] = e.target.value.split('-').map(Number)
-                    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                      const newDate = new Date(y, m - 1, d)
-                      setSelectedDate(newDate)
-                      setSelectedTable(null)
-                    }
-                  }}
-                  style={{
-                    background: '#16213e', border: '1px solid #0f3460', borderRadius: 6,
-                    color: '#eee', padding: '8px 12px', fontSize: 15, width: '100%',
-                    boxSizing: 'border-box', cursor: 'pointer'
-                  }}
+                <BookingCalendar
+                  bookings={bookings}
+                  selectedDate={selectedDate}
+                  onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
                 />
               </div>
 
