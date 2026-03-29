@@ -313,11 +313,11 @@ export default function HomePage() {
                               table={table}
                               token={token}
                               onBooked={onBookingCreated}
+                              onCancel={() => setSelectedTable(null)}
                               selectedDate={selectedDate}
                               initialStartTime={bookingStart}
                               initialEndTime={bookingEnd}
                             />
-                            <button style={{ ...btnStyle, background: '#555', marginTop: 8 }} onClick={() => setSelectedTable(null)}>Отмена</button>
                           </div>
                         )}
                       </div>
@@ -390,11 +390,11 @@ export default function HomePage() {
                       table={selectedTable}
                       token={token}
                       onBooked={onBookingCreated}
+                      onCancel={() => setSelectedTable(null)}
                       selectedDate={selectedDate}
                       initialStartTime={bookingStart}
                       initialEndTime={bookingEnd}
                     />
-                    <button style={{ ...btnStyle, background: '#555', marginTop: 8 }} onClick={() => setSelectedTable(null)}>Отмена</button>
                   </div>
                 )}
               </div>

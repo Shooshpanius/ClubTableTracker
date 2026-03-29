@@ -6,6 +6,7 @@ interface Props {
   table: GameTable
   token: string
   onBooked: () => void
+  onCancel?: () => void
   selectedDate: Date
   initialStartTime?: string
   initialEndTime?: string
@@ -68,7 +69,7 @@ function buildDatetime(date: Date, time: string): string | null {
   return `${year}-${month}-${day}T${hours}:${mins}`
 }
 
-export default function BookingForm({ table, token, onBooked, selectedDate, initialStartTime = '', initialEndTime = '' }: Props) {
+export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '' }: Props) {
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState('')
@@ -129,8 +130,9 @@ export default function BookingForm({ table, token, onBooked, selectedDate, init
           </select>
         </div>
       )}
-      <div style={{ marginTop: 8 }}>
-        <button style={btnStyle} onClick={book} disabled={loading}>{loading ? 'Booking...' : 'Book'}</button>
+      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+        <button style={{ ...btnStyle, background: '#28a745' }} onClick={book} disabled={loading}>{loading ? 'Бронирование...' : 'В резерв'}</button>
+        {onCancel && <button style={{ ...btnStyle, background: '#ffc107', color: '#222' }} onClick={onCancel}>Отмена</button>}
       </div>
       {error && <p style={{ color: '#e94560', marginTop: 8 }}>{error}</p>}
     </div>
