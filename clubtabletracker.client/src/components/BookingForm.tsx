@@ -28,6 +28,31 @@ function snapTo15(time: string): string {
   return `${String(h).padStart(2, '0')}:${String(snapped).padStart(2, '0')}`
 }
 
+const MINUTES = ['00', '15', '30', '45']
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+
+function TimeSelect({ value, onChange, style }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties }) {
+  const match = TIME_RE.exec(value)
+  const hour = match ? match[1] : ''
+  const minute = match ? (MINUTES.includes(match[2]) ? match[2] : '00') : '00'
+  return (
+    <span style={{ display: 'inline-flex', gap: 4 }}>
+      <select style={style} value={hour} onChange={e => {
+        const h = e.target.value
+        onChange(h ? `${h}:${minute}` : '')
+      }}>
+        <option value="">чч</option>
+        {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <select style={style} value={minute} disabled={!hour} onChange={e => {
+        onChange(hour ? `${hour}:${e.target.value}` : '')
+      }}>
+        {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+      </select>
+    </span>
+  )
+}
+
 function buildDatetime(date: Date, time: string): string | null {
   const match = TIME_RE.exec(time)
   if (!match) return null
@@ -87,9 +112,9 @@ export default function BookingForm({ table, token, onBooked, selectedDate, init
       <h4>Book Table #{table.number}</h4>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
-        <input style={inputStyle} type="time" step={900} value={startTime} onChange={e => setStartTime(snapTo15(e.target.value))} />
+        <TimeSelect style={inputStyle} value={startTime} onChange={setStartTime} />
         <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
-        <input style={inputStyle} type="time" step={900} value={endTime} onChange={e => setEndTime(snapTo15(e.target.value))} />
+        <TimeSelect style={inputStyle} value={endTime} onChange={setEndTime} />
       </div>
       {games.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
