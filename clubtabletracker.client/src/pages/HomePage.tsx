@@ -275,7 +275,7 @@ export default function HomePage() {
                       }}>
                       <span>Стол {table.number}</span>
                       <span style={{ fontSize: 12, color: '#aaa', fontWeight: 'normal' }}>
-                        {table.size} · {table.supportedGames}
+                        {table.size}
                       </span>
                       <span style={{ fontSize: 18, color: '#888', marginLeft: 8 }}>{isExpanded ? '▲' : '▼'}</span>
                     </button>

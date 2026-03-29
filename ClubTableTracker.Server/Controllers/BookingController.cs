@@ -35,6 +35,7 @@ public class BookingController : ControllerBase
                 b.TableId,
                 b.StartTime,
                 b.EndTime,
+                b.GameSystem,
                 User = new { b.User.Id, b.User.Name },
                 Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
             })
@@ -73,11 +74,12 @@ public class BookingController : ControllerBase
             TableId = req.TableId,
             UserId = userId,
             StartTime = req.StartTime,
-            EndTime = req.EndTime
+            EndTime = req.EndTime,
+            GameSystem = req.GameSystem
         };
         _db.Bookings.Add(booking);
         _db.SaveChanges();
-        return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime });
+        return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
     }
 
     [HttpPost("{id}/join")]
@@ -119,4 +121,4 @@ public class BookingController : ControllerBase
     }
 }
 
-public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime);
+public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null);
