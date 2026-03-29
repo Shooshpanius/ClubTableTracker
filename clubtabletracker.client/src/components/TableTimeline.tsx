@@ -12,6 +12,7 @@ interface Props {
   closeTime: string
   selectedDate: Date
   onSlotClick?: (table: GameTable, startMin: number, endMin: number) => void
+  onBookingClick?: (booking: Booking) => void
   isSelected?: boolean
 }
 
@@ -40,7 +41,7 @@ interface Segment {
   booking?: Booking
 }
 
-export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, onSlotClick, isSelected }: Props) {
+export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, onSlotClick, onBookingClick, isSelected }: Props) {
   const openMin = parseHHMM(openTime)
   const closeMin = parseHHMM(closeTime)
   const totalMin = Math.max(closeMin - openMin, 1)
@@ -77,12 +78,15 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
           return (
             <div
               key={i}
-              onClick={() => isFree && onSlotClick?.(table, seg.startMin, seg.endMin)}
+              onClick={() => {
+                if (isFree) onSlotClick?.(table, seg.startMin, seg.endMin)
+                else if (seg.booking) onBookingClick?.(seg.booking)
+              }}
               title={isFree ? `Свободно ${Math.floor(seg.startMin / 60)}:${String(seg.startMin % 60).padStart(2, '0')}–${Math.floor(seg.endMin / 60)}:${String(seg.endMin % 60).padStart(2, '0')}` : undefined}
               style={{
                 position: 'absolute', left: 0, right: 0, top, height,
                 background: isFree ? '#90ee90' : '#ffff00',
-                cursor: isFree && onSlotClick ? 'pointer' : 'default',
+                cursor: (isFree && onSlotClick) || (!isFree && onBookingClick) ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center', alignItems: 'center',
                 fontSize: 11, color: '#222', overflow: 'hidden',
