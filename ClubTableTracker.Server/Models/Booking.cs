@@ -11,5 +11,6 @@ public class Booking
     public AppUser User { get; set; } = null!;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
+    public string? GameSystem { get; set; }
     public List<BookingParticipant> Participants { get; set; } = new();
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-interface GameTable { id: number; number: string }
+interface GameTable { id: number; number: string; supportedGames?: string }
 
 interface Props {
   table: GameTable
@@ -13,8 +13,11 @@ interface Props {
 export default function BookingForm({ table, token, onBooked, initialStartTime = '', initialEndTime = '' }: Props) {
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(initialEndTime)
+  const [gameSystem, setGameSystem] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const games = table.supportedGames ? table.supportedGames.split('|').filter(Boolean) : []
 
   const book = async () => {
     if (!startTime || !endTime) { setError('Please select start and end times'); return }
@@ -24,10 +27,10 @@ export default function BookingForm({ table, token, onBooked, initialStartTime =
     const res = await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tableId: table.id, startTime, endTime })
+      body: JSON.stringify({ tableId: table.id, startTime, endTime, gameSystem: gameSystem || null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); onBooked() }
+    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); onBooked() }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
@@ -48,6 +51,17 @@ export default function BookingForm({ table, token, onBooked, initialStartTime =
         <input style={inputStyle} type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} />
         <label style={{ color: '#aaa', fontSize: 13 }}>End:</label>
         <input style={inputStyle} type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} />
+      </div>
+      {games.length > 0 && (
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <label style={{ color: '#aaa', fontSize: 13 }}>Система:</label>
+          <select style={inputStyle} value={gameSystem} onChange={e => setGameSystem(e.target.value)}>
+            <option value="">— не выбрана —</option>
+            {games.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+      )}
+      <div style={{ marginTop: 8 }}>
         <button style={btnStyle} onClick={book} disabled={loading}>{loading ? 'Booking...' : 'Book'}</button>
       </div>
       {error && <p style={{ color: '#e94560', marginTop: 8 }}>{error}</p>}
