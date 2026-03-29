@@ -4,6 +4,7 @@ import BookingForm from '../components/BookingForm'
 import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import { isGoogleConfigured } from '../googleConfig'
+import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -164,17 +165,20 @@ export default function HomePage() {
 
   return (
     <div style={{ padding: isMobile ? 16 : 40 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <h1 style={{ color: '#e94560', margin: 0 }}>🎲 ClubTableTracker</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ color: '#e94560', margin: 0, fontSize: isMobile ? 22 : 32, whiteSpace: 'nowrap' }}>🎲 ClubTableTracker</h1>
+          <div style={{ color: '#666', fontSize: 12, marginTop: 2 }}>Beta v0.0.{LAST_PR_NUMBER} от {LAST_PR_DATE}</div>
+        </div>
         {user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ color: '#aaa' }}>👤 {user.name}</span>
-            <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Logout</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexWrap: 'wrap' }}>
+            <span style={{ color: '#aaa', fontSize: isMobile ? 13 : 14 }}>👤 {user.name}</span>
+            <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Выйти</button>
           </div>
         ) : (
           isGoogleConfigured
             ? <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
-            : <span style={warnStyle}>⚠️ Google login is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code> in your <code>.env</code> file.</span>
+            : <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>⚠️ Google login is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code> in your <code>.env</code> file.</span>
         )}
       </div>
 
@@ -189,17 +193,32 @@ export default function HomePage() {
       {clubs.map(club => {
         const membership = memberships.find(m => m.club.id === club.id)
         const isApproved = membership?.status === 'Approved'
+        const isPending = membership?.status === 'Pending'
+        const isRejected = membership?.status === 'Rejected'
+        const borderColor = selectedClub?.id === club.id
+          ? '#e94560'
+          : isApproved
+            ? '#4caf50'
+            : isPending
+              ? '#ffc107'
+              : isRejected
+                ? '#e94560'
+                : '#0f3460'
         return (
           <div key={club.id}
-            style={{ ...cardStyle, cursor: isApproved ? 'pointer' : 'default', border: selectedClub?.id === club.id ? '1px solid #e94560' : '1px solid #0f3460' }}
+            style={{ ...cardStyle, cursor: isApproved ? 'pointer' : 'default', border: `2px solid ${borderColor}` }}
             onClick={() => isApproved && selectClub(club)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: '0 0 4px' }}>{club.name}</h3>
-                <p style={{ color: '#aaa', margin: 0 }}>{club.description}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 4, color: '#eee' }}>{club.name}</div>
+                <div style={{ color: '#aaa', fontSize: 14 }}>{club.description}</div>
               </div>
-              {user && !membership && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
-              {membership && <span style={{ color: membership.status === 'Approved' ? '#4caf50' : membership.status === 'Rejected' ? '#e94560' : '#ffc107', fontSize: 14 }}>{membership.status}{isApproved ? ' — нажмите для просмотра' : ''}</span>}
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {user && !membership && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
+                {isApproved && <span style={{ fontSize: 22 }} title="Одобрено">✅</span>}
+                {isPending && <span style={{ fontSize: 22 }} title="На рассмотрении">⏳</span>}
+                {isRejected && <span style={{ fontSize: 22 }} title="Отклонено">❌</span>}
+              </div>
             </div>
           </div>
         )
