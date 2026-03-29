@@ -24,7 +24,18 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        return Ok(new { club.Id, club.Name, club.Description });
+        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime });
+    }
+
+    [HttpPut("settings")]
+    public IActionResult UpdateSettings([FromBody] ClubSettingsRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        club.OpenTime = req.OpenTime;
+        club.CloseTime = req.CloseTime;
+        _db.SaveChanges();
+        return Ok(new { club.OpenTime, club.CloseTime });
     }
 
     [HttpGet("tables")]
@@ -152,3 +163,4 @@ public class ClubAdminController : ControllerBase
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height);
+public record ClubSettingsRequest(string OpenTime, string CloseTime);
