@@ -19,6 +19,15 @@ function extractTime(datetimeOrTime: string): string {
 
 const TIME_RE = /^(\d{2}):(\d{2})$/
 
+function snapTo15(time: string): string {
+  const match = TIME_RE.exec(time)
+  if (!match) return time
+  const h = parseInt(match[1], 10)
+  const m = parseInt(match[2], 10)
+  const snapped = Math.floor(m / 15) * 15
+  return `${String(h).padStart(2, '0')}:${String(snapped).padStart(2, '0')}`
+}
+
 function buildDatetime(date: Date, time: string): string | null {
   const match = TIME_RE.exec(time)
   if (!match) return null
@@ -35,8 +44,8 @@ function buildDatetime(date: Date, time: string): string | null {
 }
 
 export default function BookingForm({ table, token, onBooked, selectedDate, initialStartTime = '', initialEndTime = '' }: Props) {
-  const [startTime, setStartTime] = useState(() => extractTime(initialStartTime))
-  const [endTime, setEndTime] = useState(() => extractTime(initialEndTime))
+  const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
+  const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -48,6 +57,9 @@ export default function BookingForm({ table, token, onBooked, selectedDate, init
     const startDatetime = buildDatetime(selectedDate, startTime)
     const endDatetime = buildDatetime(selectedDate, endTime)
     if (!startDatetime || !endDatetime) { setError('Некорректный формат времени'); return }
+    const startMinutes = parseInt(TIME_RE.exec(startTime)?.[2] ?? '0', 10)
+    const endMinutes = parseInt(TIME_RE.exec(endTime)?.[2] ?? '0', 10)
+    if (startMinutes % 15 !== 0 || endMinutes % 15 !== 0) { setError('Минуты должны быть кратны 15 (00, 15, 30, 45)'); return }
     if (new Date(startDatetime) >= new Date(endDatetime)) { setError('Время окончания должно быть позже времени начала'); return }
     setLoading(true)
     setError('')
@@ -75,9 +87,9 @@ export default function BookingForm({ table, token, onBooked, selectedDate, init
       <h4>Book Table #{table.number}</h4>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
-        <input style={inputStyle} type="time" step={900} value={startTime} onChange={e => setStartTime(e.target.value)} />
+        <input style={inputStyle} type="time" step={900} value={startTime} onChange={e => setStartTime(snapTo15(e.target.value))} />
         <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
-        <input style={inputStyle} type="time" step={900} value={endTime} onChange={e => setEndTime(e.target.value)} />
+        <input style={inputStyle} type="time" step={900} value={endTime} onChange={e => setEndTime(snapTo15(e.target.value))} />
       </div>
       {games.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
