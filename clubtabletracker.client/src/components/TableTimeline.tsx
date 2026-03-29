@@ -11,6 +11,7 @@ interface Props {
   openTime: string
   closeTime: string
   selectedDate: Date
+  currentUserId?: string
   onSlotClick?: (table: GameTable, startMin: number, endMin: number) => void
   onBookingClick?: (booking: Booking) => void
   isSelected?: boolean
@@ -41,7 +42,7 @@ interface Segment {
   booking?: Booking
 }
 
-export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, onSlotClick, onBookingClick, isSelected }: Props) {
+export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected }: Props) {
   const openMin = parseHHMM(openTime)
   const closeMin = parseHHMM(closeTime)
   const totalMin = Math.max(closeMin - openMin, 1)
@@ -75,6 +76,8 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
           const top = ((seg.startMin - openMin) / totalMin) * RECT_HEIGHT
           const height = Math.max(((seg.endMin - seg.startMin) / totalMin) * RECT_HEIGHT, 1)
           const isFree = seg.type === 'free'
+          const isUserBooking = !isFree && seg.booking != null && currentUserId != null &&
+            (seg.booking.user.id === currentUserId || seg.booking.participants.some(p => p.id === currentUserId))
           return (
             <div
               key={i}
@@ -85,7 +88,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
               title={isFree ? `Свободно ${Math.floor(seg.startMin / 60)}:${String(seg.startMin % 60).padStart(2, '0')}–${Math.floor(seg.endMin / 60)}:${String(seg.endMin % 60).padStart(2, '0')}` : undefined}
               style={{
                 position: 'absolute', left: 0, right: 0, top, height,
-                background: isFree ? '#90ee90' : '#ffff00',
+                background: isFree ? '#90ee90' : isUserBooking ? '#ff8c00' : '#ffff00',
                 cursor: (isFree && onSlotClick) || (!isFree && onBookingClick) ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center', alignItems: 'center',
@@ -117,6 +120,11 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                   {seg.booking.participants[0] && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
                       {seg.booking.participants[0].name}
+                    </div>
+                  )}
+                  {table.supportedGames && height >= 36 && (
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center', fontStyle: 'italic' }}>
+                      {table.supportedGames}
                     </div>
                   )}
                 </>
