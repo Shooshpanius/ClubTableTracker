@@ -43,6 +43,8 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+const MAX_BOOKING_PLAYERS = 2
+
 export default function HomePage() {
   const isMobile = useIsMobile()
   const [user, setUser] = useState<User | null>(null)
@@ -138,7 +140,7 @@ export default function HomePage() {
     if (!user) return
     if (booking.user.id === user.id) return
     if (booking.participants.some(p => p.id === user.id)) return
-    if (booking.participants.length >= 1) return
+    if (booking.participants.length >= MAX_BOOKING_PLAYERS - 1) return
     if (!confirm(`Присоединиться к игре ${booking.user.name}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/join`, {
       method: 'POST',
