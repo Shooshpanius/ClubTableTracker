@@ -5,6 +5,23 @@ import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import { isGoogleConfigured } from '../googleConfig'
 
+function useIsMobile(breakpoint = 768): boolean {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= breakpoint)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [breakpoint])
+  return isMobile
+}
+
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 interface User { id: string; email: string; name: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
@@ -32,6 +49,7 @@ function formatDate(date: Date): string {
 }
 
 export default function HomePage() {
+  const isMobile = useIsMobile()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [clubs, setClubs] = useState<Club[]>([])
@@ -133,6 +151,7 @@ export default function HomePage() {
     setBookingEnd('')
   }
 
+  const [expandedTableId, setExpandedTableId] = useState<number | null>(null)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -144,7 +163,7 @@ export default function HomePage() {
   const RECT_HEIGHT = 360
 
   return (
-    <div style={{ padding: 40 }}>
+    <div style={{ padding: isMobile ? 16 : 40 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <h1 style={{ color: '#e94560', margin: 0 }}>🎲 ClubTableTracker</h1>
         {user ? (
@@ -190,50 +209,35 @@ export default function HomePage() {
         <div style={{ marginTop: 32 }}>
           <h2>📍 {selectedClub.name}</h2>
 
-          {/* Main layout: timeline + calendar */}
-          <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-            {/* Left: time scale + table timelines */}
-            <div style={{ flex: 1, overflowX: 'auto' }}>
-              {/* Selected date label */}
-              <div style={{ marginBottom: 12, color: '#ffc107', fontSize: 15, fontWeight: 'bold', textTransform: 'capitalize' }}>
-                {formatDate(selectedDate)}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                {/* Time scale */}
-                <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + 28, marginRight: 4 }}>
-                  {Array.from({ length: totalHours + 1 }, (_, i) => {
-                    const hour = openHour + i
-                    const top = (i / totalHours) * RECT_HEIGHT + 28 - 8
-                    return (
-                      <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
-                        {String(hour).padStart(2, '0')}:00
-                      </div>
-                    )
-                  })}
-                </div>
-                {/* Tables */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', whiteSpace: 'nowrap' }}>
-                  {tables.map(table => (
-                    <div key={table.id} onClick={() => handleTableHeaderClick(table)} style={{ cursor: 'pointer' }}>
-                      <TableTimeline
-                        table={table}
-                        bookings={bookings}
-                        openTime={selectedClub.openTime}
-                        closeTime={selectedClub.closeTime}
-                        selectedDate={selectedDate}
-                        onSlotClick={user ? handleSlotClick : undefined}
-                        isSelected={selectedTable?.id === table.id}
-                      />
-                    </div>
-                  ))}
-                  {tables.length === 0 && (
-                    <p style={{ color: '#aaa', marginLeft: 8 }}>Столы не настроены администратором клуба.</p>
-                  )}
-                </div>
+          {isMobile ? (
+            /* ===== MOBILE LAYOUT ===== */
+            <div>
+              {/* Date picker instead of calendar */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ color: '#ffc107', fontSize: 14, fontWeight: 'bold', display: 'block', marginBottom: 6 }}>
+                  📅 Выберите дату
+                </label>
+                <input
+                  type="date"
+                  value={toDateInputValue(selectedDate)}
+                  onChange={e => {
+                    const [y, m, d] = e.target.value.split('-').map(Number)
+                    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                      const newDate = new Date(y, m - 1, d)
+                      setSelectedDate(newDate)
+                      setSelectedTable(null)
+                    }
+                  }}
+                  style={{
+                    background: '#16213e', border: '1px solid #0f3460', borderRadius: 6,
+                    color: '#eee', padding: '8px 12px', fontSize: 15, width: '100%',
+                    boxSizing: 'border-box', cursor: 'pointer'
+                  }}
+                />
               </div>
 
               {/* Legend */}
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13 }}>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13, flexWrap: 'wrap' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 20, height: 14, background: '#90ee90', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                   Свободно
@@ -245,34 +249,167 @@ export default function HomePage() {
                 {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
               </div>
 
-              {/* Booking form */}
-              {selectedTable && user && (
-                <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 20, whiteSpace: 'normal' }}>
-                  <BookingForm
-                    key={`${selectedTable.id}-${bookingStart}-${bookingEnd}`}
-                    table={selectedTable}
-                    token={token}
-                    onBooked={onBookingCreated}
-                    initialStartTime={bookingStart}
-                    initialEndTime={bookingEnd}
-                  />
-                  <button style={{ ...btnStyle, background: '#555', marginTop: 8 }} onClick={() => setSelectedTable(null)}>Отмена</button>
-                </div>
+              {/* Accordion tables */}
+              {tables.length === 0 && (
+                <p style={{ color: '#aaa' }}>Столы не настроены администратором клуба.</p>
               )}
-            </div>
+              {tables.map(table => {
+                const isExpanded = expandedTableId === table.id
+                const isSelected = selectedTable?.id === table.id
+                return (
+                  <div key={table.id} style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+                    {/* Accordion header */}
+                    <button
+                      onClick={() => {
+                        setExpandedTableId(isExpanded ? null : table.id)
+                        handleTableHeaderClick(table)
+                      }}
+                      style={{
+                        width: '100%', background: isExpanded ? '#1a2a50' : '#16213e',
+                        border: 'none', borderBottom: isExpanded ? '1px solid #0f3460' : 'none',
+                        color: isSelected ? '#e94560' : '#eee',
+                        padding: '12px 16px', textAlign: 'left', cursor: 'pointer',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        fontSize: 15, fontWeight: 'bold'
+                      }}>
+                      <span>Стол {table.number}</span>
+                      <span style={{ fontSize: 12, color: '#aaa', fontWeight: 'normal' }}>
+                        {table.size} · {table.supportedGames}
+                      </span>
+                      <span style={{ fontSize: 18, color: '#888', marginLeft: 8 }}>{isExpanded ? '▲' : '▼'}</span>
+                    </button>
 
-            {/* Right: calendar */}
-            <div style={{ width: 220, flexShrink: 0 }}>
-              <BookingCalendar
-                bookings={bookings}
-                selectedDate={selectedDate}
-                onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
-              />
+                    {/* Accordion body */}
+                    {isExpanded && (
+                      <div style={{ padding: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                          {/* Time scale */}
+                          <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + 28, marginRight: 4 }}>
+                            {Array.from({ length: totalHours + 1 }, (_, i) => {
+                              const hour = openHour + i
+                              const top = (i / totalHours) * RECT_HEIGHT + 28 - 8
+                              return (
+                                <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
+                                  {String(hour).padStart(2, '0')}:00
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <TableTimeline
+                            table={table}
+                            bookings={bookings}
+                            openTime={selectedClub.openTime}
+                            closeTime={selectedClub.closeTime}
+                            selectedDate={selectedDate}
+                            onSlotClick={user ? handleSlotClick : undefined}
+                            isSelected={isSelected}
+                          />
+                        </div>
+
+                        {/* Booking form inside accordion */}
+                        {isSelected && user && (
+                          <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 16 }}>
+                            <BookingForm
+                              key={`${selectedTable!.id}-${bookingStart}-${bookingEnd}`}
+                              table={selectedTable!}
+                              token={token}
+                              onBooked={onBookingCreated}
+                              initialStartTime={bookingStart}
+                              initialEndTime={bookingEnd}
+                            />
+                            <button style={{ ...btnStyle, background: '#555', marginTop: 8 }} onClick={() => setSelectedTable(null)}>Отмена</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          ) : (
+            /* ===== DESKTOP LAYOUT ===== */
+            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+              {/* Left: time scale + table timelines */}
+              <div style={{ flex: 1, overflowX: 'auto' }}>
+                {/* Selected date label */}
+                <div style={{ marginBottom: 12, color: '#ffc107', fontSize: 15, fontWeight: 'bold', textTransform: 'capitalize' }}>
+                  {formatDate(selectedDate)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  {/* Time scale */}
+                  <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + 28, marginRight: 4 }}>
+                    {Array.from({ length: totalHours + 1 }, (_, i) => {
+                      const hour = openHour + i
+                      const top = (i / totalHours) * RECT_HEIGHT + 28 - 8
+                      return (
+                        <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
+                          {String(hour).padStart(2, '0')}:00
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {/* Tables */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', whiteSpace: 'nowrap' }}>
+                    {tables.map(table => (
+                      <div key={table.id} onClick={() => handleTableHeaderClick(table)} style={{ cursor: 'pointer' }}>
+                        <TableTimeline
+                          table={table}
+                          bookings={bookings}
+                          openTime={selectedClub.openTime}
+                          closeTime={selectedClub.closeTime}
+                          selectedDate={selectedDate}
+                          onSlotClick={user ? handleSlotClick : undefined}
+                          isSelected={selectedTable?.id === table.id}
+                        />
+                      </div>
+                    ))}
+                    {tables.length === 0 && (
+                      <p style={{ color: '#aaa', marginLeft: 8 }}>Столы не настроены администратором клуба.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 20, height: 14, background: '#90ee90', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                    Свободно
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 20, height: 14, background: '#ffff00', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                    Занято
+                  </span>
+                  {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
+                </div>
+
+                {/* Booking form */}
+                {selectedTable && user && (
+                  <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 20, whiteSpace: 'normal' }}>
+                    <BookingForm
+                      key={`${selectedTable.id}-${bookingStart}-${bookingEnd}`}
+                      table={selectedTable}
+                      token={token}
+                      onBooked={onBookingCreated}
+                      initialStartTime={bookingStart}
+                      initialEndTime={bookingEnd}
+                    />
+                    <button style={{ ...btnStyle, background: '#555', marginTop: 8 }} onClick={() => setSelectedTable(null)}>Отмена</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: calendar */}
+              <div style={{ width: 220, flexShrink: 0 }}>
+                <BookingCalendar
+                  bookings={bookings}
+                  selectedDate={selectedDate}
+                  onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
-
