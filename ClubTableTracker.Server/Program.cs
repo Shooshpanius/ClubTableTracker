@@ -45,11 +45,11 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.EnsureCreated();
+        db.Database.Migrate();
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Database initialization failed. The application will start, but database-dependent features may not work.");
+        logger.LogError(ex, "Database migration failed. The application will start, but database-dependent features may not work.");
     }
 }
 
