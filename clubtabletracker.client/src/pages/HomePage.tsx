@@ -356,6 +356,8 @@ export default function HomePage() {
                               selectedDate={selectedDate}
                               initialStartTime={bookingStart}
                               initialEndTime={bookingEnd}
+                              openTime={selectedClub.openTime}
+                              closeTime={selectedClub.closeTime}
                             />
                           </div>
                         )}
@@ -435,6 +437,8 @@ export default function HomePage() {
                       selectedDate={selectedDate}
                       initialStartTime={bookingStart}
                       initialEndTime={bookingEnd}
+                      openTime={selectedClub.openTime}
+                      closeTime={selectedClub.closeTime}
                     />
                   </div>
                 )}
