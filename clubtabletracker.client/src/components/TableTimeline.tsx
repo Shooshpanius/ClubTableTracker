@@ -89,6 +89,22 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                 padding: '2px 4px', boxSizing: 'border-box',
                 borderBottom: i < segments.length - 1 ? '1px solid rgba(0,0,0,0.15)' : 'none'
               }}>
+              {isFree && (() => {
+                const lines = []
+                const firstHour = Math.ceil((seg.startMin + 1) / 60) * 60
+                for (let h = firstHour; h < seg.endMin; h += 60) {
+                  const lineTop = ((h - seg.startMin) / (seg.endMin - seg.startMin)) * height
+                  lines.push(
+                    <div key={h} style={{
+                      position: 'absolute', left: 0, right: 0,
+                      top: lineTop, height: 1,
+                      background: 'rgba(0,0,0,0.25)',
+                      pointerEvents: 'none'
+                    }} />
+                  )
+                }
+                return lines
+              })()}
               {!isFree && seg.booking && height >= 24 && (
                 <>
                   <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
