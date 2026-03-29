@@ -136,10 +136,27 @@ export default function HomePage() {
     setSelectedTable(null)
   }
 
+  const leaveBooking = async (booking: Booking) => {
+    if (!confirm(`Выйти из игры ${booking.user.name}?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/leave`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось выйти из игры')
+    }
+  }
+
   const joinBooking = async (booking: Booking) => {
     if (!user) return
     if (booking.user.id === user.id) return
-    if (booking.participants.some(p => p.id === user.id)) return
+    if (booking.participants.some(p => p.id === user.id)) {
+      await leaveBooking(booking)
+      return
+    }
     if (booking.participants.length >= MAX_BOOKING_PLAYERS - 1) return
     if (!confirm(`Присоединиться к игре ${booking.user.name}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/join`, {
