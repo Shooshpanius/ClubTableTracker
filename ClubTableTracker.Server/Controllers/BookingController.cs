@@ -58,6 +58,21 @@ public class BookingController : ControllerBase
         var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == table.ClubId && m.Status == "Approved");
         if (!isMember) return Forbid();
 
+        // Validate booking falls within club working hours
+        var club = _db.Clubs.Find(table.ClubId);
+        if (club == null) return NotFound("Club not found");
+
+        if (!TimeSpan.TryParse(club.OpenTime, out var openSpan) || !TimeSpan.TryParse(club.CloseTime, out var closeSpan))
+            return BadRequest("Некорректная конфигурация рабочего времени клуба");
+
+        int openMinutes = (int)openSpan.TotalMinutes;
+        int closeMinutes = (int)closeSpan.TotalMinutes;
+        int startMinOfDay = req.StartTime.Hour * 60 + req.StartTime.Minute;
+        int endMinOfDay = req.EndTime.Hour * 60 + req.EndTime.Minute;
+
+        if (startMinOfDay < openMinutes || endMinOfDay > closeMinutes)
+            return BadRequest($"Время бронирования должно быть в рамках рабочего времени клуба ({club.OpenTime}–{club.CloseTime})");
+
         // Check for time conflicts (no overlapping bookings allowed; touching boundaries are OK)
         var hasConflict = _db.Bookings
             .Any(b => b.TableId == req.TableId &&
