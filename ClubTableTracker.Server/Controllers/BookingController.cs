@@ -58,16 +58,13 @@ public class BookingController : ControllerBase
         var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == table.ClubId && m.Status == "Approved");
         if (!isMember) return Forbid();
 
-        // Check for conflicts (max 2 players simultaneously)
-        var overlapping = _db.Bookings
-            .Include(b => b.Participants)
-            .Where(b => b.TableId == req.TableId &&
-                        b.StartTime < req.EndTime &&
-                        b.EndTime > req.StartTime)
-            .ToList();
+        // Check for time conflicts (no overlapping bookings allowed; touching boundaries are OK)
+        var hasConflict = _db.Bookings
+            .Any(b => b.TableId == req.TableId &&
+                      b.StartTime < req.EndTime &&
+                      b.EndTime > req.StartTime);
 
-        var totalPlayers = overlapping.Sum(b => 1 + b.Participants.Count);
-        if (totalPlayers >= 2) return BadRequest("Table is full for this time slot (max 2 players)");
+        if (hasConflict) return BadRequest("Table is already booked during the requested time period. Please choose a different time slot.");
 
         var booking = new Booking
         {
