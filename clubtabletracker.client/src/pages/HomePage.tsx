@@ -134,6 +134,24 @@ export default function HomePage() {
     setSelectedTable(null)
   }
 
+  const joinBooking = async (booking: Booking) => {
+    if (!user) return
+    if (booking.user.id === user.id) return
+    if (booking.participants.some(p => p.id === user.id)) return
+    if (booking.participants.length >= 1) return
+    if (!confirm(`Присоединиться к игре ${booking.user.name}?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/join`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось присоединиться')
+    }
+  }
+
   const handleSlotClick = (table: GameTable, startMin: number, endMin: number) => {
     setSelectedTable(table)
     setBookingStart(toDatetimeLocal(selectedDate, startMin))
@@ -301,6 +319,7 @@ export default function HomePage() {
                             closeTime={selectedClub.closeTime}
                             selectedDate={selectedDate}
                             onSlotClick={user ? handleSlotClick : undefined}
+                            onBookingClick={user ? joinBooking : undefined}
                             isSelected={isSelected}
                           />
                         </div>
@@ -359,6 +378,7 @@ export default function HomePage() {
                           closeTime={selectedClub.closeTime}
                           selectedDate={selectedDate}
                           onSlotClick={user ? handleSlotClick : undefined}
+                          onBookingClick={user ? joinBooking : undefined}
                           isSelected={selectedTable?.id === table.id}
                         />
                       </div>
