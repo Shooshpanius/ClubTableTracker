@@ -261,8 +261,9 @@ export default function HomePage() {
                     {/* Accordion header */}
                     <button
                       onClick={() => {
-                        setExpandedTableId(isExpanded ? null : table.id)
-                        handleTableHeaderClick(table)
+                        const expanding = !isExpanded
+                        setExpandedTableId(expanding ? table.id : null)
+                        if (expanding) handleTableHeaderClick(table)
                       }}
                       style={{
                         width: '100%', background: isExpanded ? '#1a2a50' : '#16213e',
@@ -310,8 +311,8 @@ export default function HomePage() {
                         {isSelected && user && (
                           <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 16 }}>
                             <BookingForm
-                              key={`${selectedTable!.id}-${bookingStart}-${bookingEnd}`}
-                              table={selectedTable!}
+                              key={`${table.id}-${bookingStart}-${bookingEnd}`}
+                              table={table}
                               token={token}
                               onBooked={onBookingCreated}
                               initialStartTime={bookingStart}
