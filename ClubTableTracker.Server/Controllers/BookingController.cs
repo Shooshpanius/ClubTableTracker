@@ -106,6 +106,20 @@ public class BookingController : ControllerBase
         return Ok();
     }
 
+    [HttpDelete("{id}/leave")]
+    public IActionResult LeaveBooking(int id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var participant = _db.BookingParticipants.FirstOrDefault(p => p.BookingId == id && p.UserId == userId);
+        if (participant == null) return NotFound();
+
+        _db.BookingParticipants.Remove(participant);
+        _db.SaveChanges();
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public IActionResult DeleteBooking(int id)
     {
