@@ -21,7 +21,7 @@ interface User { id: string; email: string; name: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
-interface Booking { id: number; tableId: number; startTime: string; endTime: string; user: { id: string; name: string }; participants: { id: string; name: string }[] }
+interface Booking { id: number; tableId: number; startTime: string; endTime: string; gameSystem?: string; user: { id: string; name: string }; participants: { id: string; name: string }[] }
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)

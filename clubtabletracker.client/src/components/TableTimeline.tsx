@@ -1,5 +1,6 @@
 interface Booking {
   id: number; tableId: number; startTime: string; endTime: string
+  gameSystem?: string
   user: { id: string; name: string }
   participants: { id: string; name: string }[]
 }
@@ -122,9 +123,9 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                       {seg.booking.participants[0].name}
                     </div>
                   )}
-                  {table.supportedGames && height >= 36 && (
+                  {seg.booking.gameSystem && height >= 36 && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center', fontStyle: 'italic' }}>
-                      {table.supportedGames}
+                      {seg.booking.gameSystem}
                     </div>
                   )}
                 </>
