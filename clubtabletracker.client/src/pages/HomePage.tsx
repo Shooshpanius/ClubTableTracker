@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
+import { useNavigate } from 'react-router-dom'
 import BookingForm from '../components/BookingForm'
 import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
@@ -17,7 +18,7 @@ function useIsMobile(breakpoint = 768): boolean {
 }
 
 
-interface User { id: string; email: string; name: string }
+interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
@@ -63,6 +64,7 @@ const LOG_ACTION_COLOR: Record<string, string> = {
 
 export default function HomePage() {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [clubs, setClubs] = useState<Club[]>([])
@@ -87,11 +89,16 @@ export default function HomePage() {
         atob(base64).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
       )
       const payload = JSON.parse(jsonPayload)
-      setUser({
+      const baseUser = {
         id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
         email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
         name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
-      })
+      }
+      setUser(baseUser)
+      fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(data => setUser(u => u ? { ...u, displayName: data.displayName || undefined } : u))
+        .catch(err => console.error('Failed to load user profile:', err))
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))
     }
@@ -264,7 +271,8 @@ export default function HomePage() {
         </div>
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexWrap: 'wrap' }}>
-            <span style={{ color: '#aaa', fontSize: isMobile ? 13 : 14 }}>👤 {user.name}</span>
+            <span style={{ color: '#aaa', fontSize: isMobile ? 13 : 14 }}>👤 {user.displayName || user.name}</span>
+            <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => navigate('/settings')}>⚙️</button>
             <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Выйти</button>
           </div>
         ) : (

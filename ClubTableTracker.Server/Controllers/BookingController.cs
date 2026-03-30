@@ -37,8 +37,8 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
-                User = new { b.User.Id, b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
+                User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
         return Ok(bookings);
@@ -69,8 +69,8 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
-                User = new { b.User.Id, b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
+                User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
         return Ok(bookings);
@@ -104,8 +104,8 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
-                User = new { b.User.Id, b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
+                User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
         return Ok(bookings);
@@ -132,7 +132,7 @@ public class BookingController : ControllerBase
                 l.Id,
                 l.Timestamp,
                 l.Action,
-                UserName = l.User.Name,
+                UserName = l.User.DisplayName ?? l.User.Name,
                 l.TableNumber,
                 l.ClubId,
                 l.BookingStartTime,
