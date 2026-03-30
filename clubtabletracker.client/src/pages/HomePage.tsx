@@ -21,7 +21,10 @@ interface User { id: string; email: string; name: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
-interface Booking { id: number; tableId: number; startTime: string; endTime: string; gameSystem?: string; user: { id: string; name: string }; participants: { id: string; name: string }[] }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string }[] }
+interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
+interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
+interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -44,6 +47,19 @@ function formatDate(date: Date): string {
 }
 
 const MAX_BOOKING_PLAYERS = 2
+
+const LOG_ACTION_LABEL: Record<string, string> = {
+  Booked: 'зарезервировал',
+  Joined: 'присоединился к',
+  Left: 'вышел из',
+  Cancelled: 'отменил'
+}
+const LOG_ACTION_COLOR: Record<string, string> = {
+  Booked: '#4caf50',
+  Joined: '#2196f3',
+  Left: '#ffc107',
+  Cancelled: '#e94560'
+}
 
 export default function HomePage() {
   const isMobile = useIsMobile()
@@ -102,6 +118,9 @@ export default function HomePage() {
     setUser(null)
     setMemberships([])
     setSelectedClub(null)
+    setUpcomingMyBookings([])
+    setUpcomingAllBookings([])
+    setActivityLog([])
   }
 
   const applyToClub = async (clubId: number) => {
@@ -134,9 +153,24 @@ export default function HomePage() {
     const res = await fetch(`/api/booking/club/${selectedClub.id}`, { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) setBookings(await res.json())
     setSelectedTable(null)
+    await loadUpcoming()
   }
 
-  const leaveBooking = async (booking: Booking) => {
+  const loadUpcoming = async () => {
+    const [myRes, allRes] = await Promise.all([
+      fetch('/api/booking/my-upcoming', { headers: { Authorization: `Bearer ${token}` } }),
+      fetch('/api/booking/upcoming-all', { headers: { Authorization: `Bearer ${token}` } })
+    ])
+    if (myRes.ok) setUpcomingMyBookings(await myRes.json())
+    if (allRes.ok) setUpcomingAllBookings(await allRes.json())
+  }
+
+  const loadActivityLog = async () => {
+    const res = await fetch('/api/booking/activity-log', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) setActivityLog(await res.json())
+  }
+
+  const leaveBooking = async (booking: BookingBase) => {
     if (!confirm(`Выйти из игры ${booking.user.name}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/leave`, {
       method: 'DELETE',
@@ -150,9 +184,30 @@ export default function HomePage() {
     }
   }
 
+  const cancelBooking = async (booking: BookingBase) => {
+    const hasParticipants = booking.participants.length > 0
+    const msg = hasParticipants
+      ? `Выйти из игры? Бронь будет передана игроку ${booking.participants[0].name}.`
+      : 'Отменить бронирование стола?'
+    if (!confirm(msg)) return
+    const res = await fetch(`/api/booking/${booking.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка при отмене бронирования')
+    }
+  }
+
   const joinBooking = async (booking: Booking) => {
     if (!user) return
-    if (booking.user.id === user.id) return
+    if (booking.user.id === user.id) {
+      await cancelBooking(booking)
+      return
+    }
     if (booking.participants.some(p => p.id === user.id)) {
       await leaveBooking(booking)
       return
@@ -184,6 +239,12 @@ export default function HomePage() {
   }
 
   const [expandedTableId, setExpandedTableId] = useState<number | null>(null)
+  const [upcomingMyBookings, setUpcomingMyBookings] = useState<UpcomingBooking[]>([])
+  const [upcomingAllBookings, setUpcomingAllBookings] = useState<UpcomingBooking[]>([])
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
+  const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
+  const [showUpcoming, setShowUpcoming] = useState(false)
+  const [showLog, setShowLog] = useState(false)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -254,6 +315,123 @@ export default function HomePage() {
           </div>
         )
       })}
+
+      {user && memberships.some(m => m.status === 'Approved') && (
+        <>
+          <div style={{ display: 'flex', gap: 12, marginTop: 32, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              style={{ ...btnStyle, background: showUpcoming ? '#e94560' : '#533483' }}
+              onClick={async () => {
+                if (!showUpcoming) await loadUpcoming()
+                setShowUpcoming(v => !v)
+              }}>
+              📅 Предстоящие игры
+            </button>
+            <button
+              style={{ ...btnStyle, background: showLog ? '#e94560' : '#533483' }}
+              onClick={async () => {
+                if (!showLog) await loadActivityLog()
+                setShowLog(v => !v)
+              }}>
+              📋 Журнал действий
+            </button>
+          </div>
+
+          {showUpcoming && (
+            <div style={{ ...cardStyle, marginBottom: 24 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <button
+                  style={{ ...btnStyle, background: upcomingTab === 'my' ? '#e94560' : '#0f3460', marginRight: 0 }}
+                  onClick={() => setUpcomingTab('my')}>
+                  Мои игры
+                </button>
+                <button
+                  style={{ ...btnStyle, background: upcomingTab === 'all' ? '#e94560' : '#0f3460', marginRight: 0 }}
+                  onClick={() => setUpcomingTab('all')}>
+                  Все игры
+                </button>
+              </div>
+              {(() => {
+                const list = upcomingTab === 'my' ? upcomingMyBookings : upcomingAllBookings
+                if (list.length === 0) return <p style={{ color: '#aaa', margin: 0 }}>Нет предстоящих игр</p>
+                // Group by date
+                const grouped: Record<string, UpcomingBooking[]> = {}
+                for (const b of list) {
+                  const d = new Date(b.startTime)
+                  const key = d.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                  if (!grouped[key]) grouped[key] = []
+                  grouped[key].push(b)
+                }
+                return Object.entries(grouped).map(([dateLabel, items]) => (
+                  <div key={dateLabel} style={{ marginBottom: 16 }}>
+                    <div style={{ color: '#ffc107', fontWeight: 'bold', marginBottom: 6, textTransform: 'capitalize' }}>{dateLabel}</div>
+                    {items.map(b => {
+                      const start = new Date(b.startTime)
+                      const end = new Date(b.endTime)
+                      const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                      const isOwner = b.user.id === user.id
+                      const isParticipant = b.participants.some(p => p.id === user.id)
+                      return (
+                        <div key={b.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          <div>
+                            <span style={{ color: '#eee', fontWeight: 'bold' }}>Стол {b.tableNumber}</span>
+                            <span style={{ color: '#aaa', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
+                            <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
+                            {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
+                            <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
+                              {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => p.name).join(', ')}`}
+                              {isOwner && <span style={{ color: '#ff8c00', marginLeft: 6 }}>(организатор)</span>}
+                              {isParticipant && !isOwner && <span style={{ color: '#4caf50', marginLeft: 6 }}>(участник)</span>}
+                            </div>
+                          </div>
+                          {(isOwner || isParticipant) && (
+                            <button
+                              style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                              onClick={() => isOwner ? cancelBooking(b) : leaveBooking(b)}>
+                              Выйти
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))
+              })()}
+            </div>
+          )}
+
+          {showLog && (
+            <div style={{ ...cardStyle, marginBottom: 24 }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Журнал за последний месяц</h3>
+              {activityLog.length === 0 ? (
+                <p style={{ color: '#aaa', margin: 0 }}>Нет записей за последний месяц</p>
+              ) : (
+                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {activityLog.map(entry => {
+                    const ts = new Date(entry.timestamp)
+                    const start = new Date(entry.bookingStartTime)
+                    const end = new Date(entry.bookingEndTime)
+                    const fmtDt = (d: Date) => d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                    return (
+                      <div key={entry.id} style={{ fontSize: 13, padding: '5px 0', borderBottom: '1px solid #1a2a4a', color: '#ccc' }}>
+                        <span style={{ color: '#666', marginRight: 8 }}>{fmtDt(ts)}</span>
+                        <span style={{ color: '#eee', fontWeight: 'bold' }}>{entry.userName}</span>
+                        {' '}
+                        <span style={{ color: LOG_ACTION_COLOR[entry.action] || '#aaa' }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
+                        {' резерв стола '}
+                        <span style={{ color: '#ffc107' }}>{entry.tableNumber}</span>
+                        {' на '}
+                        <span style={{ color: '#4caf50' }}>{fmtDt(start).split(',')[0]} {fmtTime(start)}–{fmtTime(end)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {selectedClub && (
         <div style={{ marginTop: 32 }}>

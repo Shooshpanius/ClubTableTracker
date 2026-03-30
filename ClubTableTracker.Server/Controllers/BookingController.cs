@@ -13,6 +13,7 @@ namespace ClubTableTracker.Server.Controllers;
 public class BookingController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private const int MaxBookingDaysAhead = 30;
 
     public BookingController(AppDbContext db) => _db = db;
 
@@ -43,6 +44,104 @@ public class BookingController : ControllerBase
         return Ok(bookings);
     }
 
+    [HttpGet("my-upcoming")]
+    public IActionResult GetMyUpcoming()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var now = DateTime.UtcNow;
+        var bookings = _db.Bookings
+            .Include(b => b.User)
+            .Include(b => b.Table).ThenInclude(t => t.Club)
+            .Include(b => b.Participants).ThenInclude(p => p.User)
+            .Where(b => b.EndTime > now &&
+                        (b.UserId == userId || b.Participants.Any(p => p.UserId == userId)) &&
+                        _db.Memberships.Any(m => m.UserId == userId && m.ClubId == b.Table.ClubId && m.Status == "Approved"))
+            .OrderBy(b => b.StartTime)
+            .Select(b => new
+            {
+                b.Id,
+                b.TableId,
+                TableNumber = b.Table.Number,
+                ClubName = b.Table.Club.Name,
+                ClubId = b.Table.ClubId,
+                b.StartTime,
+                b.EndTime,
+                b.GameSystem,
+                User = new { b.User.Id, b.User.Name },
+                Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
+            })
+            .ToList();
+        return Ok(bookings);
+    }
+
+    [HttpGet("upcoming-all")]
+    public IActionResult GetUpcomingAll()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var approvedClubIds = _db.Memberships
+            .Where(m => m.UserId == userId && m.Status == "Approved")
+            .Select(m => m.ClubId)
+            .ToList();
+
+        var now = DateTime.UtcNow;
+        var bookings = _db.Bookings
+            .Include(b => b.User)
+            .Include(b => b.Table).ThenInclude(t => t.Club)
+            .Include(b => b.Participants).ThenInclude(p => p.User)
+            .Where(b => b.EndTime > now && approvedClubIds.Contains(b.Table.ClubId))
+            .OrderBy(b => b.StartTime)
+            .Select(b => new
+            {
+                b.Id,
+                b.TableId,
+                TableNumber = b.Table.Number,
+                ClubName = b.Table.Club.Name,
+                ClubId = b.Table.ClubId,
+                b.StartTime,
+                b.EndTime,
+                b.GameSystem,
+                User = new { b.User.Id, b.User.Name },
+                Participants = b.Participants.Select(p => new { p.User.Id, p.User.Name })
+            })
+            .ToList();
+        return Ok(bookings);
+    }
+
+    [HttpGet("activity-log")]
+    public IActionResult GetActivityLog()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var approvedClubIds = _db.Memberships
+            .Where(m => m.UserId == userId && m.Status == "Approved")
+            .Select(m => m.ClubId)
+            .ToList();
+
+        var since = DateTime.UtcNow.AddMonths(-1);
+        var logs = _db.BookingLogs
+            .Include(l => l.User)
+            .Where(l => l.Timestamp >= since && approvedClubIds.Contains(l.ClubId))
+            .OrderByDescending(l => l.Timestamp)
+            .Select(l => new
+            {
+                l.Id,
+                l.Timestamp,
+                l.Action,
+                UserName = l.User.Name,
+                l.TableNumber,
+                l.ClubId,
+                l.BookingStartTime,
+                l.BookingEndTime
+            })
+            .ToList();
+        return Ok(logs);
+    }
+
     [HttpPost]
     public IActionResult CreateBooking([FromBody] CreateBookingRequest req)
     {
@@ -51,6 +150,8 @@ public class BookingController : ControllerBase
 
         if (req.StartTime >= req.EndTime) return BadRequest("End time must be after start time");
         if (req.StartTime < DateTime.UtcNow) return BadRequest("Booking must be in the future");
+        if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
+            return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
 
         var table = _db.GameTables.Find(req.TableId);
         if (table == null) return NotFound("Table not found");
@@ -91,6 +192,20 @@ public class BookingController : ControllerBase
         };
         _db.Bookings.Add(booking);
         _db.SaveChanges();
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Booked",
+            UserId = userId,
+            BookingId = booking.Id,
+            TableNumber = table.Number,
+            ClubId = table.ClubId,
+            BookingStartTime = req.StartTime,
+            BookingEndTime = req.EndTime
+        });
+        _db.SaveChanges();
+
         return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
     }
 
@@ -117,6 +232,19 @@ public class BookingController : ControllerBase
 
         var participant = new BookingParticipant { BookingId = id, UserId = userId };
         _db.BookingParticipants.Add(participant);
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Joined",
+            UserId = userId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = booking.Table.ClubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        });
+
         _db.SaveChanges();
         return Ok();
     }
@@ -130,7 +258,25 @@ public class BookingController : ControllerBase
         var participant = _db.BookingParticipants.FirstOrDefault(p => p.BookingId == id && p.UserId == userId);
         if (participant == null) return NotFound();
 
+        var booking = _db.Bookings.Include(b => b.Table).FirstOrDefault(b => b.Id == id);
+
         _db.BookingParticipants.Remove(participant);
+
+        if (booking != null)
+        {
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = DateTime.UtcNow,
+                Action = "Left",
+                UserId = userId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = booking.Table.ClubId,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+        }
+
         _db.SaveChanges();
         return NoContent();
     }
@@ -139,12 +285,44 @@ public class BookingController : ControllerBase
     public IActionResult DeleteBooking(int id)
     {
         var userId = GetUserId();
-        var booking = _db.Bookings.FirstOrDefault(b => b.Id == id && b.UserId == userId);
+        if (userId == null) return Unauthorized();
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id && b.UserId == userId);
         if (booking == null) return NotFound();
-        _db.Bookings.Remove(booking);
-        _db.SaveChanges();
+
+        var log = new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Cancelled",
+            UserId = userId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = booking.Table.ClubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        };
+
+        if (booking.Participants.Count > 0)
+        {
+            // Transfer booking ownership to the first participant
+            var firstParticipant = booking.Participants.OrderBy(p => p.Id).First();
+            booking.UserId = firstParticipant.UserId;
+            _db.BookingParticipants.Remove(firstParticipant);
+            _db.BookingLogs.Add(log);
+            _db.SaveChanges();
+        }
+        else
+        {
+            _db.BookingLogs.Add(log);
+            _db.Bookings.Remove(booking);
+            _db.SaveChanges();
+        }
+
         return NoContent();
     }
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null);
+
