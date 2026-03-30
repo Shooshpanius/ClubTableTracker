@@ -77,4 +77,20 @@ public class ClubController : ControllerBase
             .ToList();
         return Ok(memberships);
     }
+
+    [HttpGet("{id}/members")]
+    [Authorize]
+    public IActionResult GetClubMembers(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == id && m.Status == "Approved");
+        if (!isMember) return Forbid();
+
+        var members = _db.Memberships
+            .Include(m => m.User)
+            .Where(m => m.ClubId == id && m.Status == "Approved" && m.UserId != userId)
+            .Select(m => new { m.User.Id, Name = m.User.DisplayName ?? m.User.Name })
+            .ToList();
+        return Ok(members);
+    }
 }

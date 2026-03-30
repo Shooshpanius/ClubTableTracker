@@ -38,7 +38,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -70,7 +70,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -105,7 +105,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -193,6 +193,21 @@ public class BookingController : ControllerBase
         _db.Bookings.Add(booking);
         _db.SaveChanges();
 
+        // Если указан оппонент — создаём приглашение
+        if (!string.IsNullOrEmpty(req.InvitedUserId) && req.InvitedUserId != userId)
+        {
+            var isInviteeMember = _db.Memberships.Any(m => m.UserId == req.InvitedUserId && m.ClubId == table.ClubId && m.Status == "Approved");
+            if (isInviteeMember)
+            {
+                _db.BookingParticipants.Add(new BookingParticipant
+                {
+                    BookingId = booking.Id,
+                    UserId = req.InvitedUserId,
+                    Status = "Invited"
+                });
+            }
+        }
+
         _db.BookingLogs.Add(new BookingLog
         {
             Timestamp = DateTime.UtcNow,
@@ -227,10 +242,10 @@ public class BookingController : ControllerBase
         if (booking.UserId == userId || booking.Participants.Any(p => p.UserId == userId))
             return BadRequest("Already in this booking");
 
-        if (1 + booking.Participants.Count >= 2)
+        if (1 + booking.Participants.Count(p => p.Status == "Accepted") >= 2)
             return BadRequest("Booking is full (max 2 players)");
 
-        var participant = new BookingParticipant { BookingId = id, UserId = userId };
+        var participant = new BookingParticipant { BookingId = id, UserId = userId, Status = "Accepted" };
         _db.BookingParticipants.Add(participant);
 
         _db.BookingLogs.Add(new BookingLog
@@ -304,17 +319,22 @@ public class BookingController : ControllerBase
             BookingEndTime = booking.EndTime
         };
 
-        if (booking.Participants.Count > 0)
+        // Передаём владение только принятым участникам (Status == "Accepted")
+        var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted").OrderBy(p => p.Id).ToList();
+        if (acceptedParticipants.Count > 0)
         {
-            // Transfer booking ownership to the first participant
-            var firstParticipant = booking.Participants.OrderBy(p => p.Id).First();
-            booking.UserId = firstParticipant.UserId;
-            _db.BookingParticipants.Remove(firstParticipant);
+            var newOwner = acceptedParticipants.First();
+            booking.UserId = newOwner.UserId;
+            _db.BookingParticipants.Remove(newOwner);
+            // Оставшихся приглашённых (не принятых) удаляем — владелец покидает игру
+            var invitedParticipants = booking.Participants.Where(p => p.Status == "Invited").ToList();
+            _db.BookingParticipants.RemoveRange(invitedParticipants);
             _db.BookingLogs.Add(log);
             _db.SaveChanges();
         }
         else
         {
+            // Нет принятых участников — удаляем бронирование полностью
             _db.BookingLogs.Add(log);
             _db.Bookings.Remove(booking);
             _db.SaveChanges();
@@ -322,7 +342,83 @@ public class BookingController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpDelete("{id}/annul")]
+    public IActionResult AnnulBooking(int id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id && b.UserId == userId);
+        if (booking == null) return NotFound();
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Cancelled",
+            UserId = userId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = booking.Table.ClubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        });
+
+        _db.Bookings.Remove(booking); // Cascade удалит всех участников
+        _db.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpPost("{id}/accept-invite")]
+    public IActionResult AcceptInvite(int id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var participant = _db.BookingParticipants
+            .Include(p => p.Booking).ThenInclude(b => b.Table)
+            .FirstOrDefault(p => p.BookingId == id && p.UserId == userId && p.Status == "Invited");
+        if (participant == null) return NotFound();
+
+        // Убедимся, что место ещё свободно
+        var acceptedCount = _db.BookingParticipants.Count(p => p.BookingId == id && p.Status == "Accepted");
+        if (1 + acceptedCount >= 2)
+            return BadRequest("Booking is full (max 2 players)");
+
+        participant.Status = "Accepted";
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Joined",
+            UserId = userId,
+            BookingId = id,
+            TableNumber = participant.Booking.Table.Number,
+            ClubId = participant.Booking.Table.ClubId,
+            BookingStartTime = participant.Booking.StartTime,
+            BookingEndTime = participant.Booking.EndTime
+        });
+
+        _db.SaveChanges();
+        return Ok();
+    }
+
+    [HttpDelete("{id}/decline-invite")]
+    public IActionResult DeclineInvite(int id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var participant = _db.BookingParticipants
+            .FirstOrDefault(p => p.BookingId == id && p.UserId == userId && p.Status == "Invited");
+        if (participant == null) return NotFound();
+
+        _db.BookingParticipants.Remove(participant);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
-public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null);
-
+public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, string? InvitedUserId = null);
