@@ -87,7 +87,7 @@ public class AuthController : ControllerBase
         }
 
         var jwt = GenerateJwt(user!);
-        return Ok(new { token = jwt, user = new { user.Id, user.Email, user.Name } });
+        return Ok(new { token = jwt, user = new { user.Id, user.Email, user.Name, user.DisplayName } });
     }
 
     private string GenerateJwt(AppUser user)
