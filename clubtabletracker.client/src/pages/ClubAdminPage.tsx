@@ -98,6 +98,13 @@ export default function ClubAdminPage() {
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: action === 'approve' ? 'Approved' : 'Rejected' } : m))
   }
 
+  const kickMember = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/memberships/${id}/kick`, {
+      method: 'POST', headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: 'Kicked' } : m))
+  }
+
   const saveSettings = async () => {
     const res = await fetch('/api/clubadmin/settings', {
       method: 'PUT',
@@ -121,6 +128,14 @@ export default function ClubAdminPage() {
     })
     if (res.ok) { const t = await res.json(); setTables(tables.map(x => x.id === t.id ? t : x)) }
   }
+
+  const membershipStatusColor = (status: string) => {
+    if (status === 'Approved') return '#4caf50'
+    if (status === 'Rejected') return '#e94560'
+    if (status === 'Kicked') return '#ff5722'
+    return '#ffc107'
+  }
+  const membershipStatusLabel = (status: string) => status === 'Kicked' ? 'Исключён' : status
 
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const inputStyle: React.CSSProperties = { background: '#0f3460', border: '1px solid #533483', color: '#eee', padding: '8px 12px', borderRadius: 4, marginRight: 8, marginBottom: 8 }
@@ -211,12 +226,17 @@ export default function ClubAdminPage() {
               <div>
                 <strong>{m.user.name}</strong> ({m.user.email})
                 <div style={{ color: '#aaa', fontSize: 13 }}>Applied: {new Date(m.appliedAt).toLocaleDateString()}</div>
-                <div style={{ color: m.status === 'Approved' ? '#4caf50' : m.status === 'Rejected' ? '#e94560' : '#ffc107' }}>{m.status}</div>
+                <div style={{ color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</div>
               </div>
               {m.status === 'Pending' && (
                 <div>
                   <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => updateMembership(m.id, 'approve')}>Approve</button>
                   <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => updateMembership(m.id, 'reject')}>Reject</button>
+                </div>
+              )}
+              {m.status === 'Approved' && (
+                <div>
+                  <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                 </div>
               )}
             </div>

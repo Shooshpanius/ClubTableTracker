@@ -137,7 +137,12 @@ export default function HomePage() {
     if (res.ok) {
       const data = await res.json()
       const club = clubs.find(c => c.id === clubId)!
-      setMemberships([...memberships, { id: data.id, status: data.status, club }])
+      const existing = memberships.find(m => m.club.id === clubId)
+      if (existing) {
+        setMemberships(memberships.map(m => m.club.id === clubId ? { ...m, id: data.id, status: data.status } : m))
+      } else {
+        setMemberships([...memberships, { id: data.id, status: data.status, club }])
+      }
     } else {
       const text = await res.text()
       alert(text || 'Failed to apply')
@@ -295,13 +300,14 @@ export default function HomePage() {
         const isApproved = membership?.status === 'Approved'
         const isPending = membership?.status === 'Pending'
         const isRejected = membership?.status === 'Rejected'
+        const isKicked = membership?.status === 'Kicked'
         const borderColor = selectedClub?.id === club.id
           ? '#e94560'
           : isApproved
             ? '#4caf50'
             : isPending
               ? '#ffc107'
-              : isRejected
+              : isRejected || isKicked
                 ? '#e94560'
                 : '#0f3460'
         return (
@@ -314,10 +320,11 @@ export default function HomePage() {
                 <div style={{ color: '#aaa', fontSize: 14 }}>{club.description}</div>
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                {user && !membership && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
+                {user && (!membership || isKicked) && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
                 {isApproved && <span style={{ fontSize: 22 }} title="Одобрено">✅</span>}
                 {isPending && <span style={{ fontSize: 22 }} title="На рассмотрении">⏳</span>}
                 {isRejected && <span style={{ fontSize: 22 }} title="Отклонено">❌</span>}
+                {isKicked && <span style={{ fontSize: 22 }} title="Исключён">🚫</span>}
               </div>
             </div>
           </div>

@@ -160,6 +160,77 @@ public class ClubAdminController : ControllerBase
         _db.SaveChanges();
         return Ok();
     }
+
+    [HttpPost("memberships/{id}/kick")]
+    public IActionResult KickMember(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id);
+        if (membership == null) return NotFound();
+
+        var userId = membership.UserId;
+        var now = DateTime.UtcNow;
+
+        // Cancel future bookings where the user is the organizer
+        var organizerBookings = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .Where(b => b.UserId == userId && b.Table.ClubId == club.Id && b.StartTime > now)
+            .ToList();
+
+        foreach (var booking in organizerBookings)
+        {
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = now,
+                Action = "Cancelled",
+                UserId = userId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = club.Id,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+
+            if (booking.Participants.Count > 0)
+            {
+                var firstParticipant = booking.Participants.OrderBy(p => p.Id).First();
+                booking.UserId = firstParticipant.UserId;
+                _db.BookingParticipants.Remove(firstParticipant);
+            }
+            else
+            {
+                _db.Bookings.Remove(booking);
+            }
+        }
+
+        // Remove user from future bookings where they are a participant
+        var participantEntries = _db.BookingParticipants
+            .Include(p => p.Booking).ThenInclude(b => b.Table)
+            .Where(p => p.UserId == userId && p.Booking.Table.ClubId == club.Id && p.Booking.StartTime > now)
+            .ToList();
+
+        foreach (var participant in participantEntries)
+        {
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = now,
+                Action = "Left",
+                UserId = userId,
+                BookingId = participant.BookingId,
+                TableNumber = participant.Booking.Table.Number,
+                ClubId = club.Id,
+                BookingStartTime = participant.Booking.StartTime,
+                BookingEndTime = participant.Booking.EndTime
+            });
+            _db.BookingParticipants.Remove(participant);
+        }
+
+        membership.Status = "Kicked";
+        _db.SaveChanges();
+        return Ok();
+    }
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height);

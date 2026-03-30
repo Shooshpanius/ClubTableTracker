@@ -40,7 +40,17 @@ public class ClubController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return Unauthorized();
         var existing = _db.Memberships.FirstOrDefault(m => m.UserId == userId && m.ClubId == id);
-        if (existing != null) return BadRequest("Already applied or member");
+        if (existing != null)
+        {
+            if (existing.Status == "Kicked")
+            {
+                existing.Status = "Pending";
+                existing.AppliedAt = DateTime.UtcNow;
+                _db.SaveChanges();
+                return Ok(new { existing.Id, existing.Status });
+            }
+            return BadRequest("Already applied or member");
+        }
         var club = _db.Clubs.Find(id);
         if (club == null) return NotFound();
         var membership = new ClubMembership
