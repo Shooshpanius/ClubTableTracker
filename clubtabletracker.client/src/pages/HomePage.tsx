@@ -22,10 +22,11 @@ interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
-interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string }[] }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string; status?: string }[] }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
+interface ClubMember { id: string; name: string }
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -72,6 +73,7 @@ export default function HomePage() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
   const [tables, setTables] = useState<GameTable[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [members, setMembers] = useState<ClubMember[]>([])
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [bookingStart, setBookingStart] = useState('')
   const [bookingEnd, setBookingEnd] = useState('')
@@ -152,12 +154,14 @@ export default function HomePage() {
   const selectClub = async (club: Club) => {
     setSelectedClub(club)
     setSelectedTable(null)
-    const [tablesRes, bookingsRes] = await Promise.all([
+    const [tablesRes, bookingsRes, membersRes] = await Promise.all([
       fetch(`/api/club/${club.id}/tables`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/club/${club.id}/members`, { headers: { Authorization: `Bearer ${token}` } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (bookingsRes.ok) setBookings(await bookingsRes.json())
+    if (membersRes.ok) setMembers(await membersRes.json())
   }
 
   const onBookingCreated = async () => {
@@ -197,10 +201,10 @@ export default function HomePage() {
   }
 
   const cancelBooking = async (booking: BookingBase) => {
-    const hasParticipants = booking.participants.length > 0
-    const msg = hasParticipants
-      ? `Выйти из игры? Бронь будет передана игроку ${booking.participants[0].name}.`
-      : 'Отменить бронирование стола?'
+    const acceptedParticipants = booking.participants.filter(p => p.status !== 'Invited')
+    const msg = acceptedParticipants.length > 0
+      ? `Покинуть игру? Бронь будет передана игроку ${acceptedParticipants[0].name}.`
+      : 'Покинуть бронирование? (других участников нет, бронь будет отменена)'
     if (!confirm(msg)) return
     const res = await fetch(`/api/booking/${booking.id}`, {
       method: 'DELETE',
@@ -214,6 +218,47 @@ export default function HomePage() {
     }
   }
 
+  const annulBooking = async (booking: BookingBase) => {
+    if (!confirm('Аннулировать игру? Бронирование и все приглашения будут удалены.')) return
+    const res = await fetch(`/api/booking/${booking.id}/annul`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка при аннулировании бронирования')
+    }
+  }
+
+  const acceptInvite = async (booking: BookingBase) => {
+    const res = await fetch(`/api/booking/${booking.id}/accept-invite`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      await loadUpcoming()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось принять приглашение')
+    }
+  }
+
+  const declineInvite = async (booking: BookingBase) => {
+    if (!confirm('Отклонить приглашение?')) return
+    const res = await fetch(`/api/booking/${booking.id}/decline-invite`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      await loadUpcoming()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось отклонить приглашение')
+    }
+  }
+
   const joinBooking = async (booking: Booking) => {
     if (!user) return
     if (booking.user.id === user.id) {
@@ -224,7 +269,8 @@ export default function HomePage() {
       await leaveBooking(booking)
       return
     }
-    if (booking.participants.length >= MAX_BOOKING_PLAYERS - 1) return
+    const acceptedCount = booking.participants.filter(p => p.status !== 'Invited').length
+    if (acceptedCount >= MAX_BOOKING_PLAYERS - 1) return
     if (!confirm(`Присоединиться к игре ${booking.user.name}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/join`, {
       method: 'POST',
@@ -385,27 +431,60 @@ export default function HomePage() {
                       const end = new Date(b.endTime)
                       const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
                       const isOwner = b.user.id === user.id
-                      const isParticipant = b.participants.some(p => p.id === user.id)
+                      const myParticipant = b.participants.find(p => p.id === user.id)
+                      const isInvited = myParticipant?.status === 'Invited'
+                      const isAcceptedParticipant = myParticipant && !isInvited
                       return (
-                        <div key={b.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <div key={b.id} style={{ background: isInvited ? '#1a1a3d' : '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, border: isInvited ? '1px solid #7b2fff' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                           <div>
                             <span style={{ color: '#eee', fontWeight: 'bold' }}>Стол {b.tableNumber}</span>
                             <span style={{ color: '#aaa', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
                             <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
                             {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
                             <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
-                              {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => p.name).join(', ')}`}
+                              {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === 'Invited' ? '(i) ' : '') + p.name).join(', ')}`}
                               {isOwner && <span style={{ color: '#ff8c00', marginLeft: 6 }}>(организатор)</span>}
-                              {isParticipant && !isOwner && <span style={{ color: '#4caf50', marginLeft: 6 }}>(участник)</span>}
+                              {isAcceptedParticipant && <span style={{ color: '#4caf50', marginLeft: 6 }}>(участник)</span>}
+                              {isInvited && <span style={{ color: '#7b2fff', marginLeft: 6 }}>📩 приглашение</span>}
                             </div>
                           </div>
-                          {(isOwner || isParticipant) && (
-                            <button
-                              style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
-                              onClick={() => isOwner ? cancelBooking(b) : leaveBooking(b)}>
-                              Выйти
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {isInvited && (
+                              <>
+                                <button
+                                  style={{ ...btnStyle, background: '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                  onClick={() => acceptInvite(b)}>
+                                  ✓ Принять
+                                </button>
+                                <button
+                                  style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                  onClick={() => declineInvite(b)}>
+                                  ✗ Отклонить
+                                </button>
+                              </>
+                            )}
+                            {isOwner && (
+                              <>
+                                <button
+                                  style={{ ...btnStyle, background: '#e67e22', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                  onClick={() => cancelBooking(b)}>
+                                  Покинуть
+                                </button>
+                                <button
+                                  style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                  onClick={() => annulBooking(b)}>
+                                  Аннулировать
+                                </button>
+                              </>
+                            )}
+                            {isAcceptedParticipant && (
+                              <button
+                                style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                onClick={() => leaveBooking(b)}>
+                                Выйти
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -551,6 +630,7 @@ export default function HomePage() {
                               initialEndTime={bookingEnd}
                               openTime={selectedClub.openTime}
                               closeTime={selectedClub.closeTime}
+                              members={members}
                             />
                           </div>
                         )}
@@ -632,6 +712,7 @@ export default function HomePage() {
                       initialEndTime={bookingEnd}
                       openTime={selectedClub.openTime}
                       closeTime={selectedClub.closeTime}
+                      members={members}
                     />
                   </div>
                 )}

@@ -2,7 +2,7 @@ interface Booking {
   id: number; tableId: number; startTime: string; endTime: string
   gameSystem?: string
   user: { id: string; name: string }
-  participants: { id: string; name: string }[]
+  participants: { id: string; name: string; status?: string }[]
 }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
 
@@ -120,7 +120,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                   </div>
                   {seg.booking.participants[0] && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                      {seg.booking.participants[0].name}
+                      {seg.booking.participants[0].status === 'Invited' ? '(i) ' : ''}{seg.booking.participants[0].name}
                     </div>
                   )}
                   {seg.booking.gameSystem && height >= 36 && (

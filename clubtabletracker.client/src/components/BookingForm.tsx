@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 interface GameTable { id: number; number: string; supportedGames?: string }
+interface ClubMember { id: string; name: string }
 
 interface Props {
   table: GameTable
@@ -12,6 +13,7 @@ interface Props {
   initialEndTime?: string
   openTime?: string
   closeTime?: string
+  members?: ClubMember[]
 }
 
 function extractTime(datetimeOrTime: string): string {
@@ -99,10 +101,11 @@ function buildDatetime(date: Date, time: string): string | null {
   return `${year}-${month}-${day}T${hours}:${mins}`
 }
 
-export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime }: Props) {
+export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [] }: Props) {
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState('')
+  const [invitedUserId, setInvitedUserId] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -132,10 +135,10 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     const res = await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null })
+      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, invitedUserId: invitedUserId || null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); onBooked() }
+    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setInvitedUserId(''); onBooked() }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
@@ -167,6 +170,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           <select style={inputStyle} value={gameSystem} onChange={e => setGameSystem(e.target.value)}>
             <option value="">— не выбрана —</option>
             {games.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+      )}
+      {members.length > 0 && (
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <label style={{ color: '#aaa', fontSize: 13 }}>Оппонент:</label>
+          <select style={inputStyle} value={invitedUserId} onChange={e => setInvitedUserId(e.target.value)}>
+            <option value="">— не выбран —</option>
+            {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
       )}
