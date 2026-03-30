@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MAX_BOOKING_DAYS_AHEAD } from '../constants'
 
 interface Booking {
   startTime: string
@@ -30,6 +31,9 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
   const startOffset = (firstDayRaw + 6) % 7  // Monday-first
 
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const maxDate = new Date(today)
+  maxDate.setDate(maxDate.getDate() + MAX_BOOKING_DAYS_AHEAD)
 
   const weeks: (number | null)[][] = []
   let day = 1
@@ -74,6 +78,11 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
             <tr key={wi}>
               {week.map((dayNum, di) => {
                 if (!dayNum) return <td key={di} />
+                const cellDate = new Date(viewYear, viewMonth, dayNum)
+                cellDate.setHours(0, 0, 0, 0)
+                const isPast = cellDate < today
+                const isBeyondMax = cellDate > maxDate
+                const isDisabled = isPast || isBeyondMax
                 const dateKey = `${viewYear}-${viewMonth}-${dayNum}`
                 const isSelected = selectedDate.getFullYear() === viewYear && selectedDate.getMonth() === viewMonth && selectedDate.getDate() === dayNum
                 const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === dayNum
@@ -81,15 +90,19 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
                 return (
                   <td
                     key={di}
-                    onClick={() => onSelectDate(new Date(viewYear, viewMonth, dayNum))}
+                    onClick={() => !isDisabled && onSelectDate(new Date(viewYear, viewMonth, dayNum))}
+                    title={isBeyondMax ? `Бронирование доступно не более чем на ${MAX_BOOKING_DAYS_AHEAD} дней вперёд` : undefined}
                     style={{
-                      padding: '4px 2px', textAlign: 'center', cursor: 'pointer',
+                      padding: '4px 2px', textAlign: 'center',
+                      cursor: isDisabled ? 'default' : 'pointer',
                       borderRadius: 4, fontSize: 13,
                       background: isSelected ? '#e94560' : hasBookings ? '#ffc107' : 'transparent',
-                      color: isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : '#eee',
+                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : '#eee',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
                       outline: isToday && !isSelected ? '2px solid #4caf50' : 'none',
-                      outlineOffset: '-2px'
+                      outlineOffset: '-2px',
+                      opacity: isDisabled ? 0.4 : 1,
+                      textDecoration: isPast ? 'line-through' : 'none'
                     }}
                   >
                     {dayNum}
@@ -100,6 +113,9 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
           ))}
         </tbody>
       </table>
+      <div style={{ marginTop: 8, fontSize: 11, color: '#666', textAlign: 'center' }}>
+        Бронирование доступно на {MAX_BOOKING_DAYS_AHEAD} дней вперёд
+      </div>
     </div>
   )
 }
