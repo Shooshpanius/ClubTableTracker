@@ -50,3 +50,15 @@ jobs:
           git add clubtabletracker.client/src/version.ts
           git diff --cached --quiet || git commit -m "chore: обновление версии — PR #${PR_NUMBER}"
           git push
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/docker/images/wh40k_CLUB
+            ./__BuildAll.sh
+            cd /opt/docker/composer         
+            ./_40_CLUB_REBASE.sh
