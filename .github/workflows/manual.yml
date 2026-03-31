@@ -7,6 +7,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+
+      - name: Check secrets visibility
+        run: |
+          echo "Host is set: ${{ secrets.SERVER_HOST != '' }}"
+          echo "User is set: ${{ secrets.SERVER_USER != '' }}"
+          echo "Key is set: ${{ secrets.SERVER_SSH_KEY != '' }}"
+          echo "Key length: ${#SSH_KEY}"
+        env:
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+    
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
