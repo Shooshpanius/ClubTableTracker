@@ -59,6 +59,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /opt/docker/images/wh40k_CLUB
-            ./__BuildAll.sh
+            echo "${{ secrets.SERVER_PASSWORD }}" | sudo -S ./__BuildAll.sh
             cd /opt/docker/composer         
-            ./_40_CLUB_REBASE.sh
+            echo "${{ secrets.SERVER_PASSWORD }}" | sudo -S ./_40_CLUB_REBASE.sh
+            
