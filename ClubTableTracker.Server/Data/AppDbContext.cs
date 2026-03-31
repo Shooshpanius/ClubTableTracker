@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingParticipant> BookingParticipants => Set<BookingParticipant>();
     public DbSet<BookingLog> BookingLogs => Set<BookingLog>();
+    public DbSet<ClubEvent> ClubEvents => Set<ClubEvent>();
+    public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,5 +67,22 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ClubEvent>().HasKey(e => e.Id);
+        modelBuilder.Entity<ClubEvent>()
+            .HasOne(e => e.Club)
+            .WithMany()
+            .HasForeignKey(e => e.ClubId);
+
+        modelBuilder.Entity<EventParticipant>().HasKey(p => p.Id);
+        modelBuilder.Entity<EventParticipant>()
+            .HasOne(p => p.Event)
+            .WithMany(e => e.Participants)
+            .HasForeignKey(p => p.EventId);
+
+        modelBuilder.Entity<EventParticipant>()
+            .HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId);
     }
 }

@@ -4,6 +4,7 @@ import ClubMapEditor from '../components/ClubMapEditor'
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
+interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
 const GW_GAMES = [
   'Warhammer 40,000', 'Age of Sigmar', 'The Horus Heresy', 'Necromunda',
@@ -17,12 +18,16 @@ export default function ClubAdminPage() {
   const [tables, setTables] = useState<GameTable[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'map' | 'members' | 'settings'>('map')
+  const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events'>('map')
   const [editingTable, setEditingTable] = useState<Partial<GameTable> | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[]>([])
   const [openTime, setOpenTime] = useState('10:00')
   const [closeTime, setCloseTime] = useState('22:00')
   const [settingsSaved, setSettingsSaved] = useState(false)
+  const [events, setEvents] = useState<ClubEventData[]>([])
+  const [newEvent, setNewEvent] = useState({ title: '', date: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+  const [selectedEventTables, setSelectedEventTables] = useState<number[]>([])
+  const [showEventForm, setShowEventForm] = useState(false)
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -40,12 +45,14 @@ export default function ClubAdminPage() {
   }
 
   const loadData = async (key: string) => {
-    const [tablesRes, membRes] = await Promise.all([
+    const [tablesRes, membRes, eventsRes] = await Promise.all([
       fetch('/api/clubadmin/tables', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } })
+      fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } }),
+      fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (membRes.ok) setMemberships(await membRes.json())
+    if (eventsRes.ok) setEvents(await eventsRes.json())
   }
 
   useEffect(() => {
@@ -119,6 +126,35 @@ export default function ClubAdminPage() {
     }
   }
 
+  const createEvent = async () => {
+    const body = {
+      title: newEvent.title,
+      date: new Date(newEvent.date).toISOString(),
+      maxParticipants: newEvent.maxParticipants,
+      eventType: newEvent.eventType,
+      gameSystem: newEvent.gameSystem || null,
+      tableIds: selectedEventTables.length > 0 ? selectedEventTables.join(',') : null
+    }
+    const res = await fetch('/api/clubadmin/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify(body)
+    })
+    if (res.ok) {
+      const ev = await res.json()
+      setEvents([...events, { ...ev, participants: [] }])
+      setNewEvent({ title: '', date: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+      setSelectedEventTables([])
+      setShowEventForm(false)
+    }
+  }
+
+  const deleteEvent = async (id: number) => {
+    if (!confirm('Удалить событие?')) return
+    const res = await fetch(`/api/clubadmin/events/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    if (res.ok) setEvents(events.filter(e => e.id !== id))
+  }
+
   const updateTablePosition = async (id: number, x: number, y: number) => {
     const table = tables.find(t => t.id === id)
     if (!table) return
@@ -163,6 +199,7 @@ export default function ClubAdminPage() {
       <div style={{ marginBottom: 16 }}>
         <button style={{ ...btnStyle, background: tab === 'map' ? '#e94560' : '#533483' }} onClick={() => setTab('map')}>Map Editor</button>
         <button style={{ ...btnStyle, background: tab === 'members' ? '#e94560' : '#533483' }} onClick={() => setTab('members')}>Members ({memberships.filter(m => m.status === 'Pending').length} pending)</button>
+        <button style={{ ...btnStyle, background: tab === 'events' ? '#e94560' : '#533483' }} onClick={() => setTab('events')}>События ({events.length})</button>
         <button style={{ ...btnStyle, background: tab === 'settings' ? '#e94560' : '#533483' }} onClick={() => setTab('settings')}>Настройки</button>
       </div>
 
@@ -260,6 +297,86 @@ export default function ClubAdminPage() {
             {settingsSaved && <span style={{ color: '#4caf50', marginTop: 18 }}>✓ Сохранено</span>}
           </div>
         </div>
+      )}
+
+      {tab === 'events' && (
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <button style={btnStyle} onClick={() => setShowEventForm(v => !v)}>
+              {showEventForm ? '✕ Отмена' : '+ Создать событие'}
+            </button>
+          </div>
+
+          {showEventForm && (
+            <div style={{ ...cardStyle, border: '1px solid #e94560' }}>
+              <h3>Новое событие</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <input style={inputStyle} placeholder="Название" value={newEvent.title}
+                  onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} />
+                <input style={inputStyle} type="datetime-local" value={newEvent.date}
+                  onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
+                <input style={{ ...inputStyle, width: 80 }} type="number" min={2} placeholder="Макс. участников"
+                  value={newEvent.maxParticipants}
+                  onChange={e => setNewEvent({ ...newEvent, maxParticipants: parseInt(e.target.value) || 2 })} />
+                <select style={inputStyle} value={newEvent.eventType}
+                  onChange={e => setNewEvent({ ...newEvent, eventType: e.target.value })}>
+                  <option value="Tournament">Турнир</option>
+                </select>
+                <select style={inputStyle} value={newEvent.gameSystem}
+                  onChange={e => setNewEvent({ ...newEvent, gameSystem: e.target.value })}>
+                  <option value="">— Игровая система —</option>
+                  {GW_GAMES.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Столы события:</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {tables.map(t => (
+                    <label key={t.id} style={{ cursor: 'pointer', color: '#eee', fontSize: 13 }}>
+                      <input type="checkbox" checked={selectedEventTables.includes(t.id)}
+                        onChange={e => setSelectedEventTables(e.target.checked
+                          ? [...selectedEventTables, t.id]
+                          : selectedEventTables.filter(id => id !== t.id))} />
+                      {' '}Стол {t.number}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.date}>Создать</button>
+                <button style={{ ...btnStyle, background: '#555' }} onClick={() => setShowEventForm(false)}>Отмена</button>
+              </div>
+            </div>
+          )}
+
+          <h3>Список событий</h3>
+          {events.length === 0 && <p style={{ color: '#aaa' }}>Событий пока нет.</p>}
+          {events.map(ev => {
+            const tableNumbers = ev.tableIds
+              ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
+              : ''
+            return (
+              <div key={ev.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <strong style={{ fontSize: 15, color: '#eee' }}>{ev.title}</strong>
+                  <span style={{ marginLeft: 10, color: '#ffc107', fontSize: 13 }}>{ev.eventType}</span>
+                  {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 13, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                  <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                    📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                    {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
+                  </div>
+                  {ev.participants.length > 0 && (
+                    <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                      Участники: {ev.participants.map(p => p.name).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
+              </div>
+            )
+          })}
+        </>
       )}
     </div>
   )
