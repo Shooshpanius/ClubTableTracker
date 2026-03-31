@@ -3,7 +3,7 @@ import ClubMapEditor from '../components/ClubMapEditor'
 
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
-interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
+interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
 const GW_GAMES = [
@@ -69,7 +69,8 @@ export default function ClubAdminPage() {
       x: editingTable.x || 0,
       y: editingTable.y || 0,
       width: editingTable.width || 100,
-      height: editingTable.height || 60
+      height: editingTable.height || 60,
+      eventsOnly: editingTable.eventsOnly || false
     }
     if (editingTable.id) {
       const res = await fetch(`/api/clubadmin/tables/${editingTable.id}`, {
@@ -160,7 +161,7 @@ export default function ClubAdminPage() {
     if (!table) return
     const res = await fetch(`/api/clubadmin/tables/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
-      body: JSON.stringify({ ...table, x, y })
+      body: JSON.stringify({ ...table, x, y, eventsOnly: table.eventsOnly })
     })
     if (res.ok) { const t = await res.json(); setTables(tables.map(x => x.id === t.id ? t : x)) }
   }
@@ -208,7 +209,7 @@ export default function ClubAdminPage() {
           <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(Boolean) : []) }} />
           <div style={{ ...cardStyle, marginTop: 16 }}>
             <h3>Add New Table</h3>
-            <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60 }); setSelectedGames([]) }}>+ Add Table</button>
+            <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60, eventsOnly: false }); setSelectedGames([]) }}>+ Add Table</button>
           </div>
           {editingTable && (
             <div style={{ ...cardStyle, border: '1px solid #e94560' }}>
@@ -230,6 +231,13 @@ export default function ClubAdminPage() {
                     {' '}{game}
                   </label>
                 ))}
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <label style={{ cursor: 'pointer', color: '#eee' }}>
+                  <input type="checkbox" checked={editingTable.eventsOnly || false}
+                    onChange={e => setEditingTable({ ...editingTable, eventsOnly: e.target.checked })} />
+                  {' '}Только для событий
+                </label>
               </div>
               <div style={{ marginTop: 16 }}>
                 <button style={btnStyle} onClick={saveTable}>Save</button>
