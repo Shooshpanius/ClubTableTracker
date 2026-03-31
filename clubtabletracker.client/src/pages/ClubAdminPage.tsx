@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
+import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM } from '../constants'
 
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
-
-const GW_GAMES = [
-  'Warhammer 40,000', 'Age of Sigmar', 'The Horus Heresy', 'Necromunda',
-  'Blood Bowl', 'Warhammer Underworlds', 'Kill Team', 'Warcry',
-  'Aeronautica Imperialis', 'Middle-earth Strategy Battle Game'
-]
 
 export default function ClubAdminPage() {
   const [clubKey, setClubKey] = useState(localStorage.getItem('clubKey') || '')
@@ -224,7 +219,7 @@ export default function ClubAdminPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, color: '#aaa' }}>Supported Games:</label>
-                {GW_GAMES.map(game => (
+                {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(game => (
                   <label key={game} style={{ display: 'inline-block', margin: '4px 8px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={selectedGames.includes(game)}
                       onChange={e => setSelectedGames(e.target.checked ? [...selectedGames, game] : selectedGames.filter(g => g !== game))} />
@@ -333,7 +328,7 @@ export default function ClubAdminPage() {
                 <select style={inputStyle} value={newEvent.gameSystem}
                   onChange={e => setNewEvent({ ...newEvent, gameSystem: e.target.value })}>
                   <option value="">— Игровая система —</option>
-                  {GW_GAMES.map(g => <option key={g} value={g}>{g}</option>)}
+                  {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div style={{ marginTop: 10 }}>

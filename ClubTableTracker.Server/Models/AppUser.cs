@@ -7,6 +7,7 @@ public class AppUser
     public string Email { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
+    public string? EnabledGameSystems { get; set; }
     public string GoogleId { get; set; } = string.Empty;
     public List<ClubMembership> Memberships { get; set; } = new();
     public List<Booking> Bookings { get; set; } = new();

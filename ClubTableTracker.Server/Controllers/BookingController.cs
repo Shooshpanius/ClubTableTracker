@@ -221,12 +221,31 @@ public class BookingController : ControllerBase
             var isInviteeMember = _db.Memberships.Any(m => m.UserId == req.InvitedUserId && m.ClubId == table.ClubId && m.Status == "Approved");
             if (isInviteeMember)
             {
-                _db.BookingParticipants.Add(new BookingParticipant
+                // Проверяем, что у приглашённого включена выбранная игровая система
+                bool canInvite = true;
+                if (!string.IsNullOrEmpty(req.GameSystem))
                 {
-                    BookingId = booking.Id,
-                    UserId = req.InvitedUserId,
-                    Status = "Invited"
-                });
+                    var invitee = _db.Users.Find(req.InvitedUserId);
+                    if (invitee != null)
+                    {
+                        var inviteeSystems = invitee.EnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                        canInvite = inviteeSystems.Contains(req.GameSystem);
+                    }
+                    else
+                    {
+                        canInvite = false;
+                    }
+                }
+
+                if (canInvite)
+                {
+                    _db.BookingParticipants.Add(new BookingParticipant
+                    {
+                        BookingId = booking.Id,
+                        UserId = req.InvitedUserId,
+                        Status = "Invited"
+                    });
+                }
             }
         }
 

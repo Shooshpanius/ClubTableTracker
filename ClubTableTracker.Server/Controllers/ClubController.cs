@@ -89,7 +89,7 @@ public class ClubController : ControllerBase
         var members = _db.Memberships
             .Include(m => m.User)
             .Where(m => m.ClubId == id && m.Status == "Approved" && m.UserId != userId)
-            .Select(m => new { m.User.Id, Name = m.User.DisplayName ?? m.User.Name })
+            .Select(m => new { m.User.Id, Name = m.User.DisplayName ?? m.User.Name, m.User.EnabledGameSystems })
             .ToList();
         return Ok(members);
     }
