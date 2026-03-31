@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface GameTable { id: number; number: string; supportedGames?: string }
-interface ClubMember { id: string; name: string }
+interface ClubMember { id: string; name: string; enabledGameSystems?: string }
 
 interface Props {
   table: GameTable
@@ -112,6 +112,20 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
 
   const games = table.supportedGames ? table.supportedGames.split('|').filter(Boolean) : []
 
+  const eligibleMembers = gameSystem
+    ? members.filter(m => {
+        if (!m.enabledGameSystems) return false
+        const systems = m.enabledGameSystems.split('|').filter(Boolean)
+        return systems.includes(gameSystem)
+      })
+    : []
+
+  useEffect(() => {
+    if (invitedUserId && !eligibleMembers.some(m => m.id === invitedUserId)) {
+      setInvitedUserId('')
+    }
+  }, [gameSystem])
+
   const book = async () => {
     if (!startTime || !endTime) { setError('Выберите время начала и окончания'); return }
     const startDatetime = buildDatetime(selectedDate, startTime)
@@ -180,10 +194,11 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       {members.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <label style={{ color: '#aaa', fontSize: 13 }}>Оппонент:</label>
-          <select style={inputStyle} value={invitedUserId} onChange={e => setInvitedUserId(e.target.value)}>
+          <select style={inputStyle} value={invitedUserId} onChange={e => setInvitedUserId(e.target.value)} disabled={!gameSystem}>
             <option value="">— не выбран —</option>
-            {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            {eligibleMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
+          {!gameSystem && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
         </div>
       )}
       <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>

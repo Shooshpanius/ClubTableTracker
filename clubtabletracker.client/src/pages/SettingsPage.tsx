@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM } from '../constants'
 
 const cardStyle: React.CSSProperties = {
   background: '#16213e',
@@ -42,6 +43,11 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
+  const [enabledGameSystems, setEnabledGameSystems] = useState<string[]>([])
+  const [savingGS, setSavingGS] = useState(false)
+  const [savedGS, setSavedGS] = useState(false)
+  const [errorGS, setErrorGS] = useState('')
+
   useEffect(() => {
     if (!token) {
       navigate('/')
@@ -54,6 +60,10 @@ export default function SettingsPage() {
         const dn = data.displayName || ''
         setDisplayName(dn)
         setInputValue(dn)
+        const gs = data.enabledGameSystems
+          ? data.enabledGameSystems.split('|').filter(Boolean)
+          : []
+        setEnabledGameSystems(gs)
       })
       .catch(() => setError('Не удалось загрузить данные профиля'))
   }, [token, navigate])
@@ -81,6 +91,35 @@ export default function SettingsPage() {
       setError('Ошибка при сохранении')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const toggleGameSystem = (gs: string) => {
+    setEnabledGameSystems(prev =>
+      prev.includes(gs) ? prev.filter(s => s !== gs) : [...prev, gs]
+    )
+    setSavedGS(false)
+  }
+
+  const handleSaveGameSystems = async () => {
+    setSavingGS(true)
+    setSavedGS(false)
+    setErrorGS('')
+    try {
+      const res = await fetch('/api/user/game-systems', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ enabledGameSystems }),
+      })
+      if (res.ok) {
+        setSavedGS(true)
+      } else {
+        setErrorGS('Ошибка при сохранении')
+      }
+    } catch {
+      setErrorGS('Ошибка при сохранении')
+    } finally {
+      setSavingGS(false)
     }
   }
 
@@ -141,6 +180,52 @@ export default function SettingsPage() {
         </h3>
         <div style={{ color: '#eee', fontSize: 20, fontWeight: 600 }}>👤 {effectiveName}</div>
       </div>
+
+      <div style={{ ...cardStyle, maxWidth: 600 }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8, color: '#eee', fontSize: 18 }}>🎲 Игровые системы</h2>
+        <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+          Отметьте игровые системы, для которых другие игроки могут приглашать вас в партию.
+          Если система не отмечена — вас нельзя выбрать напарником в этой системе.
+        </p>
+        <div style={{ marginBottom: 8 }}>
+          {GAME_SYSTEMS_MAIN.map(gs => (
+            <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={enabledGameSystems.includes(gs)}
+                onChange={() => toggleGameSystem(gs)}
+                style={{ marginRight: 8 }}
+              />
+              {gs}
+            </label>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px solid #0f3460', paddingTop: 8, marginTop: 4 }}>
+          {GAME_SYSTEMS_BOTTOM.map(gs => (
+            <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={enabledGameSystems.includes(gs)}
+                onChange={() => toggleGameSystem(gs)}
+                style={{ marginRight: 8 }}
+              />
+              {gs}
+            </label>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+          <button
+            style={{ ...btnStyle, background: '#e94560', opacity: savingGS ? 0.7 : 1 }}
+            onClick={handleSaveGameSystems}
+            disabled={savingGS}
+          >
+            {savingGS ? 'Сохраняем...' : 'Сохранить'}
+          </button>
+          {savedGS && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
+          {errorGS && <span style={{ color: '#e94560', fontSize: 14 }}>{errorGS}</span>}
+        </div>
+      </div>
     </div>
   )
 }
+

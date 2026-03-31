@@ -25,7 +25,7 @@ public class UserController : ControllerBase
         var user = _db.Users.Find(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName });
+        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems });
     }
 
     [HttpPut("display-name")]
@@ -43,6 +43,23 @@ public class UserController : ControllerBase
 
         return Ok(new { user.Id, user.Email, user.Name, user.DisplayName });
     }
+
+    [HttpPut("game-systems")]
+    public IActionResult UpdateGameSystems([FromBody] UpdateGameSystemsRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = _db.Users.Find(userId);
+        if (user == null) return NotFound();
+
+        var systems = req.EnabledGameSystems ?? new List<string>();
+        user.EnabledGameSystems = systems.Count > 0 ? string.Join("|", systems) : null;
+        _db.SaveChanges();
+
+        return Ok(new { user.EnabledGameSystems });
+    }
 }
 
 public record UpdateDisplayNameRequest(string? DisplayName);
+public record UpdateGameSystemsRequest(List<string>? EnabledGameSystems);
