@@ -352,7 +352,7 @@ export default function HomePage() {
   const RECT_HEIGHT = 360
 
   // Determine which tables are involved in events on the selected date
-  const { eventTableIds, userEventTableIds } = useMemo(() => {
+  const { eventTableIds, userEventTableIds, eventTableGameSystems } = useMemo(() => {
     const eventsOnSelectedDate = clubEvents.filter(ev => {
       const evDate = new Date(ev.date)
       return evDate.getFullYear() === selectedDate.getFullYear() &&
@@ -361,18 +361,22 @@ export default function HomePage() {
     })
     const eventTableIds = new Set<number>()
     const userEventTableIds = new Set<number>()
+    const eventTableGameSystems = new Map<number, string>()
     for (const ev of eventsOnSelectedDate) {
       if (ev.tableIds) {
         const ids = ev.tableIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
         for (const id of ids) {
           eventTableIds.add(id)
+          if (ev.gameSystem && !eventTableGameSystems.has(id)) {
+            eventTableGameSystems.set(id, ev.gameSystem)
+          }
           if (user && ev.participants.some(p => p.id === user.id)) {
             userEventTableIds.add(id)
           }
         }
       }
     }
-    return { eventTableIds, userEventTableIds }
+    return { eventTableIds, userEventTableIds, eventTableGameSystems }
   }, [clubEvents, selectedDate, user])
 
   return (
@@ -742,6 +746,7 @@ export default function HomePage() {
                               openTime={selectedClub.openTime}
                               closeTime={selectedClub.closeTime}
                               members={members}
+                              tournamentGameSystem={eventTableGameSystems.get(table.id)}
                             />
                           </div>
                         )}
@@ -829,6 +834,7 @@ export default function HomePage() {
                       openTime={selectedClub.openTime}
                       closeTime={selectedClub.closeTime}
                       members={members}
+                      tournamentGameSystem={eventTableGameSystems.get(selectedTable.id)}
                     />
                   </div>
                 )}

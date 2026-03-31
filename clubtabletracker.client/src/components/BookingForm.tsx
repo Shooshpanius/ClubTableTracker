@@ -14,6 +14,7 @@ interface Props {
   openTime?: string
   closeTime?: string
   members?: ClubMember[]
+  tournamentGameSystem?: string
 }
 
 function extractTime(datetimeOrTime: string): string {
@@ -101,10 +102,10 @@ function buildDatetime(date: Date, time: string): string | null {
   return `${year}-${month}-${day}T${hours}:${mins}`
 }
 
-export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [] }: Props) {
+export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [], tournamentGameSystem }: Props) {
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
-  const [gameSystem, setGameSystem] = useState('')
+  const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
   const [invitedUserId, setInvitedUserId] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -164,12 +165,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           <TimeSelect style={inputStyle} value={endTime} onChange={setEndTime} minTime={openTime} maxTime={closeTime} />
         </span>
       </div>
-      {games.length > 0 && (
+      {(games.length > 0 || tournamentGameSystem) && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <label style={{ color: '#aaa', fontSize: 13 }}>Система:</label>
-          <select style={inputStyle} value={gameSystem} onChange={e => setGameSystem(e.target.value)}>
-            <option value="">— не выбрана —</option>
-            {games.map(g => <option key={g} value={g}>{g}</option>)}
+          <select style={inputStyle} value={gameSystem} onChange={e => setGameSystem(e.target.value)} disabled={!!tournamentGameSystem} aria-label={tournamentGameSystem ? `Система игры турнира: ${tournamentGameSystem}` : undefined}>
+            {!tournamentGameSystem && <option value="">— не выбрана —</option>}
+            {tournamentGameSystem
+              ? <option value={tournamentGameSystem}>{tournamentGameSystem}</option>
+              : games.map(g => <option key={g} value={g}>{g}</option>)
+            }
           </select>
         </div>
       )}
