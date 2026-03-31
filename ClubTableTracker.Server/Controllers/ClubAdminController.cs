@@ -231,7 +231,57 @@ public class ClubAdminController : ControllerBase
         _db.SaveChanges();
         return Ok();
     }
+    [HttpGet("events")]
+    public IActionResult GetEvents()
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var events = _db.ClubEvents
+            .Include(e => e.Participants).ThenInclude(p => p.User)
+            .Where(e => e.ClubId == club.Id)
+            .OrderBy(e => e.Date)
+            .Select(e => new
+            {
+                e.Id, e.Title, e.Date, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+            })
+            .ToList();
+        return Ok(events);
+    }
+
+    [HttpPost("events")]
+    public IActionResult CreateEvent([FromBody] ClubEventRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var ev = new ClubEvent
+        {
+            ClubId = club.Id,
+            Title = req.Title,
+            Date = req.Date,
+            MaxParticipants = req.MaxParticipants,
+            EventType = req.EventType,
+            GameSystem = req.GameSystem,
+            TableIds = req.TableIds
+        };
+        _db.ClubEvents.Add(ev);
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Title, ev.Date, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds });
+    }
+
+    [HttpDelete("events/{id}")]
+    public IActionResult DeleteEvent(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+        _db.ClubEvents.Remove(ev);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
+public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);

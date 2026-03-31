@@ -27,6 +27,7 @@ interface Booking extends BookingBase { tableId: number; startTime: string; endT
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string }
+interface ClubEventItem { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -154,14 +155,49 @@ export default function HomePage() {
   const selectClub = async (club: Club) => {
     setSelectedClub(club)
     setSelectedTable(null)
-    const [tablesRes, bookingsRes, membersRes] = await Promise.all([
+    setClubEvents([])
+    setShowEvents(false)
+    const [tablesRes, bookingsRes, membersRes, eventsRes] = await Promise.all([
       fetch(`/api/club/${club.id}/tables`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`/api/club/${club.id}/members`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`/api/club/${club.id}/members`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/event/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (bookingsRes.ok) setBookings(await bookingsRes.json())
     if (membersRes.ok) setMembers(await membersRes.json())
+    if (eventsRes.ok) setClubEvents(await eventsRes.json())
+  }
+
+  const registerEvent = async (eventId: number) => {
+    const res = await fetch(`/api/event/${eventId}/register`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      if (!selectedClub) return
+      const evRes = await fetch(`/api/event/club/${selectedClub.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (evRes.ok) setClubEvents(await evRes.json())
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось записаться на событие')
+    }
+  }
+
+  const unregisterEvent = async (eventId: number) => {
+    if (!confirm('Отменить запись на событие?')) return
+    const res = await fetch(`/api/event/${eventId}/unregister`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      if (!selectedClub) return
+      const evRes = await fetch(`/api/event/club/${selectedClub.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (evRes.ok) setClubEvents(await evRes.json())
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось отменить запись')
+    }
   }
 
   const onBookingCreated = async () => {
@@ -303,6 +339,8 @@ export default function HomePage() {
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [showUpcoming, setShowUpcoming] = useState(false)
   const [showLog, setShowLog] = useState(false)
+  const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
+  const [showEvents, setShowEvents] = useState(false)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -530,6 +568,50 @@ export default function HomePage() {
       {selectedClub && (
         <div style={{ marginTop: 32 }}>
           <h2>📍 {selectedClub.name}</h2>
+
+          {/* Events section */}
+          {clubEvents.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <button
+                style={{ ...btnStyle, background: showEvents ? '#e94560' : '#533483' }}
+                onClick={() => setShowEvents(v => !v)}>
+                🏆 События клуба ({clubEvents.length})
+              </button>
+            </div>
+          )}
+          {showEvents && (
+            <div style={{ ...cardStyle, marginBottom: 24 }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>События</h3>
+              {clubEvents.map(ev => {
+                const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
+                const isFull = ev.participants.length >= ev.maxParticipants
+                return (
+                  <div key={ev.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '10px 14px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <span style={{ color: '#eee', fontWeight: 'bold' }}>{ev.title}</span>
+                      <span style={{ marginLeft: 8, color: '#ffc107', fontSize: 12 }}>{ev.eventType}</span>
+                      {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 12, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                      <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                        📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                        {isRegistered && <span style={{ color: '#4caf50', marginLeft: 8 }}>✓ вы записаны</span>}
+                      </div>
+                      {ev.participants.length > 0 && (
+                        <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                          {ev.participants.map(p => p.name).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    {user && (
+                      isRegistered
+                        ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                        : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {isMobile ? (
             /* ===== MOBILE LAYOUT ===== */
