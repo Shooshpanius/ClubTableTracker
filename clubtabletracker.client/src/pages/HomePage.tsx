@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
 import { useNavigate } from 'react-router-dom'
 import BookingForm from '../components/BookingForm'
@@ -21,7 +21,7 @@ function useIsMobile(breakpoint = 768): boolean {
 interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
-interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
+interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
 interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string; status?: string }[] }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
@@ -351,6 +351,30 @@ export default function HomePage() {
   const openHour = Math.floor(openMin / 60)
   const RECT_HEIGHT = 360
 
+  // Determine which tables are involved in events on the selected date
+  const { eventTableIds, userEventTableIds } = useMemo(() => {
+    const eventsOnSelectedDate = clubEvents.filter(ev => {
+      const evDate = new Date(ev.date)
+      return evDate.getFullYear() === selectedDate.getFullYear() &&
+        evDate.getMonth() === selectedDate.getMonth() &&
+        evDate.getDate() === selectedDate.getDate()
+    })
+    const eventTableIds = new Set<number>()
+    const userEventTableIds = new Set<number>()
+    for (const ev of eventsOnSelectedDate) {
+      if (ev.tableIds) {
+        const ids = ev.tableIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+        for (const id of ids) {
+          eventTableIds.add(id)
+          if (user && ev.participants.some(p => p.id === user.id)) {
+            userEventTableIds.add(id)
+          }
+        }
+      }
+    }
+    return { eventTableIds, userEventTableIds }
+  }, [clubEvents, selectedDate, user])
+
   return (
     <div style={{ padding: isMobile ? 16 : 40 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
@@ -632,6 +656,10 @@ export default function HomePage() {
                   Свободно
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 20, height: 14, background: '#c45c5c', display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
+                  Свободно (событие)
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 20, height: 14, background: '#ffff00', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                   Занято
                 </span>
@@ -692,9 +720,10 @@ export default function HomePage() {
                             closeTime={selectedClub.closeTime}
                             selectedDate={selectedDate}
                             currentUserId={user?.id}
-                            onSlotClick={user ? handleSlotClick : undefined}
+                            onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
                             onBookingClick={user ? joinBooking : undefined}
                             isSelected={isSelected}
+                            isEventTable={eventTableIds.has(table.id)}
                           />
                         </div>
 
@@ -755,9 +784,10 @@ export default function HomePage() {
                           closeTime={selectedClub.closeTime}
                           selectedDate={selectedDate}
                           currentUserId={user?.id}
-                          onSlotClick={user ? handleSlotClick : undefined}
+                          onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
                           onBookingClick={user ? joinBooking : undefined}
                           isSelected={selectedTable?.id === table.id}
+                          isEventTable={eventTableIds.has(table.id)}
                         />
                       </div>
                     ))}
@@ -768,10 +798,14 @@ export default function HomePage() {
                 </div>
 
                 {/* Legend */}
-                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13 }}>
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 20, height: 14, background: '#90ee90', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                     Свободно
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 20, height: 14, background: '#c45c5c', display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
+                    Свободно (событие)
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 20, height: 14, background: '#ffff00', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />

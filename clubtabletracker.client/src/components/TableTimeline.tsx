@@ -4,7 +4,7 @@ interface Booking {
   user: { id: string; name: string }
   participants: { id: string; name: string; status?: string }[]
 }
-interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
+interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
 
 interface Props {
   table: GameTable
@@ -16,6 +16,7 @@ interface Props {
   onSlotClick?: (table: GameTable, startMin: number, endMin: number) => void
   onBookingClick?: (booking: Booking) => void
   isSelected?: boolean
+  isEventTable?: boolean
 }
 
 const RECT_HEIGHT = 360
@@ -43,7 +44,7 @@ interface Segment {
   booking?: Booking
 }
 
-export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected }: Props) {
+export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected, isEventTable }: Props) {
   const openMin = parseHHMM(openTime)
   const closeMin = parseHHMM(closeTime)
   const totalMin = Math.max(closeMin - openMin, 1)
@@ -70,7 +71,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
       </div>
       <div style={{
         width: RECT_WIDTH, height: RECT_HEIGHT,
-        border: isSelected ? '3px solid #e94560' : '2px solid #555',
+        border: isEventTable ? '3px solid #ffff00' : isSelected ? '3px solid #e94560' : '2px solid #555',
         borderRadius: 6, overflow: 'hidden', position: 'relative'
       }}>
         {segments.map((seg, i) => {
@@ -89,7 +90,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
               title={isFree ? `Свободно ${Math.floor(seg.startMin / 60)}:${String(seg.startMin % 60).padStart(2, '0')}–${Math.floor(seg.endMin / 60)}:${String(seg.endMin % 60).padStart(2, '0')}` : undefined}
               style={{
                 position: 'absolute', left: 0, right: 0, top, height,
-                background: isFree ? '#90ee90' : isUserBooking ? '#ff8c00' : '#ffff00',
+                background: isFree ? (isEventTable ? '#c45c5c' : '#90ee90') : isUserBooking ? '#ff8c00' : '#ffff00',
                 cursor: (isFree && onSlotClick) || (!isFree && onBookingClick) ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center', alignItems: 'center',

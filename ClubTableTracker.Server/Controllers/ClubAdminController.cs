@@ -45,7 +45,7 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         var tables = _db.GameTables
             .Where(t => t.ClubId == club.Id)
-            .Select(t => new { t.Id, t.ClubId, t.Number, t.Size, t.SupportedGames, t.X, t.Y, t.Width, t.Height })
+            .Select(t => new { t.Id, t.ClubId, t.Number, t.Size, t.SupportedGames, t.X, t.Y, t.Width, t.Height, t.EventsOnly })
             .ToList();
         return Ok(tables);
     }
@@ -64,11 +64,12 @@ public class ClubAdminController : ControllerBase
             X = req.X,
             Y = req.Y,
             Width = req.Width,
-            Height = req.Height
+            Height = req.Height,
+            EventsOnly = req.EventsOnly
         };
         _db.GameTables.Add(table);
         _db.SaveChanges();
-        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height });
+        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height, table.EventsOnly });
     }
 
     [HttpPut("tables/{id}")]
@@ -85,8 +86,9 @@ public class ClubAdminController : ControllerBase
         table.Y = req.Y;
         table.Width = req.Width;
         table.Height = req.Height;
+        table.EventsOnly = req.EventsOnly;
         _db.SaveChanges();
-        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height });
+        return Ok(new { table.Id, table.ClubId, table.Number, table.Size, table.SupportedGames, table.X, table.Y, table.Width, table.Height, table.EventsOnly });
     }
 
     [HttpPost("tables/{id}/copy")]
@@ -105,11 +107,12 @@ public class ClubAdminController : ControllerBase
             X = source.X + 20,
             Y = source.Y + 20,
             Width = source.Width,
-            Height = source.Height
+            Height = source.Height,
+            EventsOnly = source.EventsOnly
         };
         _db.GameTables.Add(copy);
         _db.SaveChanges();
-        return Ok(new { copy.Id, copy.ClubId, copy.Number, copy.Size, copy.SupportedGames, copy.X, copy.Y, copy.Width, copy.Height });
+        return Ok(new { copy.Id, copy.ClubId, copy.Number, copy.Size, copy.SupportedGames, copy.X, copy.Y, copy.Width, copy.Height, copy.EventsOnly });
     }
 
     [HttpDelete("tables/{id}")]
@@ -282,6 +285,6 @@ public class ClubAdminController : ControllerBase
     }
 }
 
-public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height);
+public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
 public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
