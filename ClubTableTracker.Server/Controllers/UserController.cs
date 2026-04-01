@@ -25,7 +25,7 @@ public class UserController : ControllerBase
         var user = _db.Users.Find(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems });
+        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors });
     }
 
     [HttpPut("display-name")]
@@ -59,7 +59,23 @@ public class UserController : ControllerBase
 
         return Ok(new { user.EnabledGameSystems });
     }
+
+    [HttpPut("booking-colors")]
+    public IActionResult UpdateBookingColors([FromBody] UpdateBookingColorsRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = _db.Users.Find(userId);
+        if (user == null) return NotFound();
+
+        user.BookingColors = req.BookingColors;
+        _db.SaveChanges();
+
+        return Ok(new { user.BookingColors });
+    }
 }
 
 public record UpdateDisplayNameRequest(string? DisplayName);
 public record UpdateGameSystemsRequest(List<string>? EnabledGameSystems);
+public record UpdateBookingColorsRequest(string? BookingColors);

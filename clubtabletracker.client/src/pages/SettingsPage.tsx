@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM } from '../constants'
+import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, DEFAULT_BOOKING_COLORS, BOOKING_COLORS_LABELS } from '../constants'
+import type { BookingColors } from '../constants'
 
 const cardStyle: React.CSSProperties = {
   background: '#16213e',
@@ -48,6 +49,11 @@ export default function SettingsPage() {
   const [savedGS, setSavedGS] = useState(false)
   const [errorGS, setErrorGS] = useState('')
 
+  const [bookingColors, setBookingColors] = useState<BookingColors>(DEFAULT_BOOKING_COLORS)
+  const [savingColors, setSavingColors] = useState(false)
+  const [savedColors, setSavedColors] = useState(false)
+  const [errorColors, setErrorColors] = useState('')
+
   useEffect(() => {
     if (!token) {
       navigate('/')
@@ -64,6 +70,11 @@ export default function SettingsPage() {
           ? data.enabledGameSystems.split('|').filter(Boolean)
           : []
         setEnabledGameSystems(gs)
+        if (data.bookingColors) {
+          try {
+            setBookingColors({ ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) })
+          } catch { /* ignore */ }
+        }
       })
       .catch(() => setError('Не удалось загрузить данные профиля'))
   }, [token, navigate])
@@ -121,6 +132,34 @@ export default function SettingsPage() {
     } finally {
       setSavingGS(false)
     }
+  }
+
+  const handleSaveColors = async (colors: BookingColors) => {
+    setSavingColors(true)
+    setSavedColors(false)
+    setErrorColors('')
+    try {
+      const res = await fetch('/api/user/booking-colors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bookingColors: JSON.stringify(colors) }),
+      })
+      if (res.ok) {
+        localStorage.setItem('bookingColors', JSON.stringify(colors))
+        setSavedColors(true)
+      } else {
+        setErrorColors('Ошибка при сохранении')
+      }
+    } catch {
+      setErrorColors('Ошибка при сохранении')
+    } finally {
+      setSavingColors(false)
+    }
+  }
+
+  const handleResetColors = () => {
+    setBookingColors(DEFAULT_BOOKING_COLORS)
+    handleSaveColors(DEFAULT_BOOKING_COLORS)
   }
 
   const effectiveName = displayName || googleName
@@ -223,6 +262,44 @@ export default function SettingsPage() {
           </button>
           {savedGS && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
           {errorGS && <span style={{ color: '#e94560', fontSize: 14 }}>{errorGS}</span>}
+        </div>
+      </div>
+      <div style={{ ...cardStyle, maxWidth: 600 }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8, color: '#eee', fontSize: 18 }}>🎨 Цвета бронирования</h2>
+        <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+          Настройте цвета, которыми обозначаются слоты на временной шкале столов.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginBottom: 20 }}>
+          {(Object.keys(DEFAULT_BOOKING_COLORS) as (keyof BookingColors)[]).map(key => (
+            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#eee', fontSize: 14 }}>
+              <input
+                type="color"
+                value={bookingColors[key]}
+                onChange={e => { setBookingColors(prev => ({ ...prev, [key]: e.target.value })); setSavedColors(false) }}
+                style={{ width: 36, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'none', padding: 0 }}
+              />
+              <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 3, background: bookingColors[key], border: '1px solid #555', flexShrink: 0 }} />
+              {BOOKING_COLORS_LABELS[key]}
+            </label>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            style={{ ...btnStyle, background: '#e94560', opacity: savingColors ? 0.7 : 1 }}
+            onClick={() => handleSaveColors(bookingColors)}
+            disabled={savingColors}
+          >
+            {savingColors ? 'Сохраняем...' : 'Сохранить'}
+          </button>
+          <button
+            style={{ ...btnStyle, background: '#0f3460' }}
+            onClick={handleResetColors}
+            disabled={savingColors}
+          >
+            По умолчанию
+          </button>
+          {savedColors && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
+          {errorColors && <span style={{ color: '#e94560', fontSize: 14 }}>{errorColors}</span>}
         </div>
       </div>
     </div>
