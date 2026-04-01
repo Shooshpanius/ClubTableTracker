@@ -84,6 +84,8 @@ public class UserController : ControllerBase
         if (user == null) return NotFound();
 
         var trimmed = req.Bio?.Trim();
+        if (trimmed != null && trimmed.Length > 500)
+            return BadRequest("Bio must not exceed 500 characters");
         user.Bio = string.IsNullOrEmpty(trimmed) ? null : trimmed;
         _db.SaveChanges();
 

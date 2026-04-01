@@ -13,7 +13,8 @@ namespace ClubTableTracker.Server.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "Bio",
                 table: "Users",
-                type: "longtext",
+                type: "varchar(500)",
+                maxLength: 500,
                 nullable: true);
         }
 

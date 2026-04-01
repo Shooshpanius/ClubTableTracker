@@ -823,8 +823,8 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.map((m, idx) => (
-                                  <tr key={idx} style={{ borderBottom: "1px solid #1a2a4a" }}>
+                                {members.map(m => (
+                                  <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
                                     <td style={{ padding: "6px 8px" }}>{m.registrationName}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
                                     <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
@@ -1105,8 +1105,8 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.map((m, idx) => (
-                                  <tr key={idx} style={{ borderBottom: '1px solid #1a2a4a' }}>
+                                {members.map(m => (
+                                  <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
                                     <td style={{ padding: '8px 12px' }}>{m.registrationName}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
                                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
