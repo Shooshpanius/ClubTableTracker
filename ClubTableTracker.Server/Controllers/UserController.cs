@@ -25,7 +25,7 @@ public class UserController : ControllerBase
         var user = _db.Users.Find(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors });
+        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors, user.Bio });
     }
 
     [HttpPut("display-name")]
@@ -74,8 +74,26 @@ public class UserController : ControllerBase
 
         return Ok(new { user.BookingColors });
     }
+    [HttpPut("bio")]
+    public IActionResult UpdateBio([FromBody] UpdateBioRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = _db.Users.Find(userId);
+        if (user == null) return NotFound();
+
+        var trimmed = req.Bio?.Trim();
+        if (trimmed != null && trimmed.Length > 500)
+            return BadRequest("Bio must not exceed 500 characters");
+        user.Bio = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        _db.SaveChanges();
+
+        return Ok(new { user.Bio });
+    }
 }
 
 public record UpdateDisplayNameRequest(string? DisplayName);
 public record UpdateGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateBookingColorsRequest(string? BookingColors);
+public record UpdateBioRequest(string? Bio);

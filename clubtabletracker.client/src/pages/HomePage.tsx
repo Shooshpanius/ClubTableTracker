@@ -28,7 +28,7 @@ interface BookingBase { id: number; user: { id: string; name: string }; particip
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
-interface ClubMember { id: string; name: string; enabledGameSystems?: string }
+interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string }
 interface ClubEventItem { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
 function parseHHMM(t: string): number {
@@ -368,8 +368,8 @@ export default function HomePage() {
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
-  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log'>('tables')
-  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log'>('booking')
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players'>('tables')
+  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players'>('booking')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -483,8 +483,8 @@ export default function HomePage() {
                   <div>
                     {/* Mobile tab bar */}
                     <div style={{ display: "flex", borderBottom: "2px solid #0f3460" }}>
-                      {(["tables", "games", "events", "log"] as const).map((tab, i) => {
-                        const labels = ["Столы", "Игры", "События", "Журнал"]
+                      {(["tables", "games", "events", "log", "players"] as const).map((tab, i) => {
+                        const labels = ["Столы", "Игры", "События", "Журнал", "👥"]
                         return (
                           <button
                             key={tab}
@@ -493,7 +493,7 @@ export default function HomePage() {
                               background: mobileTab === tab ? "#e94560" : "#0f3460",
                               color: "#fff",
                               border: "none",
-                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "log" ? "0 4px 0 0" : 0,
+                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "players" ? "0 4px 0 0" : 0,
                               padding: "9px 4px",
                               cursor: "pointer",
                               fontSize: 13,
@@ -642,7 +642,7 @@ export default function HomePage() {
                                         initialEndTime={bookingEnd}
                                         openTime={club.openTime}
                                         closeTime={club.closeTime}
-                                        members={members}
+                                        members={members.filter(m => m.id !== user?.id)}
                                         tournamentGameSystem={eventTableGameSystems.get(table.id)}
                                       />
                                     </div>
@@ -805,6 +805,39 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    {/* Tab: Игроки клуба */}
+                    {mobileTab === "players" && (
+                      <div>
+                        <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Игроки клуба</h3>
+                        {members.length === 0 ? (
+                          <p style={{ color: "#aaa", margin: 0 }}>Нет принятых игроков</p>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: "#ccc" }}>
+                              <thead>
+                                <tr style={{ borderBottom: "1px solid #0f3460", color: "#aaa" }}>
+                                  <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Имя регистрации</th>
+                                  <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Имя для отображения</th>
+                                  <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Дата вступления</th>
+                                  <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Информация</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {members.map(m => (
+                                  <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
+                                    <td style={{ padding: "6px 8px" }}>{m.registrationName}</td>
+                                    <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
+                                    <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
+                                    <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "#666" }}>—</span>}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     </div>
                   </div>
                 ) : (
@@ -817,6 +850,7 @@ export default function HomePage() {
                         ['upcoming', '📅 Предстоящие игры'],
                         ['events', '🏆 События клуба'],
                         ['log', '📋 Журнал действий'],
+                        ['players', '👥 Игроки клуба'],
                       ] as [string, string][]).map(([tab, label]) => (
                         <button
                           key={tab}
@@ -899,7 +933,7 @@ export default function HomePage() {
                                 initialEndTime={bookingEnd}
                                 openTime={club.openTime}
                                 closeTime={club.closeTime}
-                                members={members}
+                                members={members.filter(m => m.id !== user?.id)}
                                 tournamentGameSystem={eventTableGameSystems.get(selectedTable.id)}
                               />
                             </div>
@@ -1048,6 +1082,39 @@ export default function HomePage() {
                                 </div>
                               )
                             })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tab: Игроки клуба */}
+                    {desktopTab === 'players' && (
+                      <div>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Игроки клуба</h3>
+                        {members.length === 0 ? (
+                          <p style={{ color: '#aaa', margin: 0 }}>Нет принятых игроков</p>
+                        ) : (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, color: '#ccc' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid #0f3460', color: '#aaa' }}>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Имя регистрации</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Имя для отображения</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Дата вступления</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Информация</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {members.map(m => (
+                                  <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
+                                    <td style={{ padding: '8px 12px' }}>{m.registrationName}</td>
+                                    <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
+                                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
+                                    <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: '#666' }}>—</span>}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         )}
                       </div>

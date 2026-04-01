@@ -57,6 +57,11 @@ export default function SettingsPage() {
   const [gsExpanded, setGsExpanded] = useState(false)
   const [colorsExpanded, setColorsExpanded] = useState(false)
 
+  const [bioInput, setBioInput] = useState('')
+  const [savingBio, setSavingBio] = useState(false)
+  const [savedBio, setSavedBio] = useState(false)
+  const [errorBio, setErrorBio] = useState('')
+
   useEffect(() => {
     if (!token) {
       navigate('/')
@@ -73,6 +78,7 @@ export default function SettingsPage() {
           ? data.enabledGameSystems.split('|').filter(Boolean)
           : []
         setEnabledGameSystems(gs)
+        setBioInput(data.bio || '')
         if (data.bookingColors) {
           try {
             setBookingColors({ ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) })
@@ -105,6 +111,30 @@ export default function SettingsPage() {
       setError('Ошибка при сохранении')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSaveBio = async () => {
+    setSavingBio(true)
+    setSavedBio(false)
+    setErrorBio('')
+    try {
+      const res = await fetch('/api/user/bio', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bio: bioInput }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setBioInput(data.bio || '')
+        setSavedBio(true)
+      } else {
+        setErrorBio('Ошибка при сохранении')
+      }
+    } catch {
+      setErrorBio('Ошибка при сохранении')
+    } finally {
+      setSavingBio(false)
     }
   }
 
@@ -213,6 +243,38 @@ export default function SettingsPage() {
           </button>
           {saved && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
           {error && <span style={{ color: '#e94560', fontSize: 14 }}>{error}</span>}
+        </div>
+      </div>
+
+      <div style={cardStyle}>
+        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>О себе</h2>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
+            Информация о себе
+          </label>
+          <textarea
+            style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }}
+            placeholder="Расскажите немного о себе..."
+            value={bioInput}
+            maxLength={500}
+            onChange={e => { setBioInput(e.target.value); setSavedBio(false) }}
+          />
+          <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
+            Будет отображаться в таблице игроков клуба. Максимум 500 символов.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            style={{ ...btnStyle, background: '#e94560', opacity: savingBio ? 0.7 : 1 }}
+            onClick={handleSaveBio}
+            disabled={savingBio}
+          >
+            {savingBio ? 'Сохраняем...' : 'Сохранить'}
+          </button>
+          {savedBio && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
+          {errorBio && <span style={{ color: '#e94560', fontSize: 14 }}>{errorBio}</span>}
         </div>
       </div>
 
