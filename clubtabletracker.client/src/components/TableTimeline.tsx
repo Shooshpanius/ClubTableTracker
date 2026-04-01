@@ -124,11 +124,11 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                   <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
                     {seg.booking.user.name}
                   </div>
-                  {seg.booking.participants[0] && (
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                      {seg.booking.participants[0].status === 'Invited' ? '(i) ' : ''}{seg.booking.participants[0].name}
+                  {seg.booking.participants.map(p => (
+                    <div key={p.id} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
+                      {p.status === 'Invited' ? '(i) ' : ''}{p.name}
                     </div>
-                  )}
+                  ))}
                   {seg.booking.gameSystem && height >= 36 && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center', fontStyle: 'italic' }}>
                       {seg.booking.gameSystem}
