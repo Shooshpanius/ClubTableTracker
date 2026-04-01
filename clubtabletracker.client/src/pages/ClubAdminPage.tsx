@@ -23,6 +23,11 @@ export default function ClubAdminPage() {
   const [newEvent, setNewEvent] = useState({ title: '', date: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
   const [selectedEventTables, setSelectedEventTables] = useState<number[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
+  const [editingEventId, setEditingEventId] = useState<number | null>(null)
+  const [editingEventDate, setEditingEventDate] = useState('')
+  const [editingEventDateError, setEditingEventDateError] = useState('')
+  const [inviteEventId, setInviteEventId] = useState<number | null>(null)
+  const [inviteUserId, setInviteUserId] = useState('')
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -149,6 +154,60 @@ export default function ClubAdminPage() {
     if (!confirm('Удалить событие?')) return
     const res = await fetch(`/api/clubadmin/events/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
     if (res.ok) setEvents(events.filter(e => e.id !== id))
+  }
+
+  const startEditingEventDate = (ev: ClubEventData) => {
+    // Convert stored ISO date to local datetime-local string without seconds
+    const d = new Date(ev.date)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`
+    setEditingEventId(ev.id)
+    setEditingEventDate(local)
+    setEditingEventDateError('')
+  }
+
+  const saveEventDate = async (id: number) => {
+    if (!editingEventDate) return
+    const isoDate = new Date(editingEventDate).toISOString()
+    const res = await fetch(`/api/clubadmin/events/${id}/date`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ date: isoDate })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, date: data.date } : e))
+      setEditingEventId(null)
+      setEditingEventDateError('')
+    } else {
+      const text = await res.text()
+      setEditingEventDateError(text || 'Ошибка сохранения')
+    }
+  }
+
+  const inviteParticipant = async (eventId: number) => {
+    if (!inviteUserId) return
+    const res = await fetch(`/api/clubadmin/events/${eventId}/participants/${encodeURIComponent(inviteUserId)}`, {
+      method: 'POST', headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) {
+      const participant = await res.json()
+      setEvents(events.map(e => e.id === eventId ? { ...e, participants: [...e.participants, participant] } : e))
+      setInviteUserId('')
+      setInviteEventId(null)
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка при приглашении')
+    }
+  }
+
+  const removeParticipant = async (eventId: number, userId: string) => {
+    const res = await fetch(`/api/clubadmin/events/${eventId}/participants/${encodeURIComponent(userId)}`, {
+      method: 'DELETE', headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) {
+      setEvents(events.map(e => e.id === eventId ? { ...e, participants: e.participants.filter(p => p.id !== userId) } : e))
+    }
   }
 
   const updateTablePosition = async (id: number, x: number, y: number) => {
@@ -358,24 +417,68 @@ export default function ClubAdminPage() {
             const tableNumbers = ev.tableIds
               ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
               : ''
+            const approvedMembers = memberships.filter(m => m.status === 'Approved' && !ev.participants.some(p => p.id === m.user.id))
             return (
-              <div key={ev.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                <div>
-                  <strong style={{ fontSize: 15, color: '#eee' }}>{ev.title}</strong>
-                  <span style={{ marginLeft: 10, color: '#ffc107', fontSize: 13 }}>{ev.eventType}</span>
-                  {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 13, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
-                  <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
-                    📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
-                    {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
-                  </div>
-                  {ev.participants.length > 0 && (
-                    <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
-                      Участники: {ev.participants.map(p => p.name).join(', ')}
+              <div key={ev.id} style={{ ...cardStyle, flexDirection: 'column', display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <strong style={{ fontSize: 15, color: '#eee' }}>{ev.title}</strong>
+                    <span style={{ marginLeft: 10, color: '#ffc107', fontSize: 13 }}>{ev.eventType}</span>
+                    {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 13, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                    <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                      📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                      {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
                     </div>
-                  )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => editingEventId === ev.id ? setEditingEventId(null) : startEditingEventDate(ev)}>
+                      {editingEventId === ev.id ? '✕' : '📅 Дата'}
+                    </button>
+                    <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => { setInviteEventId(inviteEventId === ev.id ? null : ev.id); setInviteUserId('') }}>
+                      {inviteEventId === ev.id ? '✕' : '+ Пригласить'}
+                    </button>
+                    <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
+                  </div>
                 </div>
-                <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
+
+                {editingEventId === ev.id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
+                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventDate}
+                      onChange={e => { setEditingEventDate(e.target.value); setEditingEventDateError('') }} />
+                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDate(ev.id)}>Сохранить</button>
+                    {editingEventDateError && <span style={{ color: '#e94560', fontSize: 13 }}>{editingEventDateError}</span>}
+                  </div>
+                )}
+
+                {inviteEventId === ev.id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
+                    <select style={inputStyle} value={inviteUserId} onChange={e => setInviteUserId(e.target.value)}>
+                      <option value="">— Выберите игрока —</option>
+                      {approvedMembers.map(m => (
+                        <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
+                      ))}
+                    </select>
+                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => inviteParticipant(ev.id)} disabled={!inviteUserId}>Пригласить</button>
+                    {approvedMembers.length === 0 && <span style={{ color: '#aaa', fontSize: 13 }}>Все одобренные участники уже в событии</span>}
+                  </div>
+                )}
+
+                {ev.participants.length > 0 && (
+                  <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
+                    Участники:{' '}
+                    {ev.participants.map((p, i) => (
+                      <span key={p.id}>
+                        {i > 0 && ', '}
+                        {p.name}
+                        <button onClick={() => removeParticipant(ev.id, p.id)}
+                          aria-label={`Удалить ${p.name} из события`}
+                          style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', marginLeft: 2, padding: '0 2px', fontSize: 11 }}
+                          title="Удалить из события">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}

@@ -283,8 +283,78 @@ public class ClubAdminController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    [HttpPut("events/{id}/date")]
+    public IActionResult UpdateEventDate(int id, [FromBody] UpdateEventDateRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        // Validate whole hour only
+        if (req.Date.Minute != 0 || req.Date.Second != 0)
+            return BadRequest("Время события должно быть на ровный час");
+
+        // Validate within club working hours
+        if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
+            !TimeSpan.TryParse(club.CloseTime, out var closeTime))
+            return BadRequest("Неверные часы работы клуба");
+
+        var eventTime = req.Date.TimeOfDay;
+        if (eventTime < openTime || eventTime >= closeTime)
+            return BadRequest($"Время события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+
+        ev.Date = req.Date;
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Date });
+    }
+
+    [HttpPost("events/{id}/participants/{userId}")]
+    public IActionResult InviteParticipant(int id, string userId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.Include(e => e.Participants).FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == club.Id && m.Status == "Approved");
+        if (!isMember) return BadRequest("Пользователь не является одобренным участником клуба");
+
+        if (ev.Participants.Any(p => p.UserId == userId))
+            return BadRequest("Игрок уже участвует в событии");
+
+        if (ev.Participants.Count >= ev.MaxParticipants)
+            return BadRequest("Событие заполнено");
+
+        var user = _db.Users.FirstOrDefault(u => u.Id == userId);
+        _db.EventParticipants.Add(new EventParticipant { EventId = id, UserId = userId });
+        _db.SaveChanges();
+
+        return Ok(new { Id = userId, Name = user?.DisplayName ?? user?.Name ?? userId });
+    }
+
+    [HttpDelete("events/{id}/participants/{userId}")]
+    public IActionResult RemoveParticipant(int id, string userId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        var participant = _db.EventParticipants.FirstOrDefault(p => p.EventId == id && p.UserId == userId);
+        if (participant == null) return NotFound();
+
+        _db.EventParticipants.Remove(participant);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
 public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
+public record UpdateEventDateRequest(DateTime Date);
