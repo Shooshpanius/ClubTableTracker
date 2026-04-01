@@ -1,3 +1,5 @@
+import { DEFAULT_BOOKING_COLORS, BookingColors } from '../constants'
+
 interface Booking {
   id: number; tableId: number; startTime: string; endTime: string
   gameSystem?: string
@@ -17,6 +19,7 @@ interface Props {
   onBookingClick?: (booking: Booking) => void
   isSelected?: boolean
   isEventTable?: boolean
+  colors?: BookingColors
 }
 
 const RECT_HEIGHT = 360
@@ -44,7 +47,8 @@ interface Segment {
   booking?: Booking
 }
 
-export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected, isEventTable }: Props) {
+export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected, isEventTable, colors }: Props) {
+  const c = { ...DEFAULT_BOOKING_COLORS, ...colors }
   const openMin = parseHHMM(openTime)
   const closeMin = parseHHMM(closeTime)
   const totalMin = Math.max(closeMin - openMin, 1)
@@ -90,7 +94,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
               title={isFree ? `Свободно ${Math.floor(seg.startMin / 60)}:${String(seg.startMin % 60).padStart(2, '0')}–${Math.floor(seg.endMin / 60)}:${String(seg.endMin % 60).padStart(2, '0')}` : undefined}
               style={{
                 position: 'absolute', left: 0, right: 0, top, height,
-                background: isFree ? (isEventTable ? '#c45c5c' : '#90ee90') : isUserBooking ? '#ff8c00' : '#ffff00',
+                background: isFree ? (isEventTable ? c.eventFreeSlot : c.freeSlot) : isUserBooking ? c.myBooking : c.othersBooking,
                 cursor: (isFree && onSlotClick) || (!isFree && onBookingClick) ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center', alignItems: 'center',

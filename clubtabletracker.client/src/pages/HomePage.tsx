@@ -6,6 +6,7 @@ import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
+import { DEFAULT_BOOKING_COLORS, BookingColors } from '../constants'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -88,6 +89,13 @@ export default function HomePage() {
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [bookingStart, setBookingStart] = useState('')
   const [bookingEnd, setBookingEnd] = useState('')
+  const [bookingColors, setBookingColors] = useState<BookingColors>(() => {
+    try {
+      const stored = localStorage.getItem('bookingColors')
+      if (stored) return { ...DEFAULT_BOOKING_COLORS, ...JSON.parse(stored) }
+    } catch { /* ignore */ }
+    return DEFAULT_BOOKING_COLORS
+  })
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -110,7 +118,16 @@ export default function HomePage() {
       setUser(baseUser)
       fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
-        .then(data => setUser(u => u ? { ...u, displayName: data.displayName || undefined } : u))
+        .then(data => {
+          setUser(u => u ? { ...u, displayName: data.displayName || undefined } : u)
+          if (data.bookingColors) {
+            try {
+              const c = { ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) }
+              setBookingColors(c)
+              localStorage.setItem('bookingColors', JSON.stringify(c))
+            } catch { /* ignore */ }
+          }
+        })
         .catch(err => console.error('Failed to load user profile:', err))
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))
@@ -666,15 +683,15 @@ export default function HomePage() {
               {/* Legend */}
               <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13, flexWrap: 'wrap' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 20, height: 14, background: '#90ee90', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                  <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                   Свободно
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 20, height: 14, background: '#c45c5c', display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
+                  <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
                   Свободно (событие)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 20, height: 14, background: '#ffff00', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                  <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                   Занято
                 </span>
                 {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
@@ -735,7 +752,7 @@ export default function HomePage() {
                             const isFree = seg.type === 'free'
                             const isUserBooking = !isFree && seg.booking != null && userId != null &&
                               (seg.booking.user.id === userId || seg.booking.participants.some(p => p.id === userId))
-                            const bg = isFree ? (isEventTable ? '#c45c5c' : '#90ee90') : isUserBooking ? '#ff8c00' : '#ffff00'
+                            const bg = isFree ? (isEventTable ? bookingColors.eventFreeSlot : bookingColors.freeSlot) : isUserBooking ? bookingColors.myBooking : bookingColors.othersBooking
                             const label = isFree
                               ? `Свободно ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
                               : `Занято ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
