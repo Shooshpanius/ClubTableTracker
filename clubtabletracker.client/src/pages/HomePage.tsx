@@ -1251,7 +1251,7 @@ export default function HomePage() {
                   Присоединиться
                 </button>
               )}
-              {isModeratorParticipant && (
+              {isModeratorParticipant && !isModeratorOwner && (
                 <button
                   onClick={async () => { setModeratorBookingModal(null); await leaveBooking(b) }}
                   style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
