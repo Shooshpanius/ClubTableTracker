@@ -12,5 +12,6 @@ public class Booking
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string? GameSystem { get; set; }
+    public bool IsDoubles { get; set; }
     public List<BookingParticipant> Participants { get; set; } = new();
 }
