@@ -1165,8 +1165,8 @@ export default function HomePage() {
           {playerSystemsModal.enabledGameSystems
             ? (
               <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#ccc', fontSize: 14, lineHeight: 1.8 }}>
-                {playerSystemsModal.enabledGameSystems.split('|').map(s => (
-                  <li key={s}>{s}</li>
+                {playerSystemsModal.enabledGameSystems.split('|').filter(s => s.trim()).map((s, idx) => (
+                  <li key={idx}>{s.trim()}</li>
                 ))}
               </ul>
             )
