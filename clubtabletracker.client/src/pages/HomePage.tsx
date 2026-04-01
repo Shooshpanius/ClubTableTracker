@@ -184,7 +184,6 @@ export default function HomePage() {
     setSelectedClub(club)
     setSelectedTable(null)
     setClubEvents([])
-    setShowEvents(false)
     setExpandedTableId(null)
     setDesktopTab('booking')
     setMobileTab('tables')
