@@ -87,6 +87,7 @@ export default function HomePage() {
   const [tables, setTables] = useState<GameTable[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [members, setMembers] = useState<ClubMember[]>([])
+  const [playerSystemsModal, setPlayerSystemsModal] = useState<ClubMember | null>(null)
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [bookingStart, setBookingStart] = useState('')
   const [bookingEnd, setBookingEnd] = useState('')
@@ -405,6 +406,7 @@ export default function HomePage() {
   }, [clubEvents, selectedDate, user])
 
   return (
+    <>
     <div style={{ padding: isMobile ? 16 : 40 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
@@ -820,6 +822,7 @@ export default function HomePage() {
                                   <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Имя для отображения</th>
                                   <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Дата вступления</th>
                                   <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Информация</th>
+                                  <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Системы</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -829,6 +832,14 @@ export default function HomePage() {
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
                                     <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "#666" }}>—</span>}</td>
+                                    <td style={{ padding: "6px 8px" }}>
+                                      <button
+                                        onClick={() => setPlayerSystemsModal(m)}
+                                        style={{ background: "#0f3460", color: "#ccc", border: "1px solid #1a4a8a", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 12 }}
+                                      >
+                                        Системы
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1102,6 +1113,7 @@ export default function HomePage() {
                                   <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Имя для отображения</th>
                                   <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Дата вступления</th>
                                   <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Информация</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Системы</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1111,6 +1123,14 @@ export default function HomePage() {
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
                                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: '#666' }}>—</span>}</td>
+                                    <td style={{ padding: '8px 12px' }}>
+                                      <button
+                                        onClick={() => setPlayerSystemsModal(m)}
+                                        style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
+                                      >
+                                        Системы
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1127,5 +1147,40 @@ export default function HomePage() {
         )
       })}
     </div>
+
+    {/* Модалка: игровые системы игрока */}
+    {playerSystemsModal && (
+      <div
+        onClick={() => setPlayerSystemsModal(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 420, width: '90%' }}
+        >
+          <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#e0e0e0' }}>
+            {playerSystemsModal.displayName || playerSystemsModal.registrationName}
+          </h3>
+          <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#888' }}>Игровые системы</p>
+          {playerSystemsModal.enabledGameSystems
+            ? (
+              <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#ccc', fontSize: 14, lineHeight: 1.8 }}>
+                {playerSystemsModal.enabledGameSystems.split('|').filter(s => s.trim()).map((s, idx) => (
+                  <li key={idx}>{s.trim()}</li>
+                ))}
+              </ul>
+            )
+            : <p style={{ color: '#666', margin: 0, fontSize: 14 }}>Системы не указаны</p>
+          }
+          <button
+            onClick={() => setPlayerSystemsModal(null)}
+            style={{ marginTop: 20, background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   )
 }
