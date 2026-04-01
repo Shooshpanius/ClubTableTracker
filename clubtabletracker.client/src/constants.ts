@@ -30,9 +30,14 @@ export const GAME_SYSTEMS_MAIN = [
   'Warhammer Underworlds',
   'Kill Team',
   'Warcry',
-  'Aeronautica Imperialis',
   'Middle-earth Strategy Battle Game',
   'The Old World',
+  'Bushido',
+  'Battlefleet Gothic',
+  'Saga',
+  'Trench Crusade',
+  'Battletech',
+  'Mordheim',
 ]
 
 export const GAME_SYSTEMS_BOTTOM = ['Покрас', 'Настольные игры']
