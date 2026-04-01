@@ -37,6 +37,7 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
+                b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -69,6 +70,7 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
+                b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -104,6 +106,7 @@ public class BookingController : ControllerBase
                 b.StartTime,
                 b.EndTime,
                 b.GameSystem,
+                b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -210,22 +213,32 @@ public class BookingController : ControllerBase
             UserId = userId,
             StartTime = req.StartTime,
             EndTime = req.EndTime,
-            GameSystem = req.GameSystem
+            GameSystem = req.GameSystem,
+            IsDoubles = req.IsDoubles
         };
         _db.Bookings.Add(booking);
         _db.SaveChanges();
 
-        // Если указан оппонент — создаём приглашение
-        if (!string.IsNullOrEmpty(req.InvitedUserId) && req.InvitedUserId != userId)
+        // Если указаны оппоненты — создаём приглашения
+        if (req.InvitedUserIds != null && req.InvitedUserIds.Count > 0)
         {
-            var isInviteeMember = _db.Memberships.Any(m => m.UserId == req.InvitedUserId && m.ClubId == table.ClubId && m.Status == "Approved");
-            if (isInviteeMember)
+            int maxInvites = req.IsDoubles ? 3 : 1;
+            var validInvitees = req.InvitedUserIds
+                .Where(id => !string.IsNullOrEmpty(id) && id != userId)
+                .Distinct()
+                .Take(maxInvites)
+                .ToList();
+
+            foreach (var inviteeId in validInvitees)
             {
+                var isInviteeMember = _db.Memberships.Any(m => m.UserId == inviteeId && m.ClubId == table.ClubId && m.Status == "Approved");
+                if (!isInviteeMember) continue;
+
                 // Проверяем, что у приглашённого включена выбранная игровая система
                 bool canInvite = true;
                 if (!string.IsNullOrEmpty(req.GameSystem))
                 {
-                    var invitee = _db.Users.Find(req.InvitedUserId);
+                    var invitee = _db.Users.Find(inviteeId);
                     if (invitee != null)
                     {
                         var inviteeSystems = invitee.EnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
@@ -242,7 +255,7 @@ public class BookingController : ControllerBase
                     _db.BookingParticipants.Add(new BookingParticipant
                     {
                         BookingId = booking.Id,
-                        UserId = req.InvitedUserId,
+                        UserId = inviteeId,
                         Status = "Invited"
                     });
                 }
@@ -283,8 +296,9 @@ public class BookingController : ControllerBase
         if (booking.UserId == userId || booking.Participants.Any(p => p.UserId == userId))
             return BadRequest("Already in this booking");
 
-        if (1 + booking.Participants.Count(p => p.Status == "Accepted") >= 2)
-            return BadRequest("Booking is full (max 2 players)");
+        int maxPlayers = booking.IsDoubles ? 4 : 2;
+        if (1 + booking.Participants.Count(p => p.Status == "Accepted") >= maxPlayers)
+            return BadRequest($"Booking is full (max {maxPlayers} players)");
 
         var participant = new BookingParticipant { BookingId = id, UserId = userId, Status = "Accepted" };
         _db.BookingParticipants.Add(participant);
@@ -425,8 +439,9 @@ public class BookingController : ControllerBase
 
         // Убедимся, что место ещё свободно
         var acceptedCount = _db.BookingParticipants.Count(p => p.BookingId == id && p.Status == "Accepted");
-        if (1 + acceptedCount >= 2)
-            return BadRequest("Booking is full (max 2 players)");
+        int maxPlayers = participant.Booking.IsDoubles ? 4 : 2;
+        if (1 + acceptedCount >= maxPlayers)
+            return BadRequest($"Booking is full (max {maxPlayers} players)");
 
         participant.Status = "Accepted";
 
@@ -462,4 +477,4 @@ public class BookingController : ControllerBase
     }
 }
 
-public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, string? InvitedUserId = null);
+public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, List<string>? InvitedUserIds = null);

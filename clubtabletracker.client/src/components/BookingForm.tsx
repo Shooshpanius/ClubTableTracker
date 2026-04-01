@@ -106,7 +106,8 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
-  const [invitedUserId, setInvitedUserId] = useState('')
+  const [isDoubles, setIsDoubles] = useState(false)
+  const [invitedUserIds, setInvitedUserIds] = useState<string[]>(['', '', ''])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -121,10 +122,12 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     : []
 
   useEffect(() => {
-    if (invitedUserId && !eligibleMembers.some(m => m.id === invitedUserId)) {
-      setInvitedUserId('')
-    }
+    setInvitedUserIds(ids => ids.map(id => (!id || !eligibleMembers.some(m => m.id === id)) ? '' : id))
   }, [gameSystem])
+
+  const setInvitedAt = (index: number, value: string) => {
+    setInvitedUserIds(ids => ids.map((id, i) => i === index ? value : id))
+  }
 
   const book = async () => {
     if (!startTime || !endTime) { setError('Выберите время начала и окончания'); return }
@@ -147,13 +150,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     }
     setLoading(true)
     setError('')
+    const inviteSlots = isDoubles ? 3 : 1
+    const ids = invitedUserIds.slice(0, inviteSlots).filter(Boolean)
     const res = await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, invitedUserId: invitedUserId || null })
+      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, isDoubles, invitedUserIds: ids.length > 0 ? ids : null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setInvitedUserId(''); onBooked() }
+    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setInvitedUserIds(['', '', '']); onBooked() }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
@@ -191,14 +196,26 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           </select>
         </div>
       )}
+      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ color: '#aaa', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <input type="checkbox" checked={isDoubles} onChange={e => setIsDoubles(e.target.checked)} style={{ accentColor: '#533483' }} />
+          2x2 (4 игрока)
+        </label>
+      </div>
       {members.length > 0 && (
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <label style={{ color: '#aaa', fontSize: 13 }}>Оппонент:</label>
-          <select style={inputStyle} value={invitedUserId} onChange={e => setInvitedUserId(e.target.value)} disabled={!gameSystem}>
-            <option value="">— не выбран —</option>
-            {eligibleMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-          {!gameSystem && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {Array.from({ length: isDoubles ? 3 : 1 }, (_, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <label style={{ color: '#aaa', fontSize: 13 }}>{isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:'}</label>
+              <select style={inputStyle} value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)} disabled={!gameSystem}>
+                <option value="">— не выбран —</option>
+                {eligibleMembers
+                  .filter(m => !invitedUserIds.some((id, j) => j !== i && id === m.id))
+                  .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+              {!gameSystem && i === 0 && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
+            </div>
+          ))}
         </div>
       )}
       <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>

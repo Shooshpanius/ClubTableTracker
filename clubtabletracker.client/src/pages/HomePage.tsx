@@ -24,7 +24,7 @@ interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
-interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string; status?: string }[] }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string; status?: string }[]; isDoubles?: boolean }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
@@ -337,7 +337,8 @@ export default function HomePage() {
       return
     }
     const acceptedCount = booking.participants.filter(p => p.status !== 'Invited').length
-    if (acceptedCount >= MAX_BOOKING_PLAYERS - 1) return
+    const maxPlayers = booking.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+    if (acceptedCount >= maxPlayers - 1) return
     if (!confirm(`Присоединиться к игре ${booking.user.name}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/join`, {
       method: 'POST',
@@ -696,6 +697,7 @@ export default function HomePage() {
                                           <span style={{ color: "#aaa", marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
                                           <span style={{ color: "#4caf50", marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
                                           {b.gameSystem && <span style={{ color: "#888", marginLeft: 8, fontSize: 12, fontStyle: "italic" }}>{b.gameSystem}</span>}
+                                          {b.isDoubles && <span style={{ color: "#7b2fff", marginLeft: 8, fontSize: 12, fontWeight: "bold" }}>2×2</span>}
                                           <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
                                             {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === "Invited" ? "(i) " : "") + p.name).join(", ")}`}
                                             {isOwner && <span style={{ color: "#ff8c00", marginLeft: 6 }}>(организатор)</span>}
@@ -995,6 +997,7 @@ export default function HomePage() {
                                       <span style={{ color: '#aaa', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
                                       <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
                                       {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
+                                      {b.isDoubles && <span style={{ color: '#7b2fff', marginLeft: 8, fontSize: 12, fontWeight: 'bold' }}>2×2</span>}
                                       <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
                                         {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === 'Invited' ? '(i) ' : '') + p.name).join(', ')}`}
                                         {isOwner && <span style={{ color: '#ff8c00', marginLeft: 6 }}>(организатор)</span>}
