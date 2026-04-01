@@ -475,6 +475,75 @@ public class BookingController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    [HttpDelete("{id}/kick-player/{targetUserId}")]
+    public IActionResult KickPlayerFromBooking(int id, string targetUserId)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == booking.Table.ClubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        var now = DateTime.UtcNow;
+
+        if (booking.UserId == targetUserId)
+        {
+            // Transfer ownership to first accepted participant, or delete booking
+            var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted").OrderBy(p => p.Id).ToList();
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = now,
+                Action = "Cancelled",
+                UserId = targetUserId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = booking.Table.ClubId,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+            if (acceptedParticipants.Count > 0)
+            {
+                var newOwner = acceptedParticipants.First();
+                booking.UserId = newOwner.UserId;
+                _db.BookingParticipants.Remove(newOwner);
+                var invitedParticipants = booking.Participants.Where(p => p.Status == "Invited").ToList();
+                _db.BookingParticipants.RemoveRange(invitedParticipants);
+            }
+            else
+            {
+                _db.Bookings.Remove(booking);
+            }
+        }
+        else
+        {
+            var participant = booking.Participants.FirstOrDefault(p => p.UserId == targetUserId);
+            if (participant == null) return NotFound();
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = now,
+                Action = "Left",
+                UserId = targetUserId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = booking.Table.ClubId,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+            _db.BookingParticipants.Remove(participant);
+        }
+
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, List<string>? InvitedUserIds = null);

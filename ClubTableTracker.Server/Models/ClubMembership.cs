@@ -9,5 +9,6 @@ public class ClubMembership
     public int ClubId { get; set; }
     public Club Club { get; set; } = null!;
     public string Status { get; set; } = "Pending"; // Pending/Approved/Rejected
+    public bool IsModerator { get; set; } = false;
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 }

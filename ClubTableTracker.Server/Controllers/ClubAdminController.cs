@@ -135,9 +135,21 @@ public class ClubAdminController : ControllerBase
         var memberships = _db.Memberships
             .Include(m => m.User)
             .Where(m => m.ClubId == club.Id)
-            .Select(m => new { m.Id, m.Status, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email } })
+            .Select(m => new { m.Id, m.Status, m.IsModerator, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email } })
             .ToList();
         return Ok(memberships);
+    }
+
+    [HttpPost("memberships/{id}/set-moderator")]
+    public IActionResult SetModerator(int id, [FromBody] SetModeratorRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
+        if (membership == null) return NotFound();
+        membership.IsModerator = req.IsModerator;
+        _db.SaveChanges();
+        return Ok(new { membership.Id, membership.IsModerator });
     }
 
     [HttpPost("memberships/{id}/approve")]
@@ -376,3 +388,4 @@ public record ClubSettingsRequest(string OpenTime, string CloseTime);
 public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
 public record UpdateEventDateRequest(DateTime Date);
 public record UpdateEventTitleRequest(string Title);
+public record SetModeratorRequest(bool IsModerator);
