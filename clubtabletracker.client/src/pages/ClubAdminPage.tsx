@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
-import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM } from '../constants'
+import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
@@ -132,7 +132,7 @@ export default function ClubAdminPage() {
   const createEvent = async () => {
     const body = {
       title: newEvent.title,
-      date: new Date(newEvent.date).toISOString(),
+      date: newEvent.date.length === 16 ? newEvent.date + ':00' : newEvent.date,
       maxParticipants: newEvent.maxParticipants,
       eventType: newEvent.eventType,
       gameSystem: newEvent.gameSystem || null,
@@ -170,7 +170,7 @@ export default function ClubAdminPage() {
 
   const saveEventDate = async (id: number) => {
     if (!editingEventDate) return
-    const isoDate = new Date(editingEventDate).toISOString()
+    const isoDate = editingEventDate.length === 16 ? editingEventDate + ':00' : editingEventDate
     const res = await fetch(`/api/clubadmin/events/${id}/date`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
@@ -277,7 +277,7 @@ export default function ClubAdminPage() {
 
       {tab === 'map' && (
         <>
-          <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(Boolean) : []) }} />
+          <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }} />
           <div style={{ ...cardStyle, marginTop: 16 }}>
             <h3>Add New Table</h3>
             <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60, eventsOnly: false }); setSelectedGames([]) }}>+ Add Table</button>
@@ -325,7 +325,7 @@ export default function ClubAdminPage() {
                 <div style={{ color: '#aaa', fontSize: 13 }}>{t.supportedGames ? t.supportedGames.split('|').filter(Boolean).join(', ') : ''}</div>
               </div>
               <div>
-                <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames.split('|').filter(Boolean)) }}>Edit</button>
+                <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }}>Edit</button>
                 <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => copyTable(t.id)}>Copy</button>
               </div>
             </div>
@@ -381,7 +381,19 @@ export default function ClubAdminPage() {
       {tab === 'events' && (
         <>
           <div style={{ marginBottom: 16 }}>
-            <button style={btnStyle} onClick={() => setShowEventForm(v => !v)}>
+            <button style={btnStyle} onClick={() => {
+              if (!showEventForm && club?.openTime) {
+                const [h, m = 0] = club.openTime.split(':').map(Number)
+                const now = new Date()
+                const d = new Date()
+                d.setHours(h, m ?? 0, 0, 0)
+                if (d <= now) d.setDate(d.getDate() + 1)
+                const pad = (n: number) => String(n).padStart(2, '0')
+                const defaultDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}`
+                setNewEvent(prev => ({ ...prev, date: defaultDate }))
+              }
+              setShowEventForm(v => !v)
+            }}>
               {showEventForm ? '✕ Отмена' : '+ Создать событие'}
             </button>
           </div>
