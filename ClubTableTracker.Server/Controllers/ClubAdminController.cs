@@ -284,6 +284,23 @@ public class ClubAdminController : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("events/{id}/title")]
+    public IActionResult UpdateEventTitle(int id, [FromBody] UpdateEventTitleRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(req.Title))
+            return BadRequest("Название события не может быть пустым");
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        ev.Title = req.Title.Trim();
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Title });
+    }
+
     [HttpPut("events/{id}/date")]
     public IActionResult UpdateEventDate(int id, [FromBody] UpdateEventDateRequest req)
     {
@@ -358,3 +375,4 @@ public record TableRequest(string Number, string Size, string SupportedGames, do
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
 public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
 public record UpdateEventDateRequest(DateTime Date);
+public record UpdateEventTitleRequest(string Title);

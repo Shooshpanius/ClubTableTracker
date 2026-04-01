@@ -28,6 +28,8 @@ export default function ClubAdminPage() {
   const [editingEventDateError, setEditingEventDateError] = useState('')
   const [inviteEventId, setInviteEventId] = useState<number | null>(null)
   const [inviteUserId, setInviteUserId] = useState('')
+  const [editingTitleEventId, setEditingTitleEventId] = useState<number | null>(null)
+  const [editingTitleValue, setEditingTitleValue] = useState('')
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -207,6 +209,21 @@ export default function ClubAdminPage() {
     })
     if (res.ok) {
       setEvents(events.map(e => e.id === eventId ? { ...e, participants: e.participants.filter(p => p.id !== userId) } : e))
+    }
+  }
+
+  const saveEventTitle = async (id: number) => {
+    const trimmed = editingTitleValue.trim()
+    if (!trimmed) return
+    const res = await fetch(`/api/clubadmin/events/${id}/title`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ title: trimmed })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, title: data.title } : e))
+      setEditingTitleEventId(null)
     }
   }
 
@@ -432,6 +449,12 @@ export default function ClubAdminPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button style={{ ...btnStyle, background: '#533483' }} onClick={() => {
+                      if (editingTitleEventId === ev.id) { setEditingTitleEventId(null) }
+                      else { setEditingTitleEventId(ev.id); setEditingTitleValue(ev.title) }
+                    }}>
+                      {editingTitleEventId === ev.id ? '✕' : '✏️ Название'}
+                    </button>
                     <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => editingEventId === ev.id ? setEditingEventId(null) : startEditingEventDate(ev)}>
                       {editingEventId === ev.id ? '✕' : '📅 Дата'}
                     </button>
@@ -441,6 +464,19 @@ export default function ClubAdminPage() {
                     <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
                   </div>
                 </div>
+
+                {editingTitleEventId === ev.id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
+                    <input style={{ ...inputStyle, minWidth: 220 }} value={editingTitleValue}
+                      onChange={e => setEditingTitleValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') saveEventTitle(ev.id)
+                        if (e.key === 'Escape') setEditingTitleEventId(null)
+                      }}
+                      placeholder="Название события" autoFocus />
+                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventTitle(ev.id)} disabled={!editingTitleValue.trim()}>Сохранить</button>
+                  </div>
+                )}
 
                 {editingEventId === ev.id && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
