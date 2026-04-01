@@ -34,6 +34,16 @@ function parseHHMM(t: string): number {
   return h * 60 + (m || 0)
 }
 
+function getLocalMinutes(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes()
+}
+
+function isSameLocalDay(date: Date, ref: Date): boolean {
+  return date.getFullYear() === ref.getFullYear() &&
+    date.getMonth() === ref.getMonth() &&
+    date.getDate() === ref.getDate()
+}
+
 function toDatetimeLocal(date: Date, totalMinutes: number): string {
   const d = new Date(date)
   d.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0)
@@ -700,6 +710,40 @@ export default function HomePage() {
                       </span>
                       <span style={{ fontSize: 18, color: '#888', marginLeft: 8 }}>{isExpanded ? '▲' : '▼'}</span>
                     </button>
+
+                    {/* Occupancy bar */}
+                    {(() => {
+                      const isEventTable = eventTableIds.has(table.id)
+                      const tableBookings = bookings
+                        .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
+                        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                      const segments: { type: string; startMin: number; endMin: number; booking?: Booking }[] = []
+                      let cursor = openMin
+                      for (const booking of tableBookings) {
+                        const bStart = Math.max(getLocalMinutes(new Date(booking.startTime)), openMin)
+                        const bEnd = Math.min(getLocalMinutes(new Date(booking.endTime)), closeMin)
+                        if (bStart > cursor) segments.push({ type: 'free', startMin: cursor, endMin: bStart })
+                        if (bEnd > bStart) segments.push({ type: 'booked', startMin: bStart, endMin: bEnd, booking })
+                        cursor = Math.max(cursor, bEnd)
+                      }
+                      if (cursor < closeMin) segments.push({ type: 'free', startMin: cursor, endMin: closeMin })
+                      const userId = user?.id
+                      const fmt = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+                      return (
+                        <div style={{ display: 'flex', height: 6, width: '100%' }}>
+                          {segments.map((seg, i) => {
+                            const isFree = seg.type === 'free'
+                            const isUserBooking = !isFree && seg.booking != null && userId != null &&
+                              (seg.booking.user.id === userId || seg.booking.participants.some(p => p.id === userId))
+                            const bg = isFree ? (isEventTable ? '#c45c5c' : '#90ee90') : isUserBooking ? '#ff8c00' : '#ffff00'
+                            const label = isFree
+                              ? `Свободно ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
+                              : `Занято ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
+                            return <div key={i} title={label} aria-label={label} style={{ flex: seg.endMin - seg.startMin, background: bg }} />
+                          })}
+                        </div>
+                      )
+                    })()}
 
                     {/* Accordion body */}
                     {isExpanded && (
