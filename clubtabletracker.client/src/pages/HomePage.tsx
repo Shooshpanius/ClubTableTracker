@@ -368,10 +368,7 @@ export default function HomePage() {
   const [upcomingAllBookings, setUpcomingAllBookings] = useState<UpcomingBooking[]>([])
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
-  const [showUpcoming, setShowUpcoming] = useState(false)
-  const [showLog, setShowLog] = useState(false)
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
-  const [showEvents, setShowEvents] = useState(false)
   const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log'>('tables')
   const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log'>('booking')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
