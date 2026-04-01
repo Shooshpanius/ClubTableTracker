@@ -330,16 +330,16 @@ export default function HomePage() {
 
   const joinBooking = async (booking: Booking) => {
     if (!user) return
+    if (isModerator) {
+      setModeratorBookingModal(booking)
+      return
+    }
     if (booking.user.id === user.id) {
       await cancelBooking(booking)
       return
     }
     if (booking.participants.some(p => p.id === user.id)) {
       await leaveBooking(booking)
-      return
-    }
-    if (isModerator) {
-      setModeratorBookingModal(booking)
       return
     }
     const acceptedCount = booking.participants.filter(p => p.status !== 'Invited').length
@@ -1182,6 +1182,23 @@ export default function HomePage() {
       const b = moderatorBookingModal
       const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
       const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
+      const isModeratorOwner = user != null && b.user.id === user.id
+      const isModeratorParticipant = user != null && b.participants.some(p => p.id === user.id)
+      const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+      const canJoin = !isModeratorOwner && !isModeratorParticipant && (acceptedParticipants.length + 1) < maxPlayers
+      const handleModeratorJoin = async () => {
+        setModeratorBookingModal(null)
+        const res = await fetch(`/api/booking/${b.id}/join`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.ok) {
+          onBookingCreated()
+        } else {
+          const text = await res.text()
+          alert(text || 'Не удалось присоединиться')
+        }
+      }
       return (
         <div
           onClick={() => setModeratorBookingModal(null)}
@@ -1199,34 +1216,64 @@ export default function HomePage() {
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                 <span style={{ color: '#eee', fontSize: 14 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
-                <button
-                  style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
-                  onClick={() => kickPlayerFromBooking(b, b.user.id)}
-                >
-                  Удалить из игры
-                </button>
+                {!isModeratorOwner && (
+                  <button
+                    style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                    onClick={() => kickPlayerFromBooking(b, b.user.id)}
+                  >
+                    Удалить из игры
+                  </button>
+                )}
               </div>
               {acceptedParticipants.map(p => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                   <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
-                  <button
-                    style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
-                    onClick={() => kickPlayerFromBooking(b, p.id)}
-                  >
-                    Удалить из игры
-                  </button>
+                  {!(user != null && p.id === user.id) && (
+                    <button
+                      style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                      onClick={() => kickPlayerFromBooking(b, p.id)}
+                    >
+                      Удалить из игры
+                    </button>
+                  )}
                 </div>
               ))}
               {acceptedParticipants.length === 0 && (
                 <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
               )}
             </div>
-            <button
-              onClick={() => setModeratorBookingModal(null)}
-              style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-            >
-              Закрыть
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {canJoin && (
+                <button
+                  onClick={handleModeratorJoin}
+                  style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  Присоединиться
+                </button>
+              )}
+              {isModeratorParticipant && (
+                <button
+                  onClick={async () => { setModeratorBookingModal(null); await leaveBooking(b) }}
+                  style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  Выйти из игры
+                </button>
+              )}
+              {isModeratorOwner && (
+                <button
+                  onClick={async () => { setModeratorBookingModal(null); await cancelBooking(b) }}
+                  style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  Отменить бронирование
+                </button>
+              )}
+              <button
+                onClick={() => setModeratorBookingModal(null)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Закрыть
+              </button>
+            </div>
           </div>
         </div>
       )
