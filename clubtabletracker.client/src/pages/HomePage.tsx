@@ -187,6 +187,7 @@ export default function HomePage() {
     setShowEvents(false)
     setExpandedTableId(null)
     setDesktopTab('booking')
+    setMobileTab('tables')
     const [tablesRes, bookingsRes, membersRes, eventsRes] = await Promise.all([
       fetch(`/api/club/${club.id}/tables`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -371,6 +372,7 @@ export default function HomePage() {
   const [showLog, setShowLog] = useState(false)
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
   const [showEvents, setShowEvents] = useState(false)
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log'>('tables')
   const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log'>('booking')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
@@ -482,128 +484,242 @@ export default function HomePage() {
               <div style={{ borderTop: '1px solid #0f3460' }}>
                 {isMobile ? (
                   /* ===== MOBILE accordion body ===== */
-                  <div style={{ padding: 16 }}>
-                    {/* Events toggle */}
-                    {clubEvents.length > 0 && (
-                      <div style={{ marginBottom: 16 }}>
-                        <button
-                          style={{ ...btnStyle, background: showEvents ? '#e94560' : '#533483' }}
-                          onClick={() => setShowEvents(v => !v)}>
-                          🏆 События клуба ({clubEvents.length})
-                        </button>
-                      </div>
-                    )}
-                    {showEvents && (
-                      <div style={{ ...cardStyle, marginBottom: 24 }}>
-                        <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>События</h3>
-                        {clubEvents.map(ev => {
-                          const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
-                          const isFull = ev.participants.length >= ev.maxParticipants
+                  <div>
+                    {/* Mobile tab bar */}
+                    <div style={{ display: "flex", borderBottom: "2px solid #0f3460" }}>
+                      {(["tables", "games", "events", "log"] as const).map((tab, i) => {
+                        const labels = ["Столы", "Игры", "События", "Журнал"]
+                        return (
+                          <button
+                            key={tab}
+                            style={{
+                              flex: 1,
+                              background: mobileTab === tab ? "#e94560" : "#0f3460",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "log" ? "0 4px 0 0" : 0,
+                              padding: "9px 4px",
+                              cursor: "pointer",
+                              fontSize: 13,
+                              fontWeight: mobileTab === tab ? "bold" : "normal",
+                            }}
+                            onClick={async () => {
+                              setMobileTab(tab)
+                              if (tab === "games") await loadUpcoming()
+                              else if (tab === "log") await loadActivityLog()
+                            }}>
+                            {labels[i]}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div style={{ padding: 16 }}>
+
+                    {/* Tab: Столы */}
+                    {mobileTab === "tables" && (
+                      <>
+                        {/* Calendar */}
+                        <div style={{ marginBottom: 16 }}>
+                          <BookingCalendar
+                            bookings={bookings}
+                            selectedDate={selectedDate}
+                            onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
+                          />
+                        </div>
+
+                        {/* Legend */}
+                        <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 13, flexWrap: "wrap" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: "inline-block", borderRadius: 2, border: "1px solid #555" }} />
+                            Свободно
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: "inline-block", borderRadius: 2, border: "1px solid #ffff00" }} />
+                            Свободно (событие)
+                          </span>
+                          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: "inline-block", borderRadius: 2, border: "1px solid #555" }} />
+                            Занято
+                          </span>
+                          {user && <span style={{ color: "#aaa" }}>Нажмите на свободный слот для бронирования</span>}
+                        </div>
+
+                        {/* Table accordions */}
+                        {tables.length === 0 && <p style={{ color: "#aaa" }}>Столы не настроены администратором клуба.</p>}
+                        {tables.map(table => {
+                          const isTableExpanded = expandedTableId === table.id
+                          const isTableSelected = selectedTable?.id === table.id
                           return (
-                            <div key={ev.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '10px 14px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                              <div>
-                                <span style={{ color: '#eee', fontWeight: 'bold' }}>{ev.title}</span>
-                                <span style={{ marginLeft: 8, color: '#ffc107', fontSize: 12 }}>{ev.eventType}</span>
-                                {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 12, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
-                                <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
-                                  📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                  &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
-                                  {isRegistered && <span style={{ color: '#4caf50', marginLeft: 8 }}>✓ вы записаны</span>}
-                                </div>
-                                {ev.participants.length > 0 && (
-                                  <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-                                    {ev.participants.map(p => p.name).join(', ')}
+                            <div key={table.id} style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+                              <button
+                                onClick={() => {
+                                  const expanding = !isTableExpanded
+                                  setExpandedTableId(expanding ? table.id : null)
+                                  if (expanding) handleTableHeaderClick(table)
+                                }}
+                                style={{
+                                  width: "100%", background: isTableExpanded ? "#1a2a50" : "#16213e",
+                                  border: "none", borderBottom: isTableExpanded ? "1px solid #0f3460" : "none",
+                                  color: isTableSelected ? "#e94560" : "#eee",
+                                  padding: "12px 16px", textAlign: "left", cursor: "pointer",
+                                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                                  fontSize: 15, fontWeight: "bold"
+                                }}>
+                                <span>Стол {table.number}</span>
+                                <span style={{ fontSize: 12, color: "#aaa", fontWeight: "normal" }}>{table.size}</span>
+                                <span style={{ fontSize: 18, color: "#888", marginLeft: 8 }}>{isTableExpanded ? "▲" : "▼"}</span>
+                              </button>
+
+                              {/* Occupancy bar */}
+                              {(() => {
+                                const isEventTable = eventTableIds.has(table.id)
+                                const tableBookings = bookings
+                                  .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
+                                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                                const segments: { type: string; startMin: number; endMin: number; booking?: Booking }[] = []
+                                let cursor = clubOpenMin
+                                for (const booking of tableBookings) {
+                                  const bStart = Math.max(getLocalMinutes(new Date(booking.startTime)), clubOpenMin)
+                                  const bEnd = Math.min(getLocalMinutes(new Date(booking.endTime)), clubCloseMin)
+                                  if (bStart > cursor) segments.push({ type: "free", startMin: cursor, endMin: bStart })
+                                  if (bEnd > bStart) segments.push({ type: "booked", startMin: bStart, endMin: bEnd, booking })
+                                  cursor = Math.max(cursor, bEnd)
+                                }
+                                if (cursor < clubCloseMin) segments.push({ type: "free", startMin: cursor, endMin: clubCloseMin })
+                                const userId = user?.id
+                                const fmt = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`
+                                return (
+                                  <div style={{ display: "flex", height: 6, width: "100%" }}>
+                                    {segments.map((seg, i) => {
+                                      const isFree = seg.type === "free"
+                                      const isUserBooking = !isFree && seg.booking != null && userId != null &&
+                                        (seg.booking.user.id === userId || seg.booking.participants.some(p => p.id === userId))
+                                      const bg = isFree ? (isEventTable ? bookingColors.eventFreeSlot : bookingColors.freeSlot) : isUserBooking ? bookingColors.myBooking : bookingColors.othersBooking
+                                      const label = isFree
+                                        ? `Свободно ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
+                                        : `Занято ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
+                                      return <div key={i} title={label} aria-label={label} style={{ flex: seg.endMin - seg.startMin, background: bg }} />
+                                    })}
                                   </div>
-                                )}
-                              </div>
-                              {user && (
-                                isRegistered
-                                  ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                                  : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                                )
+                              })()}
+
+                              {isTableExpanded && (
+                                <div style={{ padding: 16 }}>
+                                  <div style={{ display: "flex", alignItems: "flex-start" }}>
+                                    <div style={{ width: 44, flexShrink: 0, position: "relative", height: RECT_HEIGHT + 28, marginRight: 4 }}>
+                                      {Array.from({ length: clubTotalHours + 1 }, (_, i) => {
+                                        const hour = clubOpenHour + i
+                                        const top = (i / clubTotalHours) * RECT_HEIGHT + 28 - 8
+                                        return (
+                                          <div key={hour} style={{ position: "absolute", top, right: 0, fontSize: 11, color: "#888", whiteSpace: "nowrap" }}>
+                                            {String(hour).padStart(2, "0")}:00
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                    <TableTimeline
+                                      table={table}
+                                      bookings={bookings}
+                                      openTime={club.openTime}
+                                      closeTime={club.closeTime}
+                                      selectedDate={selectedDate}
+                                      currentUserId={user?.id}
+                                      onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
+                                      onBookingClick={user ? joinBooking : undefined}
+                                      isSelected={isTableSelected}
+                                      isEventTable={eventTableIds.has(table.id)}
+                                      colors={bookingColors}
+                                    />
+                                  </div>
+                                  {isTableSelected && user && (
+                                    <div style={{ ...cardStyle, border: "1px solid #e94560", marginTop: 16 }}>
+                                      <BookingForm
+                                        key={`${table.id}-${bookingStart}-${bookingEnd}`}
+                                        table={table}
+                                        token={token}
+                                        onBooked={onBookingCreated}
+                                        onCancel={() => setSelectedTable(null)}
+                                        selectedDate={selectedDate}
+                                        initialStartTime={bookingStart}
+                                        initialEndTime={bookingEnd}
+                                        openTime={club.openTime}
+                                        closeTime={club.closeTime}
+                                        members={members}
+                                        tournamentGameSystem={eventTableGameSystems.get(table.id)}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )
                         })}
-                      </div>
+                      </>
                     )}
 
-                    {/* Upcoming / Log toggles for mobile */}
-                    {user && (
-                      <>
-                        <div style={{ display: 'flex', gap: 12, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <button
-                            style={{ ...btnStyle, background: showUpcoming ? '#e94560' : '#533483' }}
-                            onClick={async () => {
-                              if (!showUpcoming) await loadUpcoming()
-                              setShowUpcoming(v => !v)
-                            }}>
-                            📅 Предстоящие игры
-                          </button>
-                          <button
-                            style={{ ...btnStyle, background: showLog ? '#e94560' : '#533483' }}
-                            onClick={async () => {
-                              if (!showLog) await loadActivityLog()
-                              setShowLog(v => !v)
-                            }}>
-                            📋 Журнал действий
-                          </button>
-                        </div>
-                        {showUpcoming && (
-                          <div style={{ ...cardStyle, marginBottom: 24 }}>
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                              <button style={{ ...btnStyle, background: upcomingTab === 'my' ? '#e94560' : '#0f3460', marginRight: 0 }} onClick={() => setUpcomingTab('my')}>Мои игры</button>
-                              <button style={{ ...btnStyle, background: upcomingTab === 'all' ? '#e94560' : '#0f3460', marginRight: 0 }} onClick={() => setUpcomingTab('all')}>Все игры</button>
+                    {/* Tab: Игры (предстоящие) */}
+                    {mobileTab === "games" && (
+                      <div>
+                        {!user ? (
+                          <p style={{ color: "#aaa" }}>Войдите, чтобы видеть предстоящие игры.</p>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                              <button style={{ ...btnStyle, background: upcomingTab === "my" ? "#e94560" : "#0f3460", marginRight: 0 }} onClick={() => setUpcomingTab("my")}>Мои игры</button>
+                              <button style={{ ...btnStyle, background: upcomingTab === "all" ? "#e94560" : "#0f3460", marginRight: 0 }} onClick={() => setUpcomingTab("all")}>Все игры</button>
                             </div>
                             {(() => {
-                              const list = upcomingTab === 'my' ? upcomingMyBookings : upcomingAllBookings
-                              if (list.length === 0) return <p style={{ color: '#aaa', margin: 0 }}>Нет предстоящих игр</p>
+                              const list = upcomingTab === "my" ? upcomingMyBookings : upcomingAllBookings
+                              if (list.length === 0) return <p style={{ color: "#aaa", margin: 0 }}>Нет предстоящих игр</p>
                               const grouped: Record<string, UpcomingBooking[]> = {}
                               for (const b of list) {
                                 const d = new Date(b.startTime)
-                                const key = d.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                const key = d.toLocaleDateString("ru-RU", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
                                 if (!grouped[key]) grouped[key] = []
                                 grouped[key].push(b)
                               }
                               return Object.entries(grouped).map(([dateLabel, items]) => (
                                 <div key={dateLabel} style={{ marginBottom: 16 }}>
-                                  <div style={{ color: '#ffc107', fontWeight: 'bold', marginBottom: 6, textTransform: 'capitalize' }}>{dateLabel}</div>
+                                  <div style={{ color: "#ffc107", fontWeight: "bold", marginBottom: 6, textTransform: "capitalize" }}>{dateLabel}</div>
                                   {items.map(b => {
                                     const start = new Date(b.startTime)
                                     const end = new Date(b.endTime)
-                                    const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                                    const fmt = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
                                     const isOwner = b.user.id === user.id
                                     const myParticipant = b.participants.find(p => p.id === user.id)
-                                    const isInvited = myParticipant?.status === 'Invited'
+                                    const isInvited = myParticipant?.status === "Invited"
                                     const isAcceptedParticipant = myParticipant && !isInvited
                                     return (
-                                      <div key={b.id} style={{ background: isInvited ? '#1a1a3d' : '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, border: isInvited ? '1px solid #7b2fff' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                      <div key={b.id} style={{ background: isInvited ? "#1a1a3d" : "#0f1e3d", borderRadius: 6, padding: "8px 12px", marginBottom: 6, border: isInvited ? "1px solid #7b2fff" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                                         <div>
-                                          <span style={{ color: '#eee', fontWeight: 'bold' }}>Стол {b.tableNumber}</span>
-                                          <span style={{ color: '#aaa', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
-                                          <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
-                                          {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
-                                          <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
-                                            {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === 'Invited' ? '(i) ' : '') + p.name).join(', ')}`}
-                                            {isOwner && <span style={{ color: '#ff8c00', marginLeft: 6 }}>(организатор)</span>}
-                                            {isAcceptedParticipant && <span style={{ color: '#4caf50', marginLeft: 6 }}>(участник)</span>}
-                                            {isInvited && <span style={{ color: '#7b2fff', marginLeft: 6 }}>📩 приглашение</span>}
+                                          <span style={{ color: "#eee", fontWeight: "bold" }}>Стол {b.tableNumber}</span>
+                                          <span style={{ color: "#aaa", marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
+                                          <span style={{ color: "#4caf50", marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
+                                          {b.gameSystem && <span style={{ color: "#888", marginLeft: 8, fontSize: 12, fontStyle: "italic" }}>{b.gameSystem}</span>}
+                                          <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
+                                            {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === "Invited" ? "(i) " : "") + p.name).join(", ")}`}
+                                            {isOwner && <span style={{ color: "#ff8c00", marginLeft: 6 }}>(организатор)</span>}
+                                            {isAcceptedParticipant && <span style={{ color: "#4caf50", marginLeft: 6 }}>(участник)</span>}
+                                            {isInvited && <span style={{ color: "#7b2fff", marginLeft: 6 }}>📩 приглашение</span>}
                                           </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                           {isInvited && (
                                             <>
-                                              <button style={{ ...btnStyle, background: '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
-                                              <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
+                                              <button style={{ ...btnStyle, background: "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
+                                              <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
                                             </>
                                           )}
                                           {isOwner && (
                                             <>
-                                              <button style={{ ...btnStyle, background: '#e67e22', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
-                                              <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
+                                              <button style={{ ...btnStyle, background: "#e67e22", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
+                                              <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
                                             </>
                                           )}
                                           {isAcceptedParticipant && (
-                                            <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
+                                            <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
                                           )}
                                         </div>
                                       </div>
@@ -612,178 +728,88 @@ export default function HomePage() {
                                 </div>
                               ))
                             })()}
-                          </div>
+                          </>
                         )}
-                        {showLog && (
-                          <div style={{ ...cardStyle, marginBottom: 24 }}>
-                            <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Журнал за последний месяц</h3>
+                      </div>
+                    )}
+
+                    {/* Tab: События */}
+                    {mobileTab === "events" && (
+                      <div>
+                        {clubEvents.length === 0 ? (
+                          <p style={{ color: "#aaa" }}>События отсутствуют.</p>
+                        ) : (
+                          clubEvents.map(ev => {
+                            const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
+                            const isFull = ev.participants.length >= ev.maxParticipants
+                            return (
+                              <div key={ev.id} style={{ background: "#0f1e3d", borderRadius: 6, padding: "10px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                                <div>
+                                  <span style={{ color: "#eee", fontWeight: "bold" }}>{ev.title}</span>
+                                  <span style={{ marginLeft: 8, color: "#ffc107", fontSize: 12 }}>{ev.eventType}</span>
+                                  {ev.gameSystem && <span style={{ marginLeft: 8, color: "#888", fontSize: 12, fontStyle: "italic" }}>{ev.gameSystem}</span>}
+                                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
+                                    📅 {new Date(ev.date).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                                    {isRegistered && <span style={{ color: "#4caf50", marginLeft: 8 }}>✓ вы записаны</span>}
+                                  </div>
+                                  {ev.participants.length > 0 && (
+                                    <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                                      {ev.participants.map(p => p.name).join(", ")}
+                                    </div>
+                                  )}
+                                </div>
+                                {user && (
+                                  isRegistered
+                                    ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                                    : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
+                                )}
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tab: Журнал */}
+                    {mobileTab === "log" && (
+                      <div>
+                        {!user ? (
+                          <p style={{ color: "#aaa" }}>Войдите, чтобы видеть журнал действий.</p>
+                        ) : (
+                          <>
+                            <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Журнал за последний месяц</h3>
                             {activityLog.length === 0 ? (
-                              <p style={{ color: '#aaa', margin: 0 }}>Нет записей за последний месяц</p>
+                              <p style={{ color: "#aaa", margin: 0 }}>Нет записей за последний месяц</p>
                             ) : (
-                              <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                              <div style={{ maxHeight: 400, overflowY: "auto" }}>
                                 {activityLog.map(entry => {
                                   const ts = new Date(entry.timestamp)
                                   const start = new Date(entry.bookingStartTime)
                                   const end = new Date(entry.bookingEndTime)
-                                  const fmtDt = (d: Date) => d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                                  const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+                                  const fmtDt = (d: Date) => d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                  const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
                                   return (
-                                    <div key={entry.id} style={{ fontSize: 13, padding: '5px 0', borderBottom: '1px solid #1a2a4a', color: '#ccc' }}>
-                                      <span style={{ color: '#666', marginRight: 8 }}>{fmtDt(ts)}</span>
-                                      <span style={{ color: '#eee', fontWeight: 'bold' }}>{entry.userName}</span>
-                                      {' '}
-                                      <span style={{ color: LOG_ACTION_COLOR[entry.action] || '#aaa' }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
-                                      {' резерв стола '}
-                                      <span style={{ color: '#ffc107' }}>{entry.tableNumber}</span>
-                                      {' на '}
-                                      <span style={{ color: '#4caf50' }}>{fmtDt(start).split(',')[0]} {fmtTime(start)}–{fmtTime(end)}</span>
+                                    <div key={entry.id} style={{ fontSize: 13, padding: "5px 0", borderBottom: "1px solid #1a2a4a", color: "#ccc" }}>
+                                      <span style={{ color: "#666", marginRight: 8 }}>{fmtDt(ts)}</span>
+                                      <span style={{ color: "#eee", fontWeight: "bold" }}>{entry.userName}</span>
+                                      {" "}
+                                      <span style={{ color: LOG_ACTION_COLOR[entry.action] || "#aaa" }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
+                                      {" резерв стола "}
+                                      <span style={{ color: "#ffc107" }}>{entry.tableNumber}</span>
+                                      {" на "}
+                                      <span style={{ color: "#4caf50" }}>{fmtDt(start).split(",")[0]} {fmtTime(start)}–{fmtTime(end)}</span>
                                     </div>
                                   )
                                 })}
                               </div>
                             )}
-                          </div>
+                          </>
                         )}
-                      </>
+                      </div>
                     )}
 
-                    {/* Calendar */}
-                    <div style={{ marginBottom: 16 }}>
-                      <BookingCalendar
-                        bookings={bookings}
-                        selectedDate={selectedDate}
-                        onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
-                      />
                     </div>
-
-                    {/* Legend */}
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13, flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
-                        Свободно
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
-                        Свободно (событие)
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
-                        Занято
-                      </span>
-                      {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
-                    </div>
-
-                    {/* Table accordions */}
-                    {tables.length === 0 && <p style={{ color: '#aaa' }}>Столы не настроены администратором клуба.</p>}
-                    {tables.map(table => {
-                      const isTableExpanded = expandedTableId === table.id
-                      const isTableSelected = selectedTable?.id === table.id
-                      return (
-                        <div key={table.id} style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
-                          <button
-                            onClick={() => {
-                              const expanding = !isTableExpanded
-                              setExpandedTableId(expanding ? table.id : null)
-                              if (expanding) handleTableHeaderClick(table)
-                            }}
-                            style={{
-                              width: '100%', background: isTableExpanded ? '#1a2a50' : '#16213e',
-                              border: 'none', borderBottom: isTableExpanded ? '1px solid #0f3460' : 'none',
-                              color: isTableSelected ? '#e94560' : '#eee',
-                              padding: '12px 16px', textAlign: 'left', cursor: 'pointer',
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              fontSize: 15, fontWeight: 'bold'
-                            }}>
-                            <span>Стол {table.number}</span>
-                            <span style={{ fontSize: 12, color: '#aaa', fontWeight: 'normal' }}>{table.size}</span>
-                            <span style={{ fontSize: 18, color: '#888', marginLeft: 8 }}>{isTableExpanded ? '▲' : '▼'}</span>
-                          </button>
-
-                          {/* Occupancy bar */}
-                          {(() => {
-                            const isEventTable = eventTableIds.has(table.id)
-                            const tableBookings = bookings
-                              .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
-                              .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                            const segments: { type: string; startMin: number; endMin: number; booking?: Booking }[] = []
-                            let cursor = clubOpenMin
-                            for (const booking of tableBookings) {
-                              const bStart = Math.max(getLocalMinutes(new Date(booking.startTime)), clubOpenMin)
-                              const bEnd = Math.min(getLocalMinutes(new Date(booking.endTime)), clubCloseMin)
-                              if (bStart > cursor) segments.push({ type: 'free', startMin: cursor, endMin: bStart })
-                              if (bEnd > bStart) segments.push({ type: 'booked', startMin: bStart, endMin: bEnd, booking })
-                              cursor = Math.max(cursor, bEnd)
-                            }
-                            if (cursor < clubCloseMin) segments.push({ type: 'free', startMin: cursor, endMin: clubCloseMin })
-                            const userId = user?.id
-                            const fmt = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
-                            return (
-                              <div style={{ display: 'flex', height: 6, width: '100%' }}>
-                                {segments.map((seg, i) => {
-                                  const isFree = seg.type === 'free'
-                                  const isUserBooking = !isFree && seg.booking != null && userId != null &&
-                                    (seg.booking.user.id === userId || seg.booking.participants.some(p => p.id === userId))
-                                  const bg = isFree ? (isEventTable ? bookingColors.eventFreeSlot : bookingColors.freeSlot) : isUserBooking ? bookingColors.myBooking : bookingColors.othersBooking
-                                  const label = isFree
-                                    ? `Свободно ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
-                                    : `Занято ${fmt(seg.startMin)}–${fmt(seg.endMin)}`
-                                  return <div key={i} title={label} aria-label={label} style={{ flex: seg.endMin - seg.startMin, background: bg }} />
-                                })}
-                              </div>
-                            )
-                          })()}
-
-                          {isTableExpanded && (
-                            <div style={{ padding: 16 }}>
-                              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + 28, marginRight: 4 }}>
-                                  {Array.from({ length: clubTotalHours + 1 }, (_, i) => {
-                                    const hour = clubOpenHour + i
-                                    const top = (i / clubTotalHours) * RECT_HEIGHT + 28 - 8
-                                    return (
-                                      <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
-                                        {String(hour).padStart(2, '0')}:00
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                                <TableTimeline
-                                  table={table}
-                                  bookings={bookings}
-                                  openTime={club.openTime}
-                                  closeTime={club.closeTime}
-                                  selectedDate={selectedDate}
-                                  currentUserId={user?.id}
-                                  onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
-                                  onBookingClick={user ? joinBooking : undefined}
-                                  isSelected={isTableSelected}
-                                  isEventTable={eventTableIds.has(table.id)}
-                                  colors={bookingColors}
-                                />
-                              </div>
-                              {isTableSelected && user && (
-                                <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 16 }}>
-                                  <BookingForm
-                                    key={`${table.id}-${bookingStart}-${bookingEnd}`}
-                                    table={table}
-                                    token={token}
-                                    onBooked={onBookingCreated}
-                                    onCancel={() => setSelectedTable(null)}
-                                    selectedDate={selectedDate}
-                                    initialStartTime={bookingStart}
-                                    initialEndTime={bookingEnd}
-                                    openTime={club.openTime}
-                                    closeTime={club.closeTime}
-                                    members={members}
-                                    tournamentGameSystem={eventTableGameSystems.get(table.id)}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
                   </div>
                 ) : (
                   /* ===== DESKTOP accordion body with tabs ===== */
