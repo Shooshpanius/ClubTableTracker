@@ -1,0 +1,12 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="using:ClubTableTracker.avalonia.Views"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="ClubTableTracker.avalonia.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ClubTableTracker.avalonia">
+        <views:MainView />
+</Window>

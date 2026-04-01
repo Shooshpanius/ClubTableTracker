@@ -1,4 +1,9 @@
 <Solution>
+  <Project Path="ClubTableTracker.avalonia/ClubTableTracker.avalonia.Android/ClubTableTracker.avalonia.Android.csproj" Id="b6fd935e-6b58-42b6-b7a8-9cebe78a6cc1" />
+  <Project Path="ClubTableTracker.avalonia/ClubTableTracker.avalonia.Browser/ClubTableTracker.avalonia.Browser.csproj" Id="8d22fc0a-3e61-4542-802b-005ff5396fdb" />
+  <Project Path="ClubTableTracker.avalonia/ClubTableTracker.avalonia.Desktop/ClubTableTracker.avalonia.Desktop.csproj" Id="05dd88a5-f367-4f15-ac81-d4edce4e52c3" />
+  <Project Path="ClubTableTracker.avalonia/ClubTableTracker.avalonia.iOS/ClubTableTracker.avalonia.iOS.csproj" Id="1825e817-9b7f-4115-a611-ee8f0eb56e1a" />
+  <Project Path="ClubTableTracker.avalonia/ClubTableTracker.avalonia/ClubTableTracker.avalonia.csproj" Id="5c5f02df-7a0a-4cbc-a077-38d49d89dc3f" />
   <Project Path="clubtabletracker.client/clubtabletracker.client.esproj">
     <Build />
     <Deploy />
