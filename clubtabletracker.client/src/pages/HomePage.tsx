@@ -6,7 +6,8 @@ import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
-import { DEFAULT_BOOKING_COLORS, BookingColors } from '../constants'
+import { DEFAULT_BOOKING_COLORS } from '../constants'
+import type { BookingColors } from '../constants'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -789,6 +790,7 @@ export default function HomePage() {
                             onBookingClick={user ? joinBooking : undefined}
                             isSelected={isSelected}
                             isEventTable={eventTableIds.has(table.id)}
+                            colors={bookingColors}
                           />
                         </div>
 
@@ -854,6 +856,7 @@ export default function HomePage() {
                           onBookingClick={user ? joinBooking : undefined}
                           isSelected={selectedTable?.id === table.id}
                           isEventTable={eventTableIds.has(table.id)}
+                          colors={bookingColors}
                         />
                       </div>
                     ))}
@@ -866,15 +869,15 @@ export default function HomePage() {
                 {/* Legend */}
                 <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: '#90ee90', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                     Свободно
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: '#c45c5c', display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
                     Свободно (событие)
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: '#ffff00', display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                     Занято
                   </span>
                   {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}

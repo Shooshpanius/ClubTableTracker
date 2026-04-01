@@ -1,4 +1,5 @@
-import { DEFAULT_BOOKING_COLORS, BookingColors } from '../constants'
+import { DEFAULT_BOOKING_COLORS } from '../constants'
+import type { BookingColors } from '../constants'
 
 interface Booking {
   id: number; tableId: number; startTime: string; endTime: string
