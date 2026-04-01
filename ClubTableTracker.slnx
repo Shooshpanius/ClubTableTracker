@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/clubtabletracker.Flutter/">
-    <File Path=".touch" />
-  </Folder>
   <Project Path="clubtabletracker.client/clubtabletracker.client.esproj">
     <Build />
     <Deploy />
