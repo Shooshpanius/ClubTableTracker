@@ -248,6 +248,20 @@ export default function ClubAdminPage() {
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const inputStyle: React.CSSProperties = { background: '#0f3460', border: '1px solid #533483', color: '#eee', padding: '8px 12px', borderRadius: 4, marginRight: 8, marginBottom: 8 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
+  const tabBarStyle: React.CSSProperties = { display: 'flex', borderBottom: '2px solid #0f3460', marginBottom: 24 }
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    background: 'none',
+    color: active ? '#e94560' : '#aaa',
+    border: 'none',
+    borderBottom: active ? '2px solid #e94560' : '2px solid transparent',
+    padding: '10px 20px',
+    cursor: 'pointer',
+    fontSize: 14,
+    marginBottom: -2,
+    transition: 'color 0.15s',
+  })
+  const thStyle: React.CSSProperties = { textAlign: 'left', padding: '8px 12px', color: '#aaa', fontWeight: 600, fontSize: 13, borderBottom: '1px solid #0f3460' }
+  const tdStyle: React.CSSProperties = { padding: '8px 12px', fontSize: 13, borderBottom: '1px solid #16213e', verticalAlign: 'middle' }
 
   if (!club) {
     return (
@@ -268,11 +282,15 @@ export default function ClubAdminPage() {
   return (
     <div style={{ padding: 40 }}>
       <h1 style={{ color: '#e94560' }}>🎲 {club.name} — Club Admin</h1>
-      <div style={{ marginBottom: 16 }}>
-        <button style={{ ...btnStyle, background: tab === 'map' ? '#e94560' : '#533483' }} onClick={() => setTab('map')}>Map Editor</button>
-        <button style={{ ...btnStyle, background: tab === 'members' ? '#e94560' : '#533483' }} onClick={() => setTab('members')}>Members ({memberships.filter(m => m.status === 'Pending').length} pending)</button>
-        <button style={{ ...btnStyle, background: tab === 'events' ? '#e94560' : '#533483' }} onClick={() => setTab('events')}>События ({events.length})</button>
-        <button style={{ ...btnStyle, background: tab === 'settings' ? '#e94560' : '#533483' }} onClick={() => setTab('settings')}>Настройки</button>
+      <div style={tabBarStyle}>
+        <button style={tabStyle(tab === 'map')} onClick={() => setTab('map')}>Map Editor</button>
+        <button style={tabStyle(tab === 'members')} onClick={() => setTab('members')}>
+          Members{memberships.filter(m => m.status === 'Pending').length > 0 && <span style={{ marginLeft: 6, background: '#e94560', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{memberships.filter(m => m.status === 'Pending').length}</span>}
+        </button>
+        <button style={tabStyle(tab === 'events')} onClick={() => setTab('events')}>
+          События{events.length > 0 && <span style={{ marginLeft: 6, background: '#533483', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{events.length}</span>}
+        </button>
+        <button style={tabStyle(tab === 'settings')} onClick={() => setTab('settings')}>Настройки</button>
       </div>
 
       {tab === 'map' && (
@@ -336,27 +354,44 @@ export default function ClubAdminPage() {
       {tab === 'members' && (
         <>
           <h3>Membership Applications</h3>
-          {memberships.length === 0 && <p style={{ color: '#aaa' }}>No applications yet.</p>}
-          {memberships.map(m => (
-            <div key={m.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <strong>{m.user.name}</strong> ({m.user.email})
-                <div style={{ color: '#aaa', fontSize: 13 }}>Applied: {new Date(m.appliedAt).toLocaleDateString()}</div>
-                <div style={{ color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</div>
-              </div>
-              {m.status === 'Pending' && (
-                <div>
-                  <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => updateMembership(m.id, 'approve')}>Approve</button>
-                  <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => updateMembership(m.id, 'reject')}>Reject</button>
-                </div>
-              )}
-              {m.status === 'Approved' && (
-                <div>
-                  <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
-                </div>
-              )}
+          {memberships.length === 0 ? (
+            <p style={{ color: '#aaa' }}>No applications yet.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', background: '#16213e', borderRadius: 8, overflow: 'hidden' }}>
+                <thead>
+                  <tr style={{ background: '#0f3460' }}>
+                    <th style={thStyle}>Имя</th>
+                    <th style={thStyle}>Email</th>
+                    <th style={thStyle}>Дата заявки</th>
+                    <th style={thStyle}>Статус</th>
+                    <th style={thStyle}>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memberships.map(m => (
+                    <tr key={m.id} style={{ background: '#16213e' }}>
+                      <td style={tdStyle}><strong>{m.user.name}</strong></td>
+                      <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.email}</td>
+                      <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
+                      <td style={{ ...tdStyle, color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</td>
+                      <td style={tdStyle}>
+                        {m.status === 'Pending' && (
+                          <>
+                            <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => updateMembership(m.id, 'approve')}>Approve</button>
+                            <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => updateMembership(m.id, 'reject')}>Reject</button>
+                          </>
+                        )}
+                        {m.status === 'Approved' && (
+                          <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </>
       )}
 
