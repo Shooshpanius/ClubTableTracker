@@ -3,7 +3,7 @@ import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
-interface Membership { id: number; status: string; appliedAt: string; user: { id: string; name: string; email: string } }
+interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
@@ -112,7 +112,16 @@ export default function ClubAdminPage() {
     const res = await fetch(`/api/clubadmin/memberships/${id}/kick`, {
       method: 'POST', headers: { 'X-Club-Key': clubKey }
     })
-    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: 'Kicked' } : m))
+    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: 'Kicked', isModerator: false } : m))
+  }
+
+  const toggleModerator = async (id: number, currentValue: boolean) => {
+    const res = await fetch(`/api/clubadmin/memberships/${id}/set-moderator`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ isModerator: !currentValue })
+    })
+    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, isModerator: !currentValue } : m))
   }
 
   const saveSettings = async () => {
@@ -365,6 +374,7 @@ export default function ClubAdminPage() {
                     <th style={thStyle}>Email</th>
                     <th style={thStyle}>Дата заявки</th>
                     <th style={thStyle}>Статус</th>
+                    <th style={thStyle}>Модератор</th>
                     <th style={thStyle}>Действия</th>
                   </tr>
                 </thead>
@@ -376,6 +386,13 @@ export default function ClubAdminPage() {
                       <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
                       <td style={{ ...tdStyle, color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</td>
                       <td style={tdStyle}>
+                        {m.status === 'Approved' && (
+                          <span style={{ color: m.isModerator ? '#ffc107' : '#555', fontSize: 16 }} title={m.isModerator ? 'Модератор' : 'Не модератор'}>
+                            {m.isModerator ? '⭐' : '—'}
+                          </span>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
                         {m.status === 'Pending' && (
                           <>
                             <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => updateMembership(m.id, 'approve')}>Approve</button>
@@ -383,7 +400,16 @@ export default function ClubAdminPage() {
                           </>
                         )}
                         {m.status === 'Approved' && (
-                          <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
+                          <>
+                            <button
+                              style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
+                              onClick={() => toggleModerator(m.id, m.isModerator)}
+                              title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
+                            >
+                              {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
+                            </button>
+                            <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
+                          </>
                         )}
                       </td>
                     </tr>

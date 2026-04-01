@@ -28,7 +28,7 @@ interface BookingBase { id: number; user: { id: string; name: string }; particip
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
-interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string }
+interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean }
 interface ClubEventItem { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 
 function parseHHMM(t: string): number {
@@ -88,6 +88,7 @@ export default function HomePage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [members, setMembers] = useState<ClubMember[]>([])
   const [playerSystemsModal, setPlayerSystemsModal] = useState<ClubMember | null>(null)
+  const [moderatorBookingModal, setModeratorBookingModal] = useState<Booking | null>(null)
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [bookingStart, setBookingStart] = useState('')
   const [bookingEnd, setBookingEnd] = useState('')
@@ -188,6 +189,7 @@ export default function HomePage() {
     setExpandedTableId(null)
     setDesktopTab('booking')
     setMobileTab('tables')
+    setModeratorBookingModal(null)
     const [tablesRes, bookingsRes, membersRes, eventsRes] = await Promise.all([
       fetch(`/api/club/${club.id}/tables`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -336,6 +338,10 @@ export default function HomePage() {
       await leaveBooking(booking)
       return
     }
+    if (isModerator) {
+      setModeratorBookingModal(booking)
+      return
+    }
     const acceptedCount = booking.participants.filter(p => p.status !== 'Invited').length
     const maxPlayers = booking.isDoubles ? 4 : MAX_BOOKING_PLAYERS
     if (acceptedCount >= maxPlayers - 1) return
@@ -375,6 +381,26 @@ export default function HomePage() {
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
+
+  const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
+
+  const kickPlayerFromBooking = async (booking: Booking, targetId: string) => {
+    const targetName = booking.user.id === targetId
+      ? booking.user.name
+      : booking.participants.find(p => p.id === targetId)?.name ?? targetId
+    if (!confirm(`Удалить ${targetName} из игры?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/kick-player/${encodeURIComponent(targetId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      setModeratorBookingModal(null)
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка при удалении игрока')
+    }
+  }
 
   const RECT_HEIGHT = 360
 
@@ -1150,6 +1176,61 @@ export default function HomePage() {
         )
       })}
     </div>
+
+    {/* Модалка: управление резервом (модератор) */}
+    {moderatorBookingModal && (() => {
+      const b = moderatorBookingModal
+      const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+      const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
+      return (
+        <div
+          onClick={() => setModeratorBookingModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#16213e', border: '1px solid #e94560', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
+          >
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#e94560' }}>⭐ Управление резервом</h3>
+            <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
+              {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
+            </p>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                <span style={{ color: '#eee', fontSize: 14 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
+                <button
+                  style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                  onClick={() => kickPlayerFromBooking(b, b.user.id)}
+                >
+                  Удалить из игры
+                </button>
+              </div>
+              {acceptedParticipants.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                  <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
+                  <button
+                    style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                    onClick={() => kickPlayerFromBooking(b, p.id)}
+                  >
+                    Удалить из игры
+                  </button>
+                </div>
+              ))}
+              {acceptedParticipants.length === 0 && (
+                <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
+              )}
+            </div>
+            <button
+              onClick={() => setModeratorBookingModal(null)}
+              style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )
+    })()}
 
     {/* Модалка: игровые системы игрока */}
     {playerSystemsModal && (
