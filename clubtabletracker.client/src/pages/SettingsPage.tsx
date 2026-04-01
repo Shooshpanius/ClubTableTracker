@@ -54,6 +54,9 @@ export default function SettingsPage() {
   const [savedColors, setSavedColors] = useState(false)
   const [errorColors, setErrorColors] = useState('')
 
+  const [gsExpanded, setGsExpanded] = useState(false)
+  const [colorsExpanded, setColorsExpanded] = useState(false)
+
   useEffect(() => {
     if (!token) {
       navigate('/')
@@ -220,87 +223,111 @@ export default function SettingsPage() {
         <div style={{ color: '#eee', fontSize: 20, fontWeight: 600 }}>👤 {effectiveName}</div>
       </div>
 
-      <div style={{ ...cardStyle, maxWidth: 600 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8, color: '#eee', fontSize: 18 }}>🎲 Игровые системы</h2>
-        <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-          Отметьте игровые системы, для которых другие игроки могут приглашать вас в партию.
-          Если система не отмечена — вас нельзя выбрать напарником в этой системе.
-        </p>
-        <div style={{ marginBottom: 8 }}>
-          {GAME_SYSTEMS_MAIN.map(gs => (
-            <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={enabledGameSystems.includes(gs)}
-                onChange={() => toggleGameSystem(gs)}
-                style={{ marginRight: 8 }}
-              />
-              {gs}
-            </label>
-          ))}
-        </div>
-        <div style={{ borderTop: '1px solid #0f3460', paddingTop: 8, marginTop: 4 }}>
-          {GAME_SYSTEMS_BOTTOM.map(gs => (
-            <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={enabledGameSystems.includes(gs)}
-                onChange={() => toggleGameSystem(gs)}
-                style={{ marginRight: 8 }}
-              />
-              {gs}
-            </label>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: savingGS ? 0.7 : 1 }}
-            onClick={handleSaveGameSystems}
-            disabled={savingGS}
-          >
-            {savingGS ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          {savedGS && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {errorGS && <span style={{ color: '#e94560', fontSize: 14 }}>{errorGS}</span>}
-        </div>
+      <div style={{ ...cardStyle, maxWidth: 600, padding: 0, overflow: 'hidden' }}>
+        <button
+          aria-expanded={gsExpanded}
+          aria-controls="gs-accordion-body"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 24px', color: '#eee' }}
+          onClick={() => setGsExpanded(v => !v)}
+        >
+          <span style={{ fontSize: 18, fontWeight: 700 }}>🎲 Игровые системы</span>
+          <span style={{ fontSize: 18, color: '#888' }}>{gsExpanded ? '▲' : '▼'}</span>
+        </button>
+        {gsExpanded && (
+          <div id="gs-accordion-body" style={{ padding: '0 24px 24px' }}>
+            <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+              Отметьте игровые системы, для которых другие игроки могут приглашать вас в партию.
+              Если система не отмечена — вас нельзя выбрать напарником в этой системе.
+            </p>
+            <div style={{ marginBottom: 8 }}>
+              {GAME_SYSTEMS_MAIN.map(gs => (
+                <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={enabledGameSystems.includes(gs)}
+                    onChange={() => toggleGameSystem(gs)}
+                    style={{ marginRight: 8 }}
+                  />
+                  {gs}
+                </label>
+              ))}
+            </div>
+            <div style={{ borderTop: '1px solid #0f3460', paddingTop: 8, marginTop: 4 }}>
+              {GAME_SYSTEMS_BOTTOM.map(gs => (
+                <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={enabledGameSystems.includes(gs)}
+                    onChange={() => toggleGameSystem(gs)}
+                    style={{ marginRight: 8 }}
+                  />
+                  {gs}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+              <button
+                style={{ ...btnStyle, background: '#e94560', opacity: savingGS ? 0.7 : 1 }}
+                onClick={handleSaveGameSystems}
+                disabled={savingGS}
+              >
+                {savingGS ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+              {savedGS && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
+              {errorGS && <span style={{ color: '#e94560', fontSize: 14 }}>{errorGS}</span>}
+            </div>
+          </div>
+        )}
       </div>
-      <div style={{ ...cardStyle, maxWidth: 600 }}>
-        <h2 style={{ marginTop: 0, marginBottom: 8, color: '#eee', fontSize: 18 }}>🎨 Цвета бронирования</h2>
-        <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-          Настройте цвета, которыми обозначаются слоты на временной шкале столов.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginBottom: 20 }}>
-          {(Object.keys(DEFAULT_BOOKING_COLORS) as (keyof BookingColors)[]).map(key => (
-            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#eee', fontSize: 14 }}>
-              <input
-                type="color"
-                value={bookingColors[key]}
-                onChange={e => { setBookingColors(prev => ({ ...prev, [key]: e.target.value })); setSavedColors(false) }}
-                style={{ width: 36, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'none', padding: 0 }}
-              />
-              <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 3, background: bookingColors[key], border: '1px solid #555', flexShrink: 0 }} />
-              {BOOKING_COLORS_LABELS[key]}
-            </label>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: savingColors ? 0.7 : 1 }}
-            onClick={() => handleSaveColors(bookingColors)}
-            disabled={savingColors}
-          >
-            {savingColors ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          <button
-            style={{ ...btnStyle, background: '#0f3460' }}
-            onClick={handleResetColors}
-            disabled={savingColors}
-          >
-            По умолчанию
-          </button>
-          {savedColors && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {errorColors && <span style={{ color: '#e94560', fontSize: 14 }}>{errorColors}</span>}
-        </div>
+      <div style={{ ...cardStyle, maxWidth: 600, padding: 0, overflow: 'hidden' }}>
+        <button
+          aria-expanded={colorsExpanded}
+          aria-controls="colors-accordion-body"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 24px', color: '#eee' }}
+          onClick={() => setColorsExpanded(v => !v)}
+        >
+          <span style={{ fontSize: 18, fontWeight: 700 }}>🎨 Цвета бронирования</span>
+          <span style={{ fontSize: 18, color: '#888' }}>{colorsExpanded ? '▲' : '▼'}</span>
+        </button>
+        {colorsExpanded && (
+          <div id="colors-accordion-body" style={{ padding: '0 24px 24px' }}>
+            <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+              Настройте цвета, которыми обозначаются слоты на временной шкале столов.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+              {(Object.keys(DEFAULT_BOOKING_COLORS) as (keyof BookingColors)[]).map(key => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#eee', fontSize: 14 }}>
+                  <input
+                    type="color"
+                    value={bookingColors[key]}
+                    onChange={e => { setBookingColors(prev => ({ ...prev, [key]: e.target.value })); setSavedColors(false) }}
+                    style={{ width: 36, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'none', padding: 0 }}
+                  />
+                  <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 3, background: bookingColors[key], border: '1px solid #555', flexShrink: 0 }} />
+                  {BOOKING_COLORS_LABELS[key]}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button
+                style={{ ...btnStyle, background: '#e94560', opacity: savingColors ? 0.7 : 1 }}
+                onClick={() => handleSaveColors(bookingColors)}
+                disabled={savingColors}
+              >
+                {savingColors ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+              <button
+                style={{ ...btnStyle, background: '#0f3460' }}
+                onClick={handleResetColors}
+                disabled={savingColors}
+              >
+                По умолчанию
+              </button>
+              {savedColors && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
+              {errorColors && <span style={{ color: '#e94560', fontSize: 14 }}>{errorColors}</span>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
