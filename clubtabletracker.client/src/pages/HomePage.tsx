@@ -673,6 +673,10 @@ export default function HomePage() {
                                         closeTime={club.closeTime}
                                         members={members.filter(m => m.id !== user?.id)}
                                         tournamentGameSystem={eventTableGameSystems.get(table.id)}
+                                        clubName={club.name}
+                                        tableBookings={bookings
+                                          .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
+                                          .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name }))}
                                       />
                                     </div>
                                   )}
@@ -974,6 +978,10 @@ export default function HomePage() {
                                 closeTime={club.closeTime}
                                 members={members.filter(m => m.id !== user?.id)}
                                 tournamentGameSystem={eventTableGameSystems.get(selectedTable.id)}
+                                clubName={club.name}
+                                tableBookings={bookings
+                                  .filter(b => b.tableId === selectedTable.id && isSameLocalDay(new Date(b.startTime), selectedDate))
+                                  .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name }))}
                               />
                             </div>
                           )}
