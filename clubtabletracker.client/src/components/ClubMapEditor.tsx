@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from 'react'
 
+const CANVAS_WIDTH = 800
+const CANVAS_HEIGHT = 500
+const MIN_DECORATION_SIZE = 10
+
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
@@ -63,18 +67,18 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
     if (dragging) {
-      const x = Math.max(0, Math.min(700, e.clientX - rect.left - dragging.offsetX))
-      const y = Math.max(0, Math.min(440, e.clientY - rect.top - dragging.offsetY))
+      const x = Math.max(0, Math.min(CANVAS_WIDTH - 100, e.clientX - rect.left - dragging.offsetX))
+      const y = Math.max(0, Math.min(CANVAS_HEIGHT - 60, e.clientY - rect.top - dragging.offsetY))
       setLocalPositions(prev => ({ ...prev, [dragging.id]: { x, y } }))
     }
     if (draggingDeco) {
-      const x = Math.max(0, Math.min(700, e.clientX - rect.left - draggingDeco.offsetX))
-      const y = Math.max(0, Math.min(440, e.clientY - rect.top - draggingDeco.offsetY))
+      const x = Math.max(0, Math.min(CANVAS_WIDTH - 10, e.clientX - rect.left - draggingDeco.offsetX))
+      const y = Math.max(0, Math.min(CANVAS_HEIGHT - 10, e.clientY - rect.top - draggingDeco.offsetY))
       setLocalDecoPositions(prev => ({ ...prev, [draggingDeco.id]: { x, y } }))
     }
     if (drawStart) {
-      const curX = Math.max(0, Math.min(800, e.clientX - rect.left))
-      const curY = Math.max(0, Math.min(500, e.clientY - rect.top))
+      const curX = Math.max(0, Math.min(CANVAS_WIDTH, e.clientX - rect.left))
+      const curY = Math.max(0, Math.min(CANVAS_HEIGHT, e.clientY - rect.top))
       setDrawPreview({
         x: Math.min(drawStart.x, curX),
         y: Math.min(drawStart.y, curY),
@@ -96,7 +100,7 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
       setDraggingDeco(null)
     }
     if (drawStart && drawPreview && drawMode) {
-      if (drawPreview.width >= 10 && drawPreview.height >= 10) {
+      if (drawPreview.width >= MIN_DECORATION_SIZE && drawPreview.height >= MIN_DECORATION_SIZE) {
         onAddDecoration(drawMode, drawPreview.x, drawPreview.y, drawPreview.width, drawPreview.height)
       }
       setDrawStart(null)
@@ -138,7 +142,7 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
         </span>
       </div>
       <div ref={containerRef}
-        style={{ position: 'relative', width: 800, height: 500, cursor: canvasCursor }}
+        style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, cursor: canvasCursor }}
         onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
         onMouseDown={onCanvasMouseDown}>
         {decorations.map(deco => {
