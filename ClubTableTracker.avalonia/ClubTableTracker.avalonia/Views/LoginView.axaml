@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
+             x:Class="ClubTableTracker.avalonia.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" Margin="24,40,24,24" MaxWidth="500">
+
+      <TextBlock Text="🎲 ClubTableTracker"
+                 FontSize="30"
+                 FontWeight="Bold"
+                 HorizontalAlignment="Center" />
+
+      <TextBlock Text="Трекер игровых столов для настольных клубов"
+                 FontSize="14"
+                 HorizontalAlignment="Center"
+                 Opacity="0.65"
+                 TextWrapping="Wrap"
+                 TextAlignment="Center" />
+
+      <Border Height="1" Background="Gray" Opacity="0.25" Margin="0,8" />
+
+      <TextBlock Text="Как получить токен:"
+                 FontWeight="SemiBold"
+                 FontSize="15" />
+
+      <TextBlock TextWrapping="Wrap"
+                 Opacity="0.8"
+                 FontSize="13"
+                 LineHeight="22">
+        1. Откройте веб-приложение кнопкой ниже&#10;
+        2. Войдите через Google&#10;
+        3. Откройте DevTools (F12) → Application → Local Storage&#10;
+        4. Найдите ключ <Run FontWeight="Bold">token</Run> и скопируйте его значение&#10;
+        5. Вставьте скопированный токен в поле ниже
+      </TextBlock>
+
+      <Button Content="🌐 Открыть веб-приложение"
+              Command="{Binding OpenWebAppCommand}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center"
+              Padding="0,10" />
+
+      <Border Height="1" Background="Gray" Opacity="0.25" />
+
+      <TextBlock Text="JWT токен:" FontWeight="SemiBold" FontSize="15" />
+
+      <TextBox Watermark="Вставьте токен сюда..."
+               Text="{Binding TokenInput}"
+               AcceptsReturn="False"
+               FontSize="13" />
+
+      <TextBlock Text="{Binding ErrorMessage}"
+                 Foreground="Red"
+                 TextWrapping="Wrap"
+                 FontSize="13"
+                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <Button Content="Войти →"
+              Command="{Binding LoginCommand}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center"
+              Padding="0,12"
+              FontSize="16"
+              IsEnabled="{Binding !IsLoading}" />
+
+      <ProgressBar IsVisible="{Binding IsLoading}"
+                   IsIndeterminate="True"
+                   Height="4" />
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

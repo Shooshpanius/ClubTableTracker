@@ -1,0 +1,130 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
+             x:Class="ClubTableTracker.avalonia.Views.ClubListView"
+             x:DataType="vm:ClubListViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <StackPanel Grid.Row="0" Margin="16,16,16,4">
+      <TextBlock Text="Клубы"
+                 FontSize="24"
+                 FontWeight="Bold" />
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+        <Button Content="🔄 Обновить"
+                Command="{Binding LoadCommand}"
+                IsEnabled="{Binding !IsLoading}" />
+      </StackPanel>
+      <ProgressBar IsVisible="{Binding IsLoading}"
+                   IsIndeterminate="True"
+                   Height="3"
+                   Margin="0,6,0,0" />
+      <TextBlock Text="{Binding StatusMessage}"
+                 Opacity="0.6"
+                 FontSize="13"
+                 Margin="0,4,0,0"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Spacing="0">
+
+        <!-- Мои клубы -->
+        <TextBlock Text="МОИ КЛУБЫ"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   Opacity="0.5"
+                   Margin="16,12,16,4"
+                   LetterSpacing="1" />
+
+        <ItemsControl ItemsSource="{Binding MyClubs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ClubMembershipItem">
+              <Border Margin="8,4" Padding="14,12" CornerRadius="10"
+                      Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="{Binding Club.Name}"
+                               FontWeight="SemiBold"
+                               FontSize="16" />
+                    <TextBlock Text="{Binding Club.Description}"
+                               TextWrapping="Wrap"
+                               Opacity="0.65"
+                               FontSize="13" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" Opacity="0.6">
+                      <TextBlock Text="{Binding Club.OpenTime, StringFormat='🕐 {0}'}"
+                                 FontSize="12"
+                                 IsVisible="{Binding Club.OpenTime, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <TextBlock Text="{Binding Club.CloseTime, StringFormat='– {0}'}"
+                                 FontSize="12"
+                                 IsVisible="{Binding Club.CloseTime, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </StackPanel>
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding StatusLabel}"
+                             FontSize="13"
+                             VerticalAlignment="Top"
+                             Margin="8,0,0,0" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Доступные клубы -->
+        <TextBlock Text="ДОСТУПНЫЕ КЛУБЫ"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   Opacity="0.5"
+                   Margin="16,16,16,4"
+                   LetterSpacing="1" />
+
+        <ItemsControl ItemsSource="{Binding AvailableClubs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ClubMembershipItem">
+              <Border Margin="8,4" Padding="14,12" CornerRadius="10"
+                      Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+                <StackPanel Spacing="8">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Club.Name}"
+                               FontWeight="SemiBold"
+                               FontSize="16" />
+                    <TextBlock Text="{Binding Club.Description}"
+                               TextWrapping="Wrap"
+                               Opacity="0.65"
+                               FontSize="13" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" Opacity="0.6">
+                      <TextBlock Text="{Binding Club.OpenTime, StringFormat='🕐 {0}'}"
+                                 FontSize="12"
+                                 IsVisible="{Binding Club.OpenTime, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      <TextBlock Text="{Binding Club.CloseTime, StringFormat='– {0}'}"
+                                 FontSize="12"
+                                 IsVisible="{Binding Club.CloseTime, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Content="Подать заявку на вступление"
+                          Command="{Binding ApplyCommand}"
+                          IsVisible="{Binding CanApply}"
+                          IsEnabled="{Binding !IsApplying}"
+                          HorizontalAlignment="Left" />
+                  <TextBlock Text="⏳ Заявка отправлена..."
+                             FontSize="13"
+                             Opacity="0.7"
+                             IsVisible="{Binding IsApplying}" />
+                  <TextBlock Text="{Binding StatusLabel}"
+                             FontSize="13"
+                             IsVisible="{Binding StatusLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Height="16" />
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Grid>
+
+</UserControl>

@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
+             x:Class="ClubTableTracker.avalonia.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+  <Grid RowDefinitions="*,Auto">
+
+    <!-- Содержимое текущей вкладки -->
+    <ContentControl Grid.Row="0" Content="{Binding CurrentTab}" />
+
+    <!-- Нижняя панель навигации -->
+    <Border Grid.Row="1"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="4,4">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+
+        <!-- Клубы -->
+        <Button Command="{Binding SelectClubsTabCommand}"
+                Width="110"
+                HorizontalContentAlignment="Center"
+                Background="Transparent">
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <Border Height="3" CornerRadius="2" Margin="24,0"
+                    Background="{DynamicResource SystemAccentColor}"
+                    IsVisible="{Binding IsClubsTabActive}" />
+            <TextBlock Text="🏛" FontSize="22" HorizontalAlignment="Center" />
+            <TextBlock Text="Клубы" FontSize="11" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Бронирования -->
+        <Button Command="{Binding SelectBookingsTabCommand}"
+                Width="110"
+                HorizontalContentAlignment="Center"
+                Background="Transparent">
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <Border Height="3" CornerRadius="2" Margin="24,0"
+                    Background="{DynamicResource SystemAccentColor}"
+                    IsVisible="{Binding IsBookingsTabActive}" />
+            <TextBlock Text="📋" FontSize="22" HorizontalAlignment="Center" />
+            <TextBlock Text="Бронирования" FontSize="11" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- Профиль -->
+        <Button Command="{Binding SelectProfileTabCommand}"
+                Width="110"
+                HorizontalContentAlignment="Center"
+                Background="Transparent">
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <Border Height="3" CornerRadius="2" Margin="24,0"
+                    Background="{DynamicResource SystemAccentColor}"
+                    IsVisible="{Binding IsProfileTabActive}" />
+            <TextBlock Text="👤" FontSize="22" HorizontalAlignment="Center" />
+            <TextBlock Text="Профиль" FontSize="11" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+      </StackPanel>
+    </Border>
+
+  </Grid>
+
+</UserControl>
