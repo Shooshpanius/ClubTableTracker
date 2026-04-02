@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string }
+interface BookingSlot { startTime: string; endTime: string; userName?: string }
 
 interface Props {
   table: GameTable
@@ -15,6 +16,8 @@ interface Props {
   closeTime?: string
   members?: ClubMember[]
   tournamentGameSystem?: string
+  clubName?: string
+  tableBookings?: BookingSlot[]
 }
 
 function extractTime(datetimeOrTime: string): string {
@@ -102,7 +105,139 @@ function buildDatetime(date: Date, time: string): string | null {
   return `${year}-${month}-${day}T${hours}:${mins}`
 }
 
-export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [], tournamentGameSystem }: Props) {
+function drawShareCanvas(
+  table: GameTable,
+  selectedDate: Date,
+  clubName: string | undefined,
+  tableBookings: BookingSlot[] | undefined,
+  openTime: string | undefined,
+  closeTime: string | undefined,
+): HTMLCanvasElement {
+  const W = 420
+  const H = 580
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  ctx.fillStyle = '#16213e'
+  ctx.fillRect(0, 0, W, H)
+
+  // Header bar
+  ctx.fillStyle = '#0f3460'
+  ctx.fillRect(0, 0, W, 120)
+
+  // Club name
+  ctx.fillStyle = '#ffc107'
+  ctx.font = 'bold 18px sans-serif'
+  ctx.fillText(clubName || 'Клуб', 16, 32)
+
+  // Table label
+  ctx.fillStyle = '#e94560'
+  ctx.font = 'bold 22px sans-serif'
+  ctx.fillText(`Стол #${table.number}`, 16, 62)
+
+  // Date
+  ctx.fillStyle = '#cccccc'
+  ctx.font = '14px sans-serif'
+  const dateStr = selectedDate.toLocaleDateString('ru-RU', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  })
+  ctx.fillText(dateStr, 16, 90)
+
+  // Divider
+  ctx.strokeStyle = '#533483'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 120)
+  ctx.lineTo(W, 120)
+  ctx.stroke()
+
+  // Timeline area
+  const tlLeft = 56
+  const tlTop = 136
+  const tlWidth = W - tlLeft - 20
+  const tlHeight = 400
+
+  const openMinutes = openTime ? parseTimeMinutes(openTime) : 0
+  const closeMinutes = closeTime ? parseTimeMinutes(closeTime) : 24 * 60
+  const validOpen = openMinutes >= 0 ? openMinutes : 0
+  const validClose = closeMinutes >= 0 ? closeMinutes : 24 * 60
+  const totalMin = Math.max(validClose - validOpen, 1)
+
+  // Free background
+  ctx.fillStyle = '#90ee90'
+  ctx.fillRect(tlLeft, tlTop, tlWidth, tlHeight)
+
+  // Booked segments
+  if (tableBookings && tableBookings.length > 0) {
+    for (const b of tableBookings) {
+      const bs = new Date(b.startTime)
+      const be = new Date(b.endTime)
+      const bStartMin = Math.max(bs.getHours() * 60 + bs.getMinutes(), validOpen)
+      const bEndMin = Math.min(be.getHours() * 60 + be.getMinutes(), validClose)
+      if (bEndMin > bStartMin) {
+        const segTop = tlTop + ((bStartMin - validOpen) / totalMin) * tlHeight
+        const segH = Math.max(((bEndMin - bStartMin) / totalMin) * tlHeight, 2)
+        ctx.fillStyle = '#ffff00'
+        ctx.fillRect(tlLeft, segTop, tlWidth, segH)
+        if (segH >= 20 && b.userName) {
+          ctx.fillStyle = '#222222'
+          ctx.font = '11px sans-serif'
+          ctx.fillText(b.userName, tlLeft + 6, segTop + segH / 2 + 4)
+        }
+      }
+    }
+  }
+
+  // Hour grid lines + labels
+  const openHour = Math.floor(validOpen / 60)
+  const closeHour = Math.ceil(validClose / 60)
+  ctx.lineWidth = 1
+  for (let h = openHour; h <= closeHour; h++) {
+    const min = h * 60
+    if (min < validOpen || min > validClose) continue
+    const y = tlTop + ((min - validOpen) / totalMin) * tlHeight
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+    ctx.beginPath()
+    ctx.moveTo(tlLeft, y)
+    ctx.lineTo(tlLeft + tlWidth, y)
+    ctx.stroke()
+    ctx.fillStyle = '#888888'
+    ctx.font = '11px sans-serif'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${String(h).padStart(2, '0')}:00`, tlLeft - 4, y + 4)
+    ctx.textAlign = 'left'
+  }
+
+  // Timeline border
+  ctx.strokeStyle = '#533483'
+  ctx.lineWidth = 2
+  ctx.strokeRect(tlLeft, tlTop, tlWidth, tlHeight)
+
+  // Legend
+  const legendY = tlTop + tlHeight + 20
+  ctx.fillStyle = '#90ee90'
+  ctx.fillRect(tlLeft, legendY, 14, 10)
+  ctx.fillStyle = '#cccccc'
+  ctx.font = '12px sans-serif'
+  ctx.fillText('Свободно', tlLeft + 18, legendY + 9)
+
+  ctx.fillStyle = '#ffff00'
+  ctx.fillRect(tlLeft + 100, legendY, 14, 10)
+  ctx.fillStyle = '#cccccc'
+  ctx.fillText('Занято', tlLeft + 118, legendY + 9)
+
+  // Footer
+  ctx.fillStyle = '#555555'
+  ctx.font = '11px sans-serif'
+  ctx.fillText('ClubTableTracker', 16, H - 12)
+
+  return canvas
+}
+
+export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [], tournamentGameSystem, clubName, tableBookings }: Props) {
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
@@ -162,6 +297,34 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
+  const handleShare = () => {
+    const canvas = drawShareCanvas(table, selectedDate, clubName, tableBookings, openTime, closeTime)
+    canvas.toBlob(async (blob) => {
+      if (!blob) return
+      const dateStr = selectedDate.toISOString().slice(0, 10)
+      const file = new File([blob], `table-${table.number}-${dateStr}.png`, { type: 'image/png' })
+      const shareData = {
+        title: `${clubName || 'Клуб'} — Стол #${table.number}`,
+        text: `Состояние стола #${table.number} на ${selectedDate.toLocaleDateString('ru-RU')}`,
+        files: [file],
+      }
+      if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
+        try {
+          await navigator.share(shareData)
+          return
+        } catch {
+          // User cancelled or share failed, fall through to download
+        }
+      }
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `table-${table.number}-${dateStr}.png`
+      link.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }
+
   const inputStyle: React.CSSProperties = {
     background: '#0f3460', border: '1px solid #533483', color: '#eee',
     padding: '8px 12px', borderRadius: 4, marginRight: 8
@@ -218,8 +381,9 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           ))}
         </div>
       )}
-      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button style={{ ...btnStyle, background: '#28a745' }} onClick={book} disabled={loading}>{loading ? 'Бронирование...' : 'В резерв'}</button>
+        <button style={{ ...btnStyle, background: '#1a73e8' }} onClick={handleShare} type="button">📤 Поделиться</button>
         {onCancel && <button style={{ ...btnStyle, background: '#ffc107', color: '#222' }} onClick={onCancel}>Отмена</button>}
       </div>
       {error && <p style={{ color: '#e94560', marginTop: 8 }}>{error}</p>}
