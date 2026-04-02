@@ -52,7 +52,6 @@ export default function ClubMap({ tables, bookings, decorations = [], onTableCli
               }}>
               <div style={{ fontWeight: 'bold' }}>#{table.number}</div>
               <div style={{ fontSize: 10, color: '#aaa' }}>{table.size}</div>
-              <div style={{ fontSize: 10 }}>{count > 0 ? `${count}/2 players` : 'Free'}</div>
             </div>
           )
         })}
