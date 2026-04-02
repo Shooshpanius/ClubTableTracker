@@ -33,6 +33,20 @@ public class ClubController : ControllerBase
         return Ok(tables);
     }
 
+    [HttpGet("{id}/decorations")]
+    [Authorize]
+    public IActionResult GetClubDecorations(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == id && m.Status == "Approved");
+        if (!isMember) return Forbid();
+        var decorations = _db.ClubDecorations
+            .Where(d => d.ClubId == id)
+            .Select(d => new { d.Id, d.Type, d.X, d.Y, d.Width, d.Height })
+            .ToList();
+        return Ok(decorations);
+    }
+
     [HttpPost("{id}/apply")]
     [Authorize]
     public IActionResult ApplyForMembership(int id)

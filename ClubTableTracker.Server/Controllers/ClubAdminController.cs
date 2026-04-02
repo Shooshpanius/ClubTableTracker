@@ -381,6 +381,61 @@ public class ClubAdminController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    [HttpGet("decorations")]
+    public IActionResult GetDecorations()
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var decorations = _db.ClubDecorations
+            .Where(d => d.ClubId == club.Id)
+            .Select(d => new { d.Id, d.Type, d.X, d.Y, d.Width, d.Height })
+            .ToList();
+        return Ok(decorations);
+    }
+
+    [HttpPost("decorations")]
+    public IActionResult CreateDecoration([FromBody] DecorationRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var allowed = new[] { "wall", "window", "door" };
+        if (!allowed.Contains(req.Type)) return BadRequest("Invalid type");
+        var deco = new ClubDecoration { ClubId = club.Id, Type = req.Type, X = req.X, Y = req.Y, Width = req.Width, Height = req.Height };
+        _db.ClubDecorations.Add(deco);
+        _db.SaveChanges();
+        return Ok(new { deco.Id, deco.Type, deco.X, deco.Y, deco.Width, deco.Height });
+    }
+
+    [HttpPut("decorations/{id}")]
+    public IActionResult UpdateDecoration(int id, [FromBody] DecorationRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var deco = _db.ClubDecorations.FirstOrDefault(d => d.Id == id && d.ClubId == club.Id);
+        if (deco == null) return NotFound();
+        var allowed = new[] { "wall", "window", "door" };
+        if (!allowed.Contains(req.Type)) return BadRequest("Invalid type");
+        deco.Type = req.Type;
+        deco.X = req.X;
+        deco.Y = req.Y;
+        deco.Width = req.Width;
+        deco.Height = req.Height;
+        _db.SaveChanges();
+        return Ok(new { deco.Id, deco.Type, deco.X, deco.Y, deco.Width, deco.Height });
+    }
+
+    [HttpDelete("decorations/{id}")]
+    public IActionResult DeleteDecoration(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var deco = _db.ClubDecorations.FirstOrDefault(d => d.Id == id && d.ClubId == club.Id);
+        if (deco == null) return NotFound();
+        _db.ClubDecorations.Remove(deco);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
@@ -389,3 +444,4 @@ public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants,
 public record UpdateEventDateRequest(DateTime Date);
 public record UpdateEventTitleRequest(string Title);
 public record SetModeratorRequest(bool IsModerator);
+public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
