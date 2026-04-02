@@ -720,6 +720,9 @@ export default function HomePage() {
                                     const myParticipant = b.participants.find(p => p.id === user.id)
                                     const isInvited = myParticipant?.status === "Invited"
                                     const isAcceptedParticipant = myParticipant && !isInvited
+                                    const acceptedCount = b.participants.filter(p => p.status !== "Invited").length
+                                    const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+                                    const canJoin = !isOwner && !myParticipant && acceptedCount < maxPlayers - 1
                                     return (
                                       <div key={b.id} style={{ background: isInvited ? "#1a1a3d" : "#0f1e3d", borderRadius: 6, padding: "8px 12px", marginBottom: 6, border: isInvited ? "1px solid #7b2fff" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                                         <div>
@@ -736,6 +739,9 @@ export default function HomePage() {
                                           </div>
                                         </div>
                                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                          {canJoin && (
+                                            <button style={{ ...btnStyle, background: "#1565c0", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
+                                          )}
                                           {isInvited && (
                                             <>
                                               <button style={{ ...btnStyle, background: "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
@@ -1024,6 +1030,9 @@ export default function HomePage() {
                                 const myParticipant = b.participants.find(p => p.id === user?.id)
                                 const isInvited = myParticipant?.status === 'Invited'
                                 const isAcceptedParticipant = myParticipant && !isInvited
+                                const acceptedCount = b.participants.filter(p => p.status !== 'Invited').length
+                                const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+                                const canJoin = !isOwner && !myParticipant && acceptedCount < maxPlayers - 1
                                 return (
                                   <div key={b.id} style={{ background: isInvited ? '#1a1a3d' : '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, border: isInvited ? '1px solid #7b2fff' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                                     <div>
@@ -1040,6 +1049,9 @@ export default function HomePage() {
                                       </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                      {canJoin && (
+                                        <button style={{ ...btnStyle, background: '#1565c0', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
+                                      )}
                                       {isInvited && (
                                         <>
                                           <button style={{ ...btnStyle, background: '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
