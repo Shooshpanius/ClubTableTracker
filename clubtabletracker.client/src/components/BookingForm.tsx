@@ -118,7 +118,8 @@ function drawShareCanvas(
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
 
   // Background
   ctx.fillStyle = '#16213e'
@@ -300,7 +301,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   const handleShare = () => {
     const canvas = drawShareCanvas(table, selectedDate, clubName, tableBookings, openTime, closeTime)
     canvas.toBlob(async (blob) => {
-      if (!blob) return
+      if (!blob) { setError('Не удалось создать изображение для отправки'); return }
       const dateStr = selectedDate.toISOString().slice(0, 10)
       const file = new File([blob], `table-${table.number}-${dateStr}.png`, { type: 'image/png' })
       const shareData = {
@@ -308,7 +309,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
         text: `Состояние стола #${table.number} на ${selectedDate.toLocaleDateString('ru-RU')}`,
         files: [file],
       }
-      if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
+      if (navigator.canShare && navigator.canShare(shareData)) {
         try {
           await navigator.share(shareData)
           return
