@@ -34,7 +34,7 @@ public partial class LoginViewModel : ViewModelBase
     {
         try
         {
-            Process.Start(new ProcessStartInfo("http://club.wh40kcards.ru")
+            Process.Start(new ProcessStartInfo("https://club.wh40kcards.ru")
             {
                 UseShellExecute = true
             });
