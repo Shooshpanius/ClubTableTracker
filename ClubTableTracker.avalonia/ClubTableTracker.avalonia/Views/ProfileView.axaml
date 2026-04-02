@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
+             x:Class="ClubTableTracker.avalonia.Views.ProfileView"
+             x:DataType="vm:ProfileViewModel">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="14" Margin="16">
+
+      <TextBlock Text="Профиль"
+                 FontSize="24"
+                 FontWeight="Bold" />
+
+      <ProgressBar IsVisible="{Binding IsLoading}"
+                   IsIndeterminate="True"
+                   Height="3" />
+
+      <!-- User info block -->
+      <Border Padding="14,12" CornerRadius="10"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+              IsVisible="{Binding User, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <StackPanel Spacing="4">
+          <TextBlock FontSize="20" FontWeight="SemiBold">
+            <Run Text="{Binding User.DisplayName}" />
+          </TextBlock>
+          <TextBlock FontSize="14" Opacity="0.65">
+            <Run Text="{Binding User.Name}" />
+            <Run Text=" · " />
+            <Run Text="{Binding User.Email}" />
+          </TextBlock>
+        </StackPanel>
+      </Border>
+
+      <Border Height="1" Background="Gray" Opacity="0.2" />
+
+      <!-- Отображаемое имя -->
+      <TextBlock Text="Отображаемое имя" FontWeight="SemiBold" FontSize="15" />
+      <TextBlock Text="Как вас видят другие участники клуба"
+                 FontSize="12"
+                 Opacity="0.55" />
+      <TextBox Text="{Binding DisplayNameInput}"
+               Watermark="Введите отображаемое имя..."
+               FontSize="14" />
+      <Button Content="Сохранить имя"
+              Command="{Binding SaveDisplayNameCommand}"
+              HorizontalAlignment="Left" />
+
+      <Border Height="1" Background="Gray" Opacity="0.2" />
+
+      <!-- О себе -->
+      <TextBlock Text="О себе" FontWeight="SemiBold" FontSize="15" />
+      <TextBlock Text="Расскажите о себе другим участникам (до 500 символов)"
+                 FontSize="12"
+                 Opacity="0.55" />
+      <TextBox Text="{Binding BioInput}"
+               Watermark="Расскажите о себе..."
+               AcceptsReturn="True"
+               TextWrapping="Wrap"
+               Height="90"
+               FontSize="14" />
+      <Button Content="Сохранить описание"
+              Command="{Binding SaveBioCommand}"
+              HorizontalAlignment="Left" />
+
+      <!-- Статус сохранения -->
+      <TextBlock Text="{Binding SaveStatus}"
+                 FontSize="13"
+                 IsVisible="{Binding SaveStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <Border Height="1" Background="Gray" Opacity="0.2" />
+
+      <!-- Выход -->
+      <Button Content="🚪 Выйти из аккаунта"
+              Command="{Binding LogoutCommand}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center"
+              Padding="0,12"
+              Foreground="Red" />
+
+      <Border Height="16" />
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>
