@@ -676,7 +676,7 @@ export default function HomePage() {
                                         clubName={club.name}
                                         tableBookings={bookings
                                           .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
-                                          .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name }))}
+                                          .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ name: p.name })), gameSystem: b.gameSystem }))}
                                       />
                                     </div>
                                   )}
@@ -981,7 +981,7 @@ export default function HomePage() {
                                 clubName={club.name}
                                 tableBookings={bookings
                                   .filter(b => b.tableId === selectedTable.id && isSameLocalDay(new Date(b.startTime), selectedDate))
-                                  .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name }))}
+                                  .map(b => ({ startTime: b.startTime, endTime: b.endTime, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ name: p.name })), gameSystem: b.gameSystem }))}
                               />
                             </div>
                           )}
