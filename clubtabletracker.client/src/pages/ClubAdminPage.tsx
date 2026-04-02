@@ -6,11 +6,13 @@ interface ClubInfo { id: number; name: string; description: string; openTime: st
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
+interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
   const [clubKey, setClubKey] = useState(localStorage.getItem('clubKey') || '')
   const [club, setClub] = useState<ClubInfo | null>(null)
   const [tables, setTables] = useState<GameTable[]>([])
+  const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events'>('map')
@@ -47,14 +49,16 @@ export default function ClubAdminPage() {
   }
 
   const loadData = async (key: string) => {
-    const [tablesRes, membRes, eventsRes] = await Promise.all([
+    const [tablesRes, membRes, eventsRes, decorationsRes] = await Promise.all([
       fetch('/api/clubadmin/tables', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } })
+      fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } }),
+      fetch('/api/clubadmin/decorations', { headers: { 'X-Club-Key': key } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (membRes.ok) setMemberships(await membRes.json())
     if (eventsRes.ok) setEvents(await eventsRes.json())
+    if (decorationsRes.ok) setDecorations(await decorationsRes.json())
   }
 
   useEffect(() => {
@@ -246,6 +250,29 @@ export default function ClubAdminPage() {
     if (res.ok) { const t = await res.json(); setTables(tables.map(x => x.id === t.id ? t : x)) }
   }
 
+  const addDecoration = async (type: 'wall' | 'window' | 'door', x: number, y: number, width: number, height: number) => {
+    const res = await fetch('/api/clubadmin/decorations', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ type, x, y, width, height })
+    })
+    if (res.ok) { const d = await res.json(); setDecorations(prev => [...prev, d]) }
+  }
+
+  const moveDecoration = async (id: number, x: number, y: number) => {
+    const deco = decorations.find(d => d.id === id)
+    if (!deco) return
+    const res = await fetch(`/api/clubadmin/decorations/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ ...deco, x, y })
+    })
+    if (res.ok) { const d = await res.json(); setDecorations(decorations.map(x => x.id === d.id ? d : x)) }
+  }
+
+  const deleteDecoration = async (id: number) => {
+    await fetch(`/api/clubadmin/decorations/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    setDecorations(decorations.filter(d => d.id !== id))
+  }
+
   const membershipStatusColor = (status: string) => {
     if (status === 'Approved') return '#4caf50'
     if (status === 'Rejected') return '#e94560'
@@ -304,7 +331,15 @@ export default function ClubAdminPage() {
 
       {tab === 'map' && (
         <>
-          <ClubMapEditor tables={tables} onPositionChange={updateTablePosition} onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }} />
+          <ClubMapEditor
+            tables={tables}
+            decorations={decorations}
+            onPositionChange={updateTablePosition}
+            onTableClick={t => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }}
+            onAddDecoration={addDecoration}
+            onMoveDecoration={moveDecoration}
+            onDeleteDecoration={deleteDecoration}
+          />
           <div style={{ ...cardStyle, marginTop: 16 }}>
             <h3>Add New Table</h3>
             <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60, eventsOnly: false }); setSelectedGames([]) }}>+ Add Table</button>

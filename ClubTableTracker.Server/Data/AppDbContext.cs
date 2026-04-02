@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<BookingLog> BookingLogs => Set<BookingLog>();
     public DbSet<ClubEvent> ClubEvents => Set<ClubEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
+    public DbSet<ClubDecoration> ClubDecorations => Set<ClubDecoration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,5 +85,11 @@ public class AppDbContext : DbContext
             .HasOne(p => p.User)
             .WithMany()
             .HasForeignKey(p => p.UserId);
+
+        modelBuilder.Entity<ClubDecoration>().HasKey(d => d.Id);
+        modelBuilder.Entity<ClubDecoration>()
+            .HasOne(d => d.Club)
+            .WithMany()
+            .HasForeignKey(d => d.ClubId);
     }
 }
