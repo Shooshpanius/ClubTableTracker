@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import BookingForm from '../components/BookingForm'
 import TableTimeline from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
+import ClubMap from '../components/ClubMap'
 import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import { DEFAULT_BOOKING_COLORS } from '../constants'
@@ -30,6 +31,7 @@ interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: st
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean }
 interface ClubEventItem { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
+interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -186,20 +188,24 @@ export default function HomePage() {
     setSelectedClub(club)
     setSelectedTable(null)
     setClubEvents([])
+    setDecorations([])
     setExpandedTableId(null)
     setDesktopTab('booking')
     setMobileTab('tables')
     setModeratorBookingModal(null)
-    const [tablesRes, bookingsRes, membersRes, eventsRes] = await Promise.all([
+    const [tablesRes, bookingsRes, membersRes, eventsRes, decorationsRes] = await Promise.all([
       fetch(`/api/club/${club.id}/tables`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/booking/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/club/${club.id}/members`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`/api/event/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`/api/event/club/${club.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/club/${club.id}/decorations`, { headers: { Authorization: `Bearer ${token}` } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (bookingsRes.ok) setBookings(await bookingsRes.json())
     if (membersRes.ok) setMembers(await membersRes.json())
     if (eventsRes.ok) setClubEvents(await eventsRes.json())
+    if (decorationsRes.ok) setDecorations(await decorationsRes.json())
+    else console.error('Failed to load club decorations')
   }
 
   const registerEvent = async (eventId: number) => {
@@ -376,8 +382,9 @@ export default function HomePage() {
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
-  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players'>('tables')
-  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players'>('booking')
+  const [decorations, setDecorations] = useState<ClubDecoration[]>([])
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map'>('tables')
+  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map'>('booking')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -512,8 +519,8 @@ export default function HomePage() {
                   <div>
                     {/* Mobile tab bar */}
                     <div style={{ display: "flex", borderBottom: "2px solid #0f3460" }}>
-                      {(["tables", "games", "events", "log", "players"] as const).map((tab, i) => {
-                        const labels = ["Столы", "Игры", "События", "Журнал", "👥"]
+                      {(["tables", "games", "events", "log", "players", "map"] as const).map((tab, i) => {
+                        const labels = ["Столы", "Игры", "События", "Журнал", "👥", "🗺️"]
                         return (
                           <button
                             key={tab}
@@ -522,7 +529,7 @@ export default function HomePage() {
                               background: mobileTab === tab ? "#e94560" : "#0f3460",
                               color: "#fff",
                               border: "none",
-                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "players" ? "0 4px 0 0" : 0,
+                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "map" ? "0 4px 0 0" : 0,
                               padding: "9px 4px",
                               cursor: "pointer",
                               fontSize: 13,
@@ -887,6 +894,19 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    {/* Tab: Схема клуба (mobile) */}
+                    {mobileTab === "map" && (
+                      <div>
+                        <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Схема клуба</h3>
+                        <ClubMap
+                          tables={tables}
+                          bookings={bookings}
+                          decorations={decorations}
+                          onTableClick={table => { setSelectedTable(table); setMobileTab("tables") }}
+                        />
+                      </div>
+                    )}
+
                     </div>
                   </div>
                 ) : (
@@ -900,6 +920,7 @@ export default function HomePage() {
                         ['events', '🏆 События клуба'],
                         ['log', '📋 Журнал действий'],
                         ['players', '👥 Игроки клуба'],
+                        ['map', '🗺️ Схема клуба'],
                       ] as [string, string][]).map(([tab, label]) => (
                         <button
                           key={tab}
@@ -1186,6 +1207,19 @@ export default function HomePage() {
                             </table>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Tab: Схема клуба */}
+                    {desktopTab === 'map' && (
+                      <div>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Схема клуба</h3>
+                        <ClubMap
+                          tables={tables}
+                          bookings={bookings}
+                          decorations={decorations}
+                          onTableClick={table => { setSelectedTable(table); setDesktopTab('booking') }}
+                        />
                       </div>
                     )}
                   </div>
