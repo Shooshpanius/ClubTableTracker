@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string }
-interface BookingSlot { startTime: string; endTime: string; userName?: string }
+interface BookingSlot { startTime: string; endTime: string; userName?: string; participants?: { name: string }[]; gameSystem?: string }
 
 interface Props {
   table: GameTable
@@ -181,12 +181,22 @@ function drawShareCanvas(
       if (bEndMin > bStartMin) {
         const segTop = tlTop + ((bStartMin - validOpen) / totalMin) * tlHeight
         const segH = Math.max(((bEndMin - bStartMin) / totalMin) * tlHeight, 2)
-        ctx.fillStyle = '#ffff00'
+        ctx.fillStyle = '#ff8c00'
         ctx.fillRect(tlLeft, segTop, tlWidth, segH)
-        if (segH >= 20 && b.userName) {
-          ctx.fillStyle = '#222222'
+        if (segH >= 20) {
+          ctx.fillStyle = '#ffffff'
           ctx.font = '11px sans-serif'
-          ctx.fillText(b.userName, tlLeft + 6, segTop + segH / 2 + 4)
+          const allNames = [b.userName, ...(b.participants ?? []).map(p => p.name)].filter((n): n is string => !!n)
+          const nameLine = allNames.join(' + ')
+          const lines: string[] = []
+          if (nameLine.trim().length > 0) lines.push(nameLine)
+          if (b.gameSystem) lines.push(b.gameSystem)
+          const lineHeight = 14
+          const totalTextH = lines.length * lineHeight
+          const startY = segTop + segH / 2 - totalTextH / 2 + lineHeight - 2
+          lines.forEach((line, idx) => {
+            ctx.fillText(line, tlLeft + 6, startY + idx * lineHeight)
+          })
         }
       }
     }
@@ -225,7 +235,7 @@ function drawShareCanvas(
   ctx.font = '12px sans-serif'
   ctx.fillText('Свободно', tlLeft + 18, legendY + 9)
 
-  ctx.fillStyle = '#ffff00'
+  ctx.fillStyle = '#ff8c00'
   ctx.fillRect(tlLeft + 100, legendY, 14, 10)
   ctx.fillStyle = '#cccccc'
   ctx.fillText('Занято', tlLeft + 118, legendY + 9)
