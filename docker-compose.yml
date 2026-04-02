@@ -27,6 +27,7 @@ services:
     image: front40club:local
     environment:
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+      YANDEX_METRIKA_ID: ${YANDEX_METRIKA_ID:-0}
     ports:
       - "85:80"
     restart: always
