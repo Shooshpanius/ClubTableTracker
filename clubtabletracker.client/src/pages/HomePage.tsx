@@ -636,7 +636,7 @@ export default function HomePage() {
                                     <div style={{ width: 44, flexShrink: 0, position: "relative", height: RECT_HEIGHT + 28, marginRight: 4 }}>
                                       {Array.from({ length: clubTotalHours + 1 }, (_, i) => {
                                         const hour = clubOpenHour + i
-                                        const top = (i / clubTotalHours) * RECT_HEIGHT + 28
+                                        const top = (i / clubTotalHours) * RECT_HEIGHT// + 28
                                         return (
                                           <div key={hour} style={{ position: "absolute", top, right: 0, fontSize: 11, color: "#888", whiteSpace: "nowrap", transform: "translateY(-50%)" }}>
                                             {String(hour).padStart(2, "0")}:00
