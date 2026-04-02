@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ClubTableTracker.avalonia.Models;
 using ClubTableTracker.avalonia.Services;
 
 namespace ClubTableTracker.avalonia.ViewModels;
@@ -59,7 +60,19 @@ public partial class LoginViewModel : ViewModelBase
         ErrorMessage = "";
 
         _tokenService.SaveToken(token);
-        var user = await _apiService.GetMeAsync();
+
+        UserDto? user;
+        bool serverUnavailable;
+        try
+        {
+            user = await _apiService.GetMeAsync();
+            serverUnavailable = false;
+        }
+        catch (Exception)
+        {
+            user = null;
+            serverUnavailable = true;
+        }
 
         IsLoading = false;
 
@@ -70,7 +83,9 @@ public partial class LoginViewModel : ViewModelBase
         else
         {
             _tokenService.ClearToken();
-            ErrorMessage = "Неверный токен или сервер недоступен. Проверьте токен и попробуйте снова.";
+            ErrorMessage = serverUnavailable
+                ? "Сервер недоступен. Проверьте подключение к интернету."
+                : "Неверный токен. Убедитесь, что скопировали токен правильно.";
         }
     }
 }

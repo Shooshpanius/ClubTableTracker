@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ClubTableTracker.avalonia.Models;
 using ClubTableTracker.avalonia.Services;
 
 namespace ClubTableTracker.avalonia.ViewModels;
@@ -24,7 +26,21 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             if (_tokenService.HasToken())
-                await ShowHomeAsync();
+            {
+                // Validate the stored token against the server before showing home.
+                // If it's expired or the server is unreachable, fall back to the login screen.
+                UserDto? user;
+                try { user = await _apiService.GetMeAsync(); }
+                catch (Exception) { user = null; }
+
+                if (user != null)
+                    await ShowHomeAsync();
+                else
+                {
+                    _tokenService.ClearToken();
+                    ShowLogin();
+                }
+            }
             else
                 ShowLogin();
         }

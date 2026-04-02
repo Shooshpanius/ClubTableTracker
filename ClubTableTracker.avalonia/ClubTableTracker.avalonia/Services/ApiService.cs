@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -34,11 +35,21 @@ public class ApiService
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
+    /// <summary>
+    /// Returns the current user, or null if the token is invalid/expired (401).
+    /// Throws <see cref="HttpRequestException"/> if the server is unreachable or returns an unexpected error.
+    /// </summary>
     public async Task<UserDto?> GetMeAsync()
     {
         ApplyAuthHeader();
-        try { return await _http.GetFromJsonAsync<UserDto>("user/me"); }
-        catch { return null; }
+        try
+        {
+            return await _http.GetFromJsonAsync<UserDto>("user/me");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
     }
 
     public async Task<List<ClubDto>> GetClubsAsync()
