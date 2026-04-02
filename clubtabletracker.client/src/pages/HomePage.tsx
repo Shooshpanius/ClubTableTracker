@@ -205,6 +205,7 @@ export default function HomePage() {
     if (membersRes.ok) setMembers(await membersRes.json())
     if (eventsRes.ok) setClubEvents(await eventsRes.json())
     if (decorationsRes.ok) setDecorations(await decorationsRes.json())
+    else console.error('Failed to load club decorations')
   }
 
   const registerEvent = async (eventId: number) => {
@@ -901,7 +902,7 @@ export default function HomePage() {
                           tables={tables}
                           bookings={bookings}
                           decorations={decorations}
-                          onTableClick={() => {}}
+                          onTableClick={table => { setSelectedTable(table); setMobileTab("tables") }}
                         />
                       </div>
                     )}
@@ -1217,7 +1218,7 @@ export default function HomePage() {
                           tables={tables}
                           bookings={bookings}
                           decorations={decorations}
-                          onTableClick={() => {}}
+                          onTableClick={table => { setSelectedTable(table); setDesktopTab('booking') }}
                         />
                       </div>
                     )}
