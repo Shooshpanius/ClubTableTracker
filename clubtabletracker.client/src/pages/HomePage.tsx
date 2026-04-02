@@ -927,7 +927,7 @@ export default function HomePage() {
                                 const hour = clubOpenHour + i
                                 const top = (i / clubTotalHours) * RECT_HEIGHT + 28
                                 return (
-                                  <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap', transform: 'translateY(-50%)' }}>
+                                  <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap', transform: 'translateY(-30%)' }}>
                                     {String(hour).padStart(2, '0')}:00
                                   </div>
                                 )
