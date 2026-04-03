@@ -25,6 +25,7 @@ interface Props {
 
 const RECT_HEIGHT = 360
 const RECT_WIDTH = 110
+export const TABLE_HEADER_HEIGHT = 36
 
 function parseHHMM(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -71,7 +72,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
 
   return (
     <div style={{ display: 'inline-block', width: RECT_WIDTH, margin: '0 6px', textAlign: 'center', verticalAlign: 'top' }}>
-      <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? '#e94560' : '#eee', minHeight: 20, wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', textAlign: 'center' }}>
+      <div title={table.number} style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? '#e94560' : '#eee', height: TABLE_HEADER_HEIGHT, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {table.number}
       </div>
       <div style={{

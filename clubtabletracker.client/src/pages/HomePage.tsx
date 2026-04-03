@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
 import { useNavigate } from 'react-router-dom'
 import BookingForm from '../components/BookingForm'
-import TableTimeline from '../components/TableTimeline'
+import TableTimeline, { TABLE_HEADER_HEIGHT } from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import ClubMap from '../components/ClubMap'
 import { isGoogleConfigured } from '../googleConfig'
@@ -663,10 +663,10 @@ export default function HomePage() {
                               {isTableExpanded && (
                                 <div style={{ padding: 16 }}>
                                   <div style={{ display: "flex", alignItems: "flex-start" }}>
-                                    <div style={{ width: 44, flexShrink: 0, position: "relative", height: RECT_HEIGHT + 28, marginRight: 4 }}>
+                                    <div style={{ width: 44, flexShrink: 0, position: "relative", height: RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8, marginRight: 4 }}>
                                       {Array.from({ length: clubTotalHours + 1 }, (_, i) => {
                                         const hour = clubOpenHour + i
-                                        const top = (i / clubTotalHours) * RECT_HEIGHT + 28
+                                        const top = (i / clubTotalHours) * RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8
                                         return (
                                           <div key={hour} style={{ position: "absolute", top, right: 0, fontSize: 11, color: "#888", whiteSpace: "nowrap", transform: "translateY(-30%)" }}>
                                             {String(hour).padStart(2, "0")}:00
@@ -966,10 +966,10 @@ export default function HomePage() {
                             {formatDate(selectedDate)}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + 28, marginRight: 4 }}>
+                            <div style={{ width: 44, flexShrink: 0, position: 'relative', height: RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8, marginRight: 4 }}>
                               {Array.from({ length: clubTotalHours + 1 }, (_, i) => {
                                 const hour = clubOpenHour + i
-                                const top = (i / clubTotalHours) * RECT_HEIGHT + 28
+                                const top = (i / clubTotalHours) * RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8
                                 return (
                                   <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap', transform: 'translateY(-30%)' }}>
                                     {String(hour).padStart(2, '0')}:00
