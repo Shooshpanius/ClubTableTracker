@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ClubTableTracker.Server.Data;
+using ClubTableTracker.Server.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,19 @@ using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
+
+        // Seed the virtual "ЗАБРОНИРОВАНО" user used as a placeholder for reserved slots
+        if (!db.Users.Any(u => u.Id == BookingConstants.ReservedUserId))
+        {
+            db.Users.Add(new ClubTableTracker.Server.Models.AppUser
+            {
+                Id = BookingConstants.ReservedUserId,
+                Email = "",
+                Name = "ЗАБРОНИРОВАНО",
+                GoogleId = ""
+            });
+            db.SaveChanges();
+        }
     }
     catch (Exception ex)
     {

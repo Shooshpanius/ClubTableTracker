@@ -231,6 +231,18 @@ public class BookingController : ControllerBase
 
             foreach (var inviteeId in validInvitees)
             {
+                // Виртуальный игрок "ЗАБРОНИРОВАНО" — создаём занятый слот без проверки членства/системы
+                if (inviteeId == BookingConstants.ReservedUserId)
+                {
+                    _db.BookingParticipants.Add(new BookingParticipant
+                    {
+                        BookingId = booking.Id,
+                        UserId = inviteeId,
+                        Status = "Accepted"
+                    });
+                    continue;
+                }
+
                 var isInviteeMember = _db.Memberships.Any(m => m.UserId == inviteeId && m.ClubId == table.ClubId && m.Status == "Approved");
                 if (!isInviteeMember) continue;
 
@@ -374,8 +386,8 @@ public class BookingController : ControllerBase
             BookingEndTime = booking.EndTime
         };
 
-        // Передаём владение только принятым участникам (Status == "Accepted")
-        var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted").OrderBy(p => p.Id).ToList();
+        // Передаём владение только принятым реальным участникам (Status == "Accepted", не виртуальный RESERVED)
+        var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted" && p.UserId != BookingConstants.ReservedUserId).OrderBy(p => p.Id).ToList();
         if (acceptedParticipants.Count > 0)
         {
             var newOwner = acceptedParticipants.First();

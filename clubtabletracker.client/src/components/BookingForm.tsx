@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+const RESERVED_USER_ID = '__RESERVED__'
+
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string }
 interface BookingSlot { startTime: string; endTime: string; userName?: string; participants?: { name: string }[]; gameSystem?: string }
@@ -268,7 +270,10 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     : []
 
   useEffect(() => {
-    setInvitedUserIds(ids => ids.map(id => (!id || !eligibleMembers.some(m => m.id === id)) ? '' : id))
+    setInvitedUserIds(ids => ids.map(id => {
+      if (!id || id === RESERVED_USER_ID) return id
+      return eligibleMembers.some(m => m.id === id) ? id : ''
+    }))
   }, [gameSystem])
 
   const setInvitedAt = (index: number, value: string) => {
@@ -378,18 +383,22 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       </div>
       {members.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {Array.from({ length: isDoubles ? 3 : 1 }, (_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <label style={{ color: '#aaa', fontSize: 13 }}>{isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:'}</label>
-              <select style={inputStyle} value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)} disabled={!gameSystem}>
-                <option value="">— не выбран —</option>
-                {eligibleMembers
-                  .filter(m => !invitedUserIds.some((id, j) => j !== i && id === m.id))
-                  .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              {!gameSystem && i === 0 && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
-            </div>
-          ))}
+              {Array.from({ length: isDoubles ? 3 : 1 }, (_, i) => {
+                const showGameSystemPrompt = !gameSystem && i === 0 && invitedUserIds[i] !== RESERVED_USER_ID
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <label style={{ color: '#aaa', fontSize: 13 }}>{isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:'}</label>
+                    <select style={inputStyle} value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)}>
+                      <option value="">— не выбран —</option>
+                      <option value={RESERVED_USER_ID}>ЗАБРОНИРОВАНО</option>
+                      {eligibleMembers
+                        .filter(m => !invitedUserIds.some((id, j) => j !== i && id === m.id))
+                        .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                    {showGameSystemPrompt && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
+                  </div>
+                )
+              })}
         </div>
       )}
       <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
