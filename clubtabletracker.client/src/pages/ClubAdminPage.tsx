@@ -5,7 +5,7 @@ import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../con
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -22,11 +22,12 @@ export default function ClubAdminPage() {
   const [closeTime, setCloseTime] = useState('22:00')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [events, setEvents] = useState<ClubEventData[]>([])
-  const [newEvent, setNewEvent] = useState({ title: '', date: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+  const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
   const [selectedEventTables, setSelectedEventTables] = useState<number[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [editingEventId, setEditingEventId] = useState<number | null>(null)
-  const [editingEventDate, setEditingEventDate] = useState('')
+  const [editingEventStartTime, setEditingEventStartTime] = useState('')
+  const [editingEventEndTime, setEditingEventEndTime] = useState('')
   const [editingEventDateError, setEditingEventDateError] = useState('')
   const [inviteEventId, setInviteEventId] = useState<number | null>(null)
   const [inviteUserId, setInviteUserId] = useState('')
@@ -145,7 +146,8 @@ export default function ClubAdminPage() {
   const createEvent = async () => {
     const body = {
       title: newEvent.title,
-      date: newEvent.date.length === 16 ? newEvent.date + ':00' : newEvent.date,
+      startTime: newEvent.startTime.length === 16 ? newEvent.startTime + ':00' : newEvent.startTime,
+      endTime: newEvent.endTime.length === 16 ? newEvent.endTime + ':00' : newEvent.endTime,
       maxParticipants: newEvent.maxParticipants,
       eventType: newEvent.eventType,
       gameSystem: newEvent.gameSystem || null,
@@ -159,7 +161,7 @@ export default function ClubAdminPage() {
     if (res.ok) {
       const ev = await res.json()
       setEvents([...events, { ...ev, participants: [] }])
-      setNewEvent({ title: '', date: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+      setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
       setSelectedEventTables([])
       setShowEventForm(false)
     }
@@ -172,26 +174,29 @@ export default function ClubAdminPage() {
   }
 
   const startEditingEventDate = (ev: ClubEventData) => {
-    // Convert stored ISO date to local datetime-local string without seconds
-    const d = new Date(ev.date)
     const pad = (n: number) => String(n).padStart(2, '0')
-    const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`
+    const toLocal = (iso: string) => {
+      const d = new Date(iso)
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`
+    }
     setEditingEventId(ev.id)
-    setEditingEventDate(local)
+    setEditingEventStartTime(toLocal(ev.startTime))
+    setEditingEventEndTime(toLocal(ev.endTime))
     setEditingEventDateError('')
   }
 
   const saveEventDate = async (id: number) => {
-    if (!editingEventDate) return
-    const isoDate = editingEventDate.length === 16 ? editingEventDate + ':00' : editingEventDate
+    if (!editingEventStartTime || !editingEventEndTime) return
+    const isoStart = editingEventStartTime.length === 16 ? editingEventStartTime + ':00' : editingEventStartTime
+    const isoEnd = editingEventEndTime.length === 16 ? editingEventEndTime + ':00' : editingEventEndTime
     const res = await fetch(`/api/clubadmin/events/${id}/date`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
-      body: JSON.stringify({ date: isoDate })
+      body: JSON.stringify({ startTime: isoStart, endTime: isoEnd })
     })
     if (res.ok) {
       const data = await res.json()
-      setEvents(events.map(e => e.id === id ? { ...e, date: data.date } : e))
+      setEvents(events.map(e => e.id === id ? { ...e, startTime: data.startTime, endTime: data.endTime } : e))
       setEditingEventId(null)
       setEditingEventDateError('')
     } else {
@@ -486,7 +491,7 @@ export default function ClubAdminPage() {
                 if (d <= now) d.setDate(d.getDate() + 1)
                 const pad = (n: number) => String(n).padStart(2, '0')
                 const defaultDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}`
-                setNewEvent(prev => ({ ...prev, date: defaultDate }))
+                setNewEvent(prev => ({ ...prev, startTime: defaultDate, endTime: defaultDate }))
               }
               setShowEventForm(v => !v)
             }}>
@@ -500,8 +505,12 @@ export default function ClubAdminPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <input style={inputStyle} placeholder="Название" value={newEvent.title}
                   onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} />
-                <input style={inputStyle} type="datetime-local" value={newEvent.date}
-                  onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
+                <label style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>Начало:</label>
+                <input style={inputStyle} type="datetime-local" step={3600} value={newEvent.startTime}
+                  onChange={e => setNewEvent({ ...newEvent, startTime: e.target.value })} />
+                <label style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>Конец:</label>
+                <input style={inputStyle} type="datetime-local" step={3600} value={newEvent.endTime}
+                  onChange={e => setNewEvent({ ...newEvent, endTime: e.target.value })} />
                 <input style={{ ...inputStyle, width: 80 }} type="number" min={2} placeholder="Макс. участников"
                   value={newEvent.maxParticipants}
                   onChange={e => setNewEvent({ ...newEvent, maxParticipants: parseInt(e.target.value) || 2 })} />
@@ -530,7 +539,7 @@ export default function ClubAdminPage() {
                 </div>
               </div>
               <div style={{ marginTop: 14 }}>
-                <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.date}>Создать</button>
+                <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.startTime || !newEvent.endTime}>Создать</button>
                 <button style={{ ...btnStyle, background: '#555' }} onClick={() => setShowEventForm(false)}>Отмена</button>
               </div>
             </div>
@@ -551,7 +560,9 @@ export default function ClubAdminPage() {
                     <span style={{ marginLeft: 10, color: '#ffc107', fontSize: 13 }}>{ev.eventType}</span>
                     {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 13, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
                     <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
-                      📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {' – '}
+                      {new Date(ev.endTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
                       {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
                     </div>
@@ -588,8 +599,12 @@ export default function ClubAdminPage() {
 
                 {editingEventId === ev.id && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventDate}
-                      onChange={e => { setEditingEventDate(e.target.value); setEditingEventDateError('') }} />
+                    <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
+                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventStartTime}
+                      onChange={e => { setEditingEventStartTime(e.target.value); setEditingEventDateError('') }} />
+                    <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
+                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventEndTime}
+                      onChange={e => { setEditingEventEndTime(e.target.value); setEditingEventDateError('') }} />
                     <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDate(ev.id)}>Сохранить</button>
                     {editingEventDateError && <span style={{ color: '#e94560', fontSize: 13 }}>{editingEventDateError}</span>}
                   </div>

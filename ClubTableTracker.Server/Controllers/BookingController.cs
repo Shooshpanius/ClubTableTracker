@@ -186,24 +186,26 @@ public class BookingController : ControllerBase
         if (hasConflict) return BadRequest("Table is already booked during the requested time period. Please choose a different time slot.");
 
         // Check event-based restrictions
-        var bookingDate = req.StartTime.Date;
-        var eventsOnDate = _db.ClubEvents
+        var eventsOnTable = _db.ClubEvents
             .Include(e => e.Participants)
-            .Where(e => e.ClubId == table.ClubId && e.Date.Date == bookingDate && e.TableIds != null)
+            .Where(e => e.ClubId == table.ClubId
+                        && e.StartTime < req.EndTime
+                        && e.EndTime > req.StartTime
+                        && e.TableIds != null)
             .ToList()
             .Where(e => e.TableIds!.Split(',').Select(id => id.Trim()).Contains(req.TableId.ToString()))
             .ToList();
 
-        if (eventsOnDate.Count > 0)
+        if (eventsOnTable.Count > 0)
         {
-            // Table is assigned to an event on this day — only registered participants may book it
-            var isRegistered = eventsOnDate.Any(e => e.Participants.Any(p => p.UserId == userId));
+            // Table is assigned to an event during this time — only registered participants may book it
+            var isRegistered = eventsOnTable.Any(e => e.Participants.Any(p => p.UserId == userId));
             if (!isRegistered)
                 return BadRequest("Этот стол зарезервирован для участников события. Запишитесь на событие, чтобы забронировать стол.");
         }
         else if (table.EventsOnly)
         {
-            // Table is marked "events only" but no event is scheduled on this day
+            // Table is marked "events only" but no event is scheduled during this time
             return BadRequest("Этот стол доступен только во время событий клуба.");
         }
 
