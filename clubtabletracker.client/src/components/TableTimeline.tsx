@@ -71,8 +71,8 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
 
   return (
     <div style={{ display: 'inline-block', width: RECT_WIDTH, margin: '0 6px', textAlign: 'center', verticalAlign: 'top' }}>
-      <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? '#e94560' : '#eee', height: 20 }}>
-        Стол {table.number}
+      <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? '#e94560' : '#eee', minHeight: 20, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+        {table.number}
       </div>
       <div style={{
         width: RECT_WIDTH, height: RECT_HEIGHT,
