@@ -6,7 +6,8 @@ public class ClubEvent
     public int ClubId { get; set; }
     public Club Club { get; set; } = null!;
     public string Title { get; set; } = "";
-    public DateTime Date { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
     public int MaxParticipants { get; set; }
     public string EventType { get; set; } = "Tournament";
     public string? GameSystem { get; set; }

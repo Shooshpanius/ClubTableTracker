@@ -254,10 +254,10 @@ public class ClubAdminController : ControllerBase
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
             .Where(e => e.ClubId == club.Id)
-            .OrderBy(e => e.Date)
+            .OrderBy(e => e.StartTime)
             .Select(e => new
             {
-                e.Id, e.Title, e.Date, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
+                e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
@@ -269,11 +269,37 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
+
+        // Validate whole hours only
+        if (req.StartTime.Minute != 0 || req.StartTime.Second != 0)
+            return BadRequest("Время начала события должно быть на ровный час");
+        if (req.EndTime.Minute != 0 || req.EndTime.Second != 0)
+            return BadRequest("Время окончания события должно быть на ровный час");
+
+        if (req.EndTime <= req.StartTime)
+            return BadRequest("Время окончания должно быть позже времени начала");
+
+        if ((req.EndTime - req.StartTime).TotalDays > 3)
+            return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
+
+        // Validate both times are within club working hours
+        if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
+            !TimeSpan.TryParse(club.CloseTime, out var closeTime))
+            return BadRequest("Неверные часы работы клуба");
+
+        var startTimeOfDay = req.StartTime.TimeOfDay;
+        var endTimeOfDay = req.EndTime.TimeOfDay;
+        if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
+            return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+        if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
+            return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+
         var ev = new ClubEvent
         {
             ClubId = club.Id,
             Title = req.Title,
-            Date = req.Date,
+            StartTime = req.StartTime,
+            EndTime = req.EndTime,
             MaxParticipants = req.MaxParticipants,
             EventType = req.EventType,
             GameSystem = req.GameSystem,
@@ -281,7 +307,7 @@ public class ClubAdminController : ControllerBase
         };
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
-        return Ok(new { ev.Id, ev.Title, ev.Date, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds });
+        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds });
     }
 
     [HttpDelete("events/{id}")]
@@ -322,22 +348,34 @@ public class ClubAdminController : ControllerBase
         var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
         if (ev == null) return NotFound();
 
-        // Validate whole hour only
-        if (req.Date.Minute != 0 || req.Date.Second != 0)
-            return BadRequest("Время события должно быть на ровный час");
+        // Validate whole hours only
+        if (req.StartTime.Minute != 0 || req.StartTime.Second != 0)
+            return BadRequest("Время начала события должно быть на ровный час");
+        if (req.EndTime.Minute != 0 || req.EndTime.Second != 0)
+            return BadRequest("Время окончания события должно быть на ровный час");
+
+        if (req.EndTime <= req.StartTime)
+            return BadRequest("Время окончания должно быть позже времени начала");
+
+        if ((req.EndTime - req.StartTime).TotalDays > 3)
+            return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
 
         // Validate within club working hours
         if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
             !TimeSpan.TryParse(club.CloseTime, out var closeTime))
             return BadRequest("Неверные часы работы клуба");
 
-        var eventTime = req.Date.TimeOfDay;
-        if (eventTime < openTime || eventTime >= closeTime)
-            return BadRequest($"Время события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+        var startTimeOfDay = req.StartTime.TimeOfDay;
+        var endTimeOfDay = req.EndTime.TimeOfDay;
+        if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
+            return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+        if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
+            return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
 
-        ev.Date = req.Date;
+        ev.StartTime = req.StartTime;
+        ev.EndTime = req.EndTime;
         _db.SaveChanges();
-        return Ok(new { ev.Id, ev.Date });
+        return Ok(new { ev.Id, ev.StartTime, ev.EndTime });
     }
 
     [HttpPost("events/{id}/participants/{userId}")]
@@ -440,8 +478,8 @@ public class ClubAdminController : ControllerBase
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
-public record ClubEventRequest(string Title, DateTime Date, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
-public record UpdateEventDateRequest(DateTime Date);
+public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
+public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
 public record SetModeratorRequest(bool IsModerator);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);

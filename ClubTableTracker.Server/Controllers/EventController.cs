@@ -28,10 +28,10 @@ public class EventController : ControllerBase
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
             .Where(e => e.ClubId == clubId)
-            .OrderBy(e => e.Date)
+            .OrderBy(e => e.StartTime)
             .Select(e => new
             {
-                e.Id, e.Title, e.Date, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
+                e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();

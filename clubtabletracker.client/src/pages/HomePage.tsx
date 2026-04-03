@@ -30,7 +30,7 @@ interface Booking extends BookingBase { tableId: number; startTime: string; endT
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean }
-interface ClubEventItem { id: number; title: string; date: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
+interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 function parseHHMM(t: string): number {
@@ -478,11 +478,12 @@ export default function HomePage() {
 
   // Determine which tables are involved in events on the selected date
   const { eventTableIds, userEventTableIds, eventTableGameSystems } = useMemo(() => {
+    const dayStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
     const eventsOnSelectedDate = clubEvents.filter(ev => {
-      const evDate = new Date(ev.date)
-      return evDate.getFullYear() === selectedDate.getFullYear() &&
-        evDate.getMonth() === selectedDate.getMonth() &&
-        evDate.getDate() === selectedDate.getDate()
+      const evStart = new Date(ev.startTime)
+      const evEnd = new Date(ev.endTime)
+      return evStart < dayEnd && evEnd > dayStart
     })
     const eventTableIds = new Set<number>()
     const userEventTableIds = new Set<number>()
@@ -857,7 +858,9 @@ export default function HomePage() {
                                   <span style={{ marginLeft: 8, color: "#ffc107", fontSize: 12 }}>{ev.eventType}</span>
                                   {ev.gameSystem && <span style={{ marginLeft: 8, color: "#888", fontSize: 12, fontStyle: "italic" }}>{ev.gameSystem}</span>}
                                   <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
-                                    📅 {new Date(ev.date).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    📅 {new Date(ev.startTime).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                    {" – "}
+                                    {new Date(ev.endTime).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                                     &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
                                     {isRegistered && <span style={{ color: "#4caf50", marginLeft: 8 }}>✓ вы записаны</span>}
                                   </div>
@@ -1179,7 +1182,9 @@ export default function HomePage() {
                                   <span style={{ marginLeft: 8, color: '#ffc107', fontSize: 12 }}>{ev.eventType}</span>
                                   {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 12, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
                                   <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
-                                    📅 {new Date(ev.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    {' – '}
+                                    {new Date(ev.endTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
                                     {isRegistered && <span style={{ color: '#4caf50', marginLeft: 8 }}>✓ вы записаны</span>}
                                   </div>
