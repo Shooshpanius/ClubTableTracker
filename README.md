@@ -70,9 +70,11 @@ ClubTableTracker/
 │   ├── Models/
 │   │   ├── AppUser.cs                # Пользователь
 │   │   ├── Booking.cs                # Бронирование
+│   │   ├── BookingConstants.cs       # Константы (ReservedUserId)
 │   │   ├── BookingLog.cs             # Журнал действий с бронированиями
 │   │   ├── BookingParticipant.cs     # Участник бронирования
 │   │   ├── Club.cs                   # Клуб
+│   │   ├── ClubDecoration.cs         # Декоративный элемент карты клуба
 │   │   ├── ClubEvent.cs              # Событие клуба
 │   │   ├── ClubMembership.cs         # Членство в клубе
 │   │   ├── EventParticipant.cs       # Участник события
@@ -151,16 +153,18 @@ ClubTableTracker/
 ## Функциональность
 
 ### Карта столов
-Администратор клуба размещает столы на интерактивной карте, задавая координаты (X, Y) и размеры (Width, Height). Пользователи видят эту карту и выбирают стол для бронирования.
+Администратор клуба размещает столы на интерактивной карте, задавая координаты (X, Y) и размеры (Width, Height). Кроме столов, администратор может добавлять **декоративные элементы** (стены, окна, двери), которые помогают воссоздать реальную планировку зала. Пользователи видят эту карту и выбирают стол для бронирования.
 
 ### Бронирование
 - Каждое бронирование привязано к конкретному столу, дате и времени (в пределах часов работы клуба)
 - Режим **одиночной игры**: максимум **2 игрока** за столом
 - Режим **doubles**: максимум **4 игрока** за столом
-- Создатель бронирования может заранее пригласить участников; приглашённые принимают или отклоняют приглашение
+- Создатель бронирования может заранее пригласить участников, а также добавлять новых игроков после создания; приглашённые принимают или отклоняют приглашение
+- Слот можно пометить как **«ЗАБРОНИРОВАНО»** (`__RESERVED__`) — виртуальная занятая позиция без конкретного игрока; используется при приглашении и модераторском добавлении участников
 - Система автоматически проверяет конфликты расписания при создании бронирования
 - Бронирование нельзя создать позднее, чем за 30 дней
-- Журнал активности хранит историю действий (Booked / Joined / Left / Cancelled) за последний месяц
+- Модератор клуба может перенести бронирование на другой стол, принудительно добавить или исключить участника
+- Журнал активности хранит историю действий (Booked / Joined / Left / Cancelled / MovedTable) за последний месяц
 
 ### Клубные события
 - Администратор клуба создаёт события (тип, игровая система, дата, максимальное число участников, прикреплённые столы)
@@ -358,6 +362,7 @@ ClubTableTracker/
 |---|---|---|---|
 | `GET` | `/api/club` | — | Список всех клубов (с часами работы) |
 | `GET` | `/api/club/{id}/tables` | JWT (участник) | Столы клуба |
+| `GET` | `/api/club/{id}/decorations` | JWT (участник) | Декорации карты клуба |
 | `GET` | `/api/club/{id}/members` | JWT (участник) | Список участников клуба |
 | `POST` | `/api/club/{id}/apply` | JWT | Подать заявку на вступление |
 | `GET` | `/api/club/my-memberships` | JWT | Мои членства |
@@ -375,11 +380,15 @@ ClubTableTracker/
 | `POST` | `/api/booking` | Создать бронирование |
 | `POST` | `/api/booking/{id}/join` | Присоединиться к бронированию |
 | `POST` | `/api/booking/{id}/accept-invite` | Принять приглашение |
+| `POST` | `/api/booking/{id}/invite-player` | Пригласить игрока (владелец бронирования) |
+| `POST` | `/api/booking/{id}/add-player` | Добавить игрока без приглашения (модератор клуба) |
+| `PATCH` | `/api/booking/{id}/move-table` | Перенести бронирование на другой стол (модератор клуба) |
 | `DELETE` | `/api/booking/{id}/decline-invite` | Отклонить приглашение |
 | `DELETE` | `/api/booking/{id}/leave` | Покинуть бронирование (если участник) |
 | `DELETE` | `/api/booking/{id}` | Отменить бронирование (владелец; передаёт права первому принятому участнику) |
 | `DELETE` | `/api/booking/{id}/annul` | Полностью удалить бронирование со всеми участниками (владелец) |
-| `DELETE` | `/api/booking/{id}/kick-player/{targetUserId}` | Исключить игрока из бронирования (модератор клуба) |
+| `DELETE` | `/api/booking/{id}/kick-player/{targetUserId}` | Исключить игрока из бронирования по userId (модератор клуба) |
+| `DELETE` | `/api/booking/{id}/kick-participant/{participantId}` | Исключить участника из бронирования по participantId (модератор клуба) |
 
 ### Клубные события (`/api/event`)
 
@@ -404,6 +413,10 @@ ClubTableTracker/
 | `PUT` | `/api/clubadmin/tables/{id}` | Обновить стол |
 | `POST` | `/api/clubadmin/tables/{id}/copy` | Скопировать стол |
 | `DELETE` | `/api/clubadmin/tables/{id}` | Удалить стол |
+| `GET` | `/api/clubadmin/decorations` | Список декораций карты |
+| `POST` | `/api/clubadmin/decorations` | Создать декорацию |
+| `PUT` | `/api/clubadmin/decorations/{id}` | Обновить декорацию |
+| `DELETE` | `/api/clubadmin/decorations/{id}` | Удалить декорацию |
 | `GET` | `/api/clubadmin/memberships` | Заявки на вступление и список участников |
 | `POST` | `/api/clubadmin/memberships/{id}/approve` | Одобрить заявку |
 | `POST` | `/api/clubadmin/memberships/{id}/reject` | Отклонить заявку |
@@ -484,13 +497,13 @@ Booking
 BookingParticipant
   ├── Id
   ├── BookingId          → Booking
-  ├── UserId             → AppUser
+  ├── UserId             → AppUser (или строка "__RESERVED__" для виртуального занятого слота)
   └── Status             (Invited / Accepted)
 
 BookingLog
   ├── Id
   ├── Timestamp
-  ├── Action             (Booked / Joined / Left / Cancelled)
+  ├── Action             (Booked / Joined / Left / Cancelled / MovedTable)
   ├── UserId             → AppUser
   ├── BookingId          → Booking (nullable — сохраняется после удаления)
   ├── TableNumber        ← снимок номера стола
@@ -513,6 +526,13 @@ EventParticipant
   ├── Id
   ├── EventId            → ClubEvent
   └── UserId             → AppUser
+
+ClubDecoration
+  ├── Id
+  ├── ClubId             → Club
+  ├── Type               (wall / window / door)
+  ├── X, Y               (позиция на карте)
+  └── Width, Height      (размеры на карте)
 ```
 
 База данных MariaDB/MySQL создаётся автоматически при первом запуске приложения (`db.Database.EnsureCreated()`). Убедитесь, что MySQL/MariaDB-сервер запущен и пользователь из строки подключения имеет права на создание базы данных.
