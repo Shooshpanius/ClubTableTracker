@@ -1236,6 +1236,7 @@ export default function HomePage() {
       const b = moderatorBookingModal
       const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
       const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
+      const invitedParticipants = b.participants.filter(p => p.status === 'Invited')
       const isModeratorOwner = user != null && b.user.id === user.id
       const isModeratorParticipant = user != null && b.participants.some(p => p.id === user.id)
       const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
@@ -1292,7 +1293,23 @@ export default function HomePage() {
                   )}
                 </div>
               ))}
-              {acceptedParticipants.length === 0 && (
+              {invitedParticipants.length > 0 && (
+                <>
+                  <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
+                  {invitedParticipants.map(p => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                      <span style={{ color: '#aaa', fontSize: 14 }}>{p.name} <span style={{ color: '#7b2fff', fontSize: 12 }}>📩</span></span>
+                      <button
+                        style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                        onClick={() => kickPlayerFromBooking(b, p.id)}
+                      >
+                        Отозвать
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+              {acceptedParticipants.length === 0 && invitedParticipants.length === 0 && (
                 <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
               )}
             </div>
