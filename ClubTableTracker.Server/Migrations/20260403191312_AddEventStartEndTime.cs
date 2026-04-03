@@ -23,7 +23,7 @@ namespace ClubTableTracker.Server.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            // Set EndTime = StartTime + 1 hour for existing events
+            // MySQL-specific: set EndTime = StartTime + 1 hour for existing events
             migrationBuilder.Sql("UPDATE ClubEvents SET EndTime = DATE_ADD(StartTime, INTERVAL 1 HOUR)");
         }
 
