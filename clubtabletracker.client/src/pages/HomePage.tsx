@@ -25,7 +25,7 @@ interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
-interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId: number; id: string; name: string; status?: string }[]; isDoubles?: boolean }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId?: number; id: string; name: string; status?: string }[]; isDoubles?: boolean }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
