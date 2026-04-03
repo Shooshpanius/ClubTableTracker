@@ -69,13 +69,15 @@ const LOG_ACTION_LABEL: Record<string, string> = {
   Booked: 'зарезервировал',
   Joined: 'присоединился к',
   Left: 'вышел из',
-  Cancelled: 'отменил'
+  Cancelled: 'отменил',
+  MovedTable: 'переместил игру (стол)'
 }
 const LOG_ACTION_COLOR: Record<string, string> = {
   Booked: '#4caf50',
   Joined: '#2196f3',
   Left: '#ffc107',
-  Cancelled: '#e94560'
+  Cancelled: '#e94560',
+  MovedTable: '#9c27b0'
 }
 
 export default function HomePage() {
@@ -409,6 +411,24 @@ export default function HomePage() {
     } else {
       const text = await res.text()
       alert(text || 'Ошибка при удалении игрока')
+    }
+  }
+
+  const moveBookingTable = async (booking: Booking, newTableId: number) => {
+    const newTable = tables.find(t => t.id === newTableId)
+    if (!newTable) return
+    if (!confirm(`Переместить игру на стол ${newTable.number}?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/move-table`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ newTableId })
+    })
+    if (res.ok) {
+      setModeratorBookingModal(null)
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось переместить игру')
     }
   }
 
@@ -1316,6 +1336,44 @@ export default function HomePage() {
                 <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
               )}
             </div>
+            {(() => {
+              const bStart = new Date(b.startTime)
+              const bEnd = new Date(b.endTime)
+              const availableTables = tables.filter(t => {
+                if (t.id === b.tableId) return false
+                if (b.gameSystem) {
+                  const supported = t.supportedGames.split('|').filter(Boolean)
+                  if (!supported.includes(b.gameSystem)) return false
+                }
+                const hasConflict = bookings.some(other =>
+                  other.tableId === t.id &&
+                  other.id !== b.id &&
+                  new Date(other.startTime) < bEnd &&
+                  new Date(other.endTime) > bStart
+                )
+                return !hasConflict
+              })
+              return (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Сменить стол:</div>
+                  {availableTables.length === 0 ? (
+                    <p style={{ color: '#666', fontSize: 13, margin: 0 }}>Нет доступных столов для переноса</p>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {availableTables.map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => moveBookingTable(b, t.id)}
+                          style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
+                        >
+                          Стол {t.number}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {canJoin && (
                 <button

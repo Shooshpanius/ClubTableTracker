@@ -560,6 +560,69 @@ public class BookingController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id}/move-table")]
+    public IActionResult MoveBookingTable(int id, [FromBody] MoveTableRequest req)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var clubId = booking.Table.ClubId;
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == clubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        if (req.NewTableId == booking.TableId)
+            return BadRequest("Игра уже находится на этом столе");
+
+        var newTable = _db.GameTables.Find(req.NewTableId);
+        if (newTable == null) return NotFound("Стол не найден");
+
+        if (newTable.ClubId != clubId)
+            return BadRequest("Стол должен принадлежать тому же клубу");
+
+        // Check that new table supports the booking's game system
+        if (!string.IsNullOrEmpty(booking.GameSystem))
+        {
+            var supported = newTable.SupportedGames
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim());
+            if (!supported.Contains(booking.GameSystem))
+                return BadRequest($"Стол не поддерживает игровую систему «{booking.GameSystem}»");
+        }
+
+        // Check that new table is free during the booking's time window
+        var hasConflict = _db.Bookings.Any(b =>
+            b.TableId == req.NewTableId &&
+            b.Id != id &&
+            b.StartTime < booking.EndTime &&
+            b.EndTime > booking.StartTime);
+        if (hasConflict) return BadRequest("Выбранный стол уже занят в это время");
+
+        booking.TableId = req.NewTableId;
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "MovedTable",
+            UserId = callerId,
+            BookingId = booking.Id,
+            TableNumber = newTable.Number,
+            ClubId = clubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        });
+
+        _db.SaveChanges();
+        return Ok(new { booking.Id, booking.TableId, TableNumber = newTable.Number });
+    }
+
     [HttpDelete("{id}/kick-participant/{participantId:int}")]
     public IActionResult KickParticipantFromBooking(int id, int participantId)
     {
@@ -600,3 +663,4 @@ public class BookingController : ControllerBase
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, List<string>? InvitedUserIds = null);
+public record MoveTableRequest(int NewTableId);
