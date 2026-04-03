@@ -416,7 +416,8 @@ export default function HomePage() {
 
   const moveBookingTable = async (booking: Booking, newTableId: number) => {
     const newTable = tables.find(t => t.id === newTableId)
-    if (!confirm(`Переместить игру на стол ${newTable?.number}?`)) return
+    if (!newTable) return
+    if (!confirm(`Переместить игру на стол ${newTable.number}?`)) return
     const res = await fetch(`/api/booking/${booking.id}/move-table`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
