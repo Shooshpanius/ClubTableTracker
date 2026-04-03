@@ -25,7 +25,7 @@ interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
-interface BookingBase { id: number; user: { id: string; name: string }; participants: { id: string; name: string; status?: string }[]; isDoubles?: boolean }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId: number; id: string; name: string; status?: string }[]; isDoubles?: boolean }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
@@ -391,12 +391,15 @@ export default function HomePage() {
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
 
-  const kickPlayerFromBooking = async (booking: Booking, targetId: string) => {
+  const kickPlayerFromBooking = async (booking: Booking, targetId: string, participantId?: number) => {
     const targetName = booking.user.id === targetId
       ? booking.user.name
       : booking.participants.find(p => p.id === targetId)?.name ?? targetId
     if (!confirm(`Удалить ${targetName} из игры?`)) return
-    const res = await fetch(`/api/booking/${booking.id}/kick-player/${encodeURIComponent(targetId)}`, {
+    const url = participantId != null
+      ? `/api/booking/${booking.id}/kick-participant/${participantId}`
+      : `/api/booking/${booking.id}/kick-player/${encodeURIComponent(targetId)}`
+    const res = await fetch(url, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -1281,12 +1284,12 @@ export default function HomePage() {
                 )}
               </div>
               {acceptedParticipants.map(p => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                   <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
                   {!(user != null && p.id === user.id) && (
                     <button
                       style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
-                      onClick={() => kickPlayerFromBooking(b, p.id)}
+                      onClick={() => kickPlayerFromBooking(b, p.id, p.participantId)}
                     >
                       Удалить из игры
                     </button>
@@ -1297,11 +1300,11 @@ export default function HomePage() {
                 <>
                   <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
                   {invitedParticipants.map(p => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                    <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                       <span style={{ color: '#aaa', fontSize: 14 }}>{p.name} <span style={{ color: '#7b2fff', fontSize: 12 }}>📩</span></span>
                       <button
                         style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
-                        onClick={() => kickPlayerFromBooking(b, p.id)}
+                        onClick={() => kickPlayerFromBooking(b, p.id, p.participantId)}
                       >
                         Отозвать
                       </button>

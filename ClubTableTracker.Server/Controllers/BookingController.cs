@@ -39,7 +39,7 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -72,7 +72,7 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -108,7 +108,7 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
             .ToList();
         return Ok(bookings);
@@ -552,6 +552,44 @@ public class BookingController : ControllerBase
             });
             _db.BookingParticipants.Remove(participant);
         }
+
+        _db.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/kick-participant/{participantId:int}")]
+    public IActionResult KickParticipantFromBooking(int id, int participantId)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == booking.Table.ClubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        var participant = booking.Participants.FirstOrDefault(p => p.Id == participantId);
+        if (participant == null) return NotFound();
+
+        var now = DateTime.UtcNow;
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = now,
+            Action = "Left",
+            UserId = participant.UserId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = booking.Table.ClubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        });
+        _db.BookingParticipants.Remove(participant);
 
         _db.SaveChanges();
         return NoContent();
