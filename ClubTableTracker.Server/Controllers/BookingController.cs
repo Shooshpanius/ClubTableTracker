@@ -133,13 +133,13 @@ public class BookingController : ControllerBase
             .Select(l => new
             {
                 l.Id,
-                l.Timestamp,
+                Timestamp = DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc),
                 l.Action,
                 UserName = l.User.DisplayName ?? l.User.Name,
                 l.TableNumber,
                 l.ClubId,
-                l.BookingStartTime,
-                l.BookingEndTime
+                BookingStartTime = DateTime.SpecifyKind(l.BookingStartTime, DateTimeKind.Utc),
+                BookingEndTime = DateTime.SpecifyKind(l.BookingEndTime, DateTimeKind.Utc)
             })
             .ToList();
         return Ok(logs);
