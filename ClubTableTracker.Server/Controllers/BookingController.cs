@@ -660,7 +660,110 @@ public class BookingController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    [HttpPost("{id}/add-player")]
+    public IActionResult AddPlayerToBooking(int id, [FromBody] AddPlayerRequest req)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == booking.Table.ClubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        var isTargetMember = _db.Memberships.Any(m =>
+            m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
+        if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
+
+        if (booking.UserId == req.UserId || booking.Participants.Any(p => p.UserId == req.UserId))
+            return BadRequest("Игрок уже участвует в этой игре");
+
+        int maxPlayers = booking.IsDoubles ? 4 : 2;
+        int acceptedCount = 1 + booking.Participants.Count(p => p.Status == "Accepted");
+        if (acceptedCount >= maxPlayers)
+            return BadRequest($"Нет свободных мест (max {maxPlayers})");
+
+        _db.BookingParticipants.Add(new BookingParticipant
+        {
+            BookingId = id,
+            UserId = req.UserId,
+            Status = "Accepted"
+        });
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Joined",
+            UserId = req.UserId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = booking.Table.ClubId,
+            BookingStartTime = booking.StartTime,
+            BookingEndTime = booking.EndTime
+        });
+
+        _db.SaveChanges();
+        return Ok();
+    }
+
+    [HttpPost("{id}/invite-player")]
+    public IActionResult InvitePlayerToBooking(int id, [FromBody] AddPlayerRequest req)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        if (booking.UserId != callerId) return Forbid();
+
+        if (req.UserId == callerId) return BadRequest("Нельзя пригласить себя");
+
+        var isTargetMember = _db.Memberships.Any(m =>
+            m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
+        if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
+
+        if (booking.Participants.Any(p => p.UserId == req.UserId))
+            return BadRequest("Игрок уже участвует или приглашён в эту игру");
+
+        int maxPlayers = booking.IsDoubles ? 4 : 2;
+        int takenSlots = 1 + booking.Participants.Count;
+        if (takenSlots >= maxPlayers)
+            return BadRequest($"Нет свободных мест (max {maxPlayers})");
+
+        if (!string.IsNullOrEmpty(booking.GameSystem))
+        {
+            var target = _db.Users.Find(req.UserId);
+            if (target != null)
+            {
+                var targetSystems = target.EnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                if (!targetSystems.Contains(booking.GameSystem))
+                    return BadRequest($"Игрок не играет в {booking.GameSystem}");
+            }
+        }
+
+        _db.BookingParticipants.Add(new BookingParticipant
+        {
+            BookingId = id,
+            UserId = req.UserId,
+            Status = "Invited"
+        });
+
+        _db.SaveChanges();
+        return Ok();
+    }
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, List<string>? InvitedUserIds = null);
 public record MoveTableRequest(int NewTableId);
+public record AddPlayerRequest(string UserId);

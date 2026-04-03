@@ -93,6 +93,7 @@ export default function HomePage() {
   const [members, setMembers] = useState<ClubMember[]>([])
   const [playerSystemsModal, setPlayerSystemsModal] = useState<ClubMember | null>(null)
   const [moderatorBookingModal, setModeratorBookingModal] = useState<Booking | null>(null)
+  const [ownerBookingModal, setOwnerBookingModal] = useState<Booking | null>(null)
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [bookingStart, setBookingStart] = useState('')
   const [bookingEnd, setBookingEnd] = useState('')
@@ -343,7 +344,7 @@ export default function HomePage() {
       return
     }
     if (booking.user.id === user.id) {
-      await cancelBooking(booking)
+      setOwnerBookingModal(booking)
       return
     }
     if (booking.participants.some(p => p.id === user.id)) {
@@ -429,6 +430,42 @@ export default function HomePage() {
     } else {
       const text = await res.text()
       alert(text || 'Не удалось переместить игру')
+    }
+  }
+
+  const addPlayerToBooking = async (booking: Booking, memberId: string) => {
+    const member = members.find(m => m.id === memberId)
+    const memberName = member?.displayName || member?.registrationName || memberId
+    if (!confirm(`Добавить ${memberName} в игру?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/add-player`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId: memberId })
+    })
+    if (res.ok) {
+      setModeratorBookingModal(null)
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось добавить игрока')
+    }
+  }
+
+  const invitePlayerToBooking = async (booking: Booking, memberId: string) => {
+    const member = members.find(m => m.id === memberId)
+    const memberName = member?.displayName || member?.registrationName || memberId
+    if (!confirm(`Пригласить ${memberName} в игру?`)) return
+    const res = await fetch(`/api/booking/${booking.id}/invite-player`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId: memberId })
+    })
+    if (res.ok) {
+      setOwnerBookingModal(null)
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось пригласить игрока')
     }
   }
 
@@ -1337,6 +1374,36 @@ export default function HomePage() {
               )}
             </div>
             {(() => {
+              const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+              const acceptedCount = 1 + acceptedParticipants.length
+              const allParticipantIds = new Set([b.user.id, ...b.participants.map(p => p.id)])
+              const addableMembers = members.filter(m => {
+                if (allParticipantIds.has(m.id)) return false
+                if (b.gameSystem) {
+                  const sys = (m.enabledGameSystems || '').split('|').filter(Boolean)
+                  if (!sys.includes(b.gameSystem)) return false
+                }
+                return true
+              })
+              if (acceptedCount >= maxPlayers || addableMembers.length === 0) return null
+              return (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Добавить игрока:</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {addableMembers.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => addPlayerToBooking(b, m.id)}
+                        style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
+                      >
+                        {m.displayName || m.registrationName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+            {(() => {
               const bStart = new Date(b.startTime)
               const bEnd = new Date(b.endTime)
               const availableTables = tables.filter(t => {
@@ -1401,6 +1468,96 @@ export default function HomePage() {
               )}
               <button
                 onClick={() => setModeratorBookingModal(null)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+
+    {/* Модалка: управление игрой (организатор) */}
+    {ownerBookingModal && (() => {
+      const b = ownerBookingModal
+      const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+      const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
+      const invitedParticipants = b.participants.filter(p => p.status === 'Invited')
+      const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
+      const takenSlots = 1 + b.participants.length
+      const allParticipantIds = new Set([b.user.id, ...b.participants.map(p => p.id)])
+      const invitableMembers = members.filter(m => {
+        if (allParticipantIds.has(m.id)) return false
+        if (b.gameSystem) {
+          const sys = (m.enabledGameSystems || '').split('|').filter(Boolean)
+          if (!sys.includes(b.gameSystem)) return false
+        }
+        return true
+      })
+      const canInviteMore = takenSlots < maxPlayers
+      return (
+        <div
+          onClick={() => setOwnerBookingModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#16213e', border: '1px solid #ff8c00', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
+          >
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#ff8c00' }}>🎮 Управление игрой</h3>
+            <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
+              {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
+            </p>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
+              <div style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                <span style={{ color: '#eee', fontSize: 14 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span></span>
+              </div>
+              {acceptedParticipants.map(p => (
+                <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                  <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
+                </div>
+              ))}
+              {invitedParticipants.length > 0 && (
+                <>
+                  <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
+                  {invitedParticipants.map(p => (
+                    <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
+                      <span style={{ color: '#aaa', fontSize: 14 }}>{p.name} <span style={{ color: '#7b2fff', fontSize: 12 }}>📩</span></span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {acceptedParticipants.length === 0 && invitedParticipants.length === 0 && (
+                <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
+              )}
+            </div>
+            {canInviteMore && invitableMembers.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Пригласить игрока:</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {invitableMembers.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => invitePlayerToBooking(b, m.id)}
+                      style={{ background: '#1a1a4a', color: '#ccc', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
+                    >
+                      {m.displayName || m.registrationName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={async () => { setOwnerBookingModal(null); await cancelBooking(b) }}
+                style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Покинуть / Отменить
+              </button>
+              <button
+                onClick={() => setOwnerBookingModal(null)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
                 Закрыть
