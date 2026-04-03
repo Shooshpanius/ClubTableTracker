@@ -575,7 +575,7 @@ public class BookingController : ControllerBase
         if (!isModerator) return Forbid();
 
         var participant = booking.Participants.FirstOrDefault(p => p.Id == participantId);
-        if (participant == null) return NotFound();
+        if (participant == null) return NotFound("Participant not found in this booking");
 
         var now = DateTime.UtcNow;
         _db.BookingLogs.Add(new BookingLog
