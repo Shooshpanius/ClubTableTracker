@@ -388,9 +388,14 @@ export default function HomePage() {
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map'>('tables')
   const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map'>('booking')
+  const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
+  const [ownerInvitePlayerId, setOwnerInvitePlayerId] = useState('')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
+
+  useEffect(() => { setModeratorAddPlayerId('') }, [moderatorBookingModal])
+  useEffect(() => { setOwnerInvitePlayerId('') }, [ownerBookingModal])
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
 
@@ -435,7 +440,7 @@ export default function HomePage() {
 
   const addPlayerToBooking = async (booking: Booking, memberId: string) => {
     const member = members.find(m => m.id === memberId)
-    const memberName = member?.displayName || member?.registrationName || memberId
+    const memberName = memberId === '__RESERVED__' ? 'ЗАБРОНИРОВАНО' : (member?.displayName || member?.registrationName || memberId)
     if (!confirm(`Добавить ${memberName} в игру?`)) return
     const res = await fetch(`/api/booking/${booking.id}/add-player`, {
       method: 'POST',
@@ -453,7 +458,7 @@ export default function HomePage() {
 
   const invitePlayerToBooking = async (booking: Booking, memberId: string) => {
     const member = members.find(m => m.id === memberId)
-    const memberName = member?.displayName || member?.registrationName || memberId
+    const memberName = memberId === '__RESERVED__' ? 'ЗАБРОНИРОВАНО' : (member?.displayName || member?.registrationName || memberId)
     if (!confirm(`Пригласить ${memberName} в игру?`)) return
     const res = await fetch(`/api/booking/${booking.id}/invite-player`, {
       method: 'POST',
@@ -1385,20 +1390,29 @@ export default function HomePage() {
                 }
                 return true
               })
-              if (acceptedCount >= maxPlayers || addableMembers.length === 0) return null
+              if (acceptedCount >= maxPlayers) return null
               return (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Добавить игрока:</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {addableMembers.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => addPlayerToBooking(b, m.id)}
-                        style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
-                      >
-                        {m.displayName || m.registrationName}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      style={{ background: '#0f3460', color: '#eee', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
+                      value={moderatorAddPlayerId}
+                      onChange={e => setModeratorAddPlayerId(e.target.value)}
+                    >
+                      <option value="">— не выбран —</option>
+                      <option value="__RESERVED__">ЗАБРОНИРОВАНО</option>
+                      {addableMembers.map(m => (
+                        <option key={m.id} value={m.id}>{m.displayName || m.registrationName}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => addPlayerToBooking(b, moderatorAddPlayerId)}
+                      disabled={!moderatorAddPlayerId}
+                      style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 12px', cursor: moderatorAddPlayerId ? 'pointer' : 'default', fontSize: 12, opacity: moderatorAddPlayerId ? 1 : 0.5 }}
+                    >
+                      Добавить
+                    </button>
                   </div>
                 </div>
               )
@@ -1533,19 +1547,28 @@ export default function HomePage() {
                 <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
               )}
             </div>
-            {canInviteMore && invitableMembers.length > 0 && (
+            {canInviteMore && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Пригласить игрока:</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {invitableMembers.map(m => (
-                    <button
-                      key={m.id}
-                      onClick={() => invitePlayerToBooking(b, m.id)}
-                      style={{ background: '#1a1a4a', color: '#ccc', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
-                    >
-                      {m.displayName || m.registrationName}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select
+                    style={{ background: '#0f3460', color: '#eee', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
+                    value={ownerInvitePlayerId}
+                    onChange={e => setOwnerInvitePlayerId(e.target.value)}
+                  >
+                    <option value="">— не выбран —</option>
+                    <option value="__RESERVED__">ЗАБРОНИРОВАНО</option>
+                    {invitableMembers.map(m => (
+                      <option key={m.id} value={m.id}>{m.displayName || m.registrationName}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => invitePlayerToBooking(b, ownerInvitePlayerId)}
+                    disabled={!ownerInvitePlayerId}
+                    style={{ background: '#1a1a4a', color: '#ccc', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 12px', cursor: ownerInvitePlayerId ? 'pointer' : 'default', fontSize: 12, opacity: ownerInvitePlayerId ? 1 : 0.5 }}
+                  >
+                    Пригласить
+                  </button>
                 </div>
               </div>
             )}

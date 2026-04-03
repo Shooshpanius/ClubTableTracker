@@ -678,12 +678,15 @@ public class BookingController : ControllerBase
             m.Status == "Approved" && m.IsModerator);
         if (!isModerator) return Forbid();
 
-        var isTargetMember = _db.Memberships.Any(m =>
-            m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
-        if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
+        if (req.UserId != BookingConstants.ReservedUserId)
+        {
+            var isTargetMember = _db.Memberships.Any(m =>
+                m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
+            if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
 
-        if (booking.UserId == req.UserId || booking.Participants.Any(p => p.UserId == req.UserId))
-            return BadRequest("Игрок уже участвует в этой игре");
+            if (booking.UserId == req.UserId || booking.Participants.Any(p => p.UserId == req.UserId))
+                return BadRequest("Игрок уже участвует в этой игре");
+        }
 
         int maxPlayers = booking.IsDoubles ? 4 : 2;
         int acceptedCount = 1 + booking.Participants.Count(p => p.Status == "Accepted");
@@ -697,17 +700,20 @@ public class BookingController : ControllerBase
             Status = "Accepted"
         });
 
-        _db.BookingLogs.Add(new BookingLog
+        if (req.UserId != BookingConstants.ReservedUserId)
         {
-            Timestamp = DateTime.UtcNow,
-            Action = "Joined",
-            UserId = req.UserId,
-            BookingId = booking.Id,
-            TableNumber = booking.Table.Number,
-            ClubId = booking.Table.ClubId,
-            BookingStartTime = booking.StartTime,
-            BookingEndTime = booking.EndTime
-        });
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = DateTime.UtcNow,
+                Action = "Joined",
+                UserId = req.UserId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = booking.Table.ClubId,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+        }
 
         _db.SaveChanges();
         return Ok();
@@ -727,21 +733,24 @@ public class BookingController : ControllerBase
 
         if (booking.UserId != callerId) return Forbid();
 
-        if (req.UserId == callerId) return BadRequest("Нельзя пригласить себя");
+        if (req.UserId != BookingConstants.ReservedUserId)
+        {
+            if (req.UserId == callerId) return BadRequest("Нельзя пригласить себя");
 
-        var isTargetMember = _db.Memberships.Any(m =>
-            m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
-        if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
+            var isTargetMember = _db.Memberships.Any(m =>
+                m.UserId == req.UserId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
+            if (!isTargetMember) return BadRequest("Игрок не является членом клуба");
 
-        if (booking.Participants.Any(p => p.UserId == req.UserId))
-            return BadRequest("Игрок уже участвует или приглашён в эту игру");
+            if (booking.Participants.Any(p => p.UserId == req.UserId))
+                return BadRequest("Игрок уже участвует или приглашён в эту игру");
+        }
 
         int maxPlayers = booking.IsDoubles ? 4 : 2;
         int takenSlots = 1 + booking.Participants.Count;
         if (takenSlots >= maxPlayers)
             return BadRequest($"Нет свободных мест (max {maxPlayers})");
 
-        if (!string.IsNullOrEmpty(booking.GameSystem))
+        if (req.UserId != BookingConstants.ReservedUserId && !string.IsNullOrEmpty(booking.GameSystem))
         {
             var target = _db.Users.Find(req.UserId);
             if (target != null)
@@ -752,11 +761,12 @@ public class BookingController : ControllerBase
             }
         }
 
+        var participantStatus = req.UserId == BookingConstants.ReservedUserId ? "Accepted" : "Invited";
         _db.BookingParticipants.Add(new BookingParticipant
         {
             BookingId = id,
             UserId = req.UserId,
-            Status = "Invited"
+            Status = participantStatus
         });
 
         _db.SaveChanges();
