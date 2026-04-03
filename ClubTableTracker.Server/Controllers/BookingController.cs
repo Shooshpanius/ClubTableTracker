@@ -223,9 +223,12 @@ public class BookingController : ControllerBase
         if (req.InvitedUserIds != null && req.InvitedUserIds.Count > 0)
         {
             int maxInvites = req.IsDoubles ? 3 : 1;
+            // Дедуплицируем только реальных пользователей; виртуальный __RESERVED__ может
+            // повторяться (каждое вхождение — отдельная занятая позиция в 2x2).
+            var seenUsers = new HashSet<string>();
             var validInvitees = req.InvitedUserIds
                 .Where(id => !string.IsNullOrEmpty(id) && id != userId)
-                .Distinct()
+                .Where(id => id == BookingConstants.ReservedUserId || seenUsers.Add(id))
                 .Take(maxInvites)
                 .ToList();
 
