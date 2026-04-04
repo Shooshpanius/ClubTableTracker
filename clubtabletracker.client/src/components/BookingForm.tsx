@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const RESERVED_USER_ID = '__RESERVED__'
+const MAX_INVITED_SLOTS = 4
 
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string }
@@ -20,6 +21,7 @@ interface Props {
   tournamentGameSystem?: string
   clubName?: string
   tableBookings?: BookingSlot[]
+  isModerator?: boolean
 }
 
 function extractTime(datetimeOrTime: string): string {
@@ -250,12 +252,13 @@ function drawShareCanvas(
   return canvas
 }
 
-export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [], tournamentGameSystem, clubName, tableBookings }: Props) {
+export default function BookingForm({ table, token, onBooked, onCancel, selectedDate, initialStartTime = '', initialEndTime = '', openTime, closeTime, members = [], tournamentGameSystem, clubName, tableBookings, isModerator = false }: Props) {
   const [startTime, setStartTime] = useState(() => snapTo15(extractTime(initialStartTime)))
   const [endTime, setEndTime] = useState(() => snapTo15(extractTime(initialEndTime)))
   const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
   const [isDoubles, setIsDoubles] = useState(false)
-  const [invitedUserIds, setInvitedUserIds] = useState<string[]>(['', '', ''])
+  const [isForOthers, setIsForOthers] = useState(false)
+  const [invitedUserIds, setInvitedUserIds] = useState<string[]>(Array(MAX_INVITED_SLOTS).fill(''))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -275,6 +278,16 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       return eligibleMembers.some(m => m.id === id) ? id : ''
     }))
   }, [gameSystem])
+
+  // При отключении режима "Для других" сбрасываем слоты выше стандартного лимита
+  useEffect(() => {
+    if (!isForOthers) {
+      setInvitedUserIds(ids => {
+        const limit = isDoubles ? 3 : 1
+        return ids.map((id, i) => i < limit ? id : '')
+      })
+    }
+  }, [isForOthers, isDoubles])
 
   const setInvitedAt = (index: number, value: string) => {
     setInvitedUserIds(ids => ids.map((id, i) => i === index ? value : id))
@@ -301,15 +314,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     }
     setLoading(true)
     setError('')
-    const inviteSlots = isDoubles ? 3 : 1
+    const inviteSlots = isForOthers ? (isDoubles ? 4 : 2) : (isDoubles ? 3 : 1)
     const ids = invitedUserIds.slice(0, inviteSlots).filter(Boolean)
     const res = await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, isDoubles, invitedUserIds: ids.length > 0 ? ids : null })
+      body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, isDoubles, isForOthers, invitedUserIds: ids.length > 0 ? ids : null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setInvitedUserIds(['', '', '']); onBooked() }
+    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setIsForOthers(false); setInvitedUserIds(Array(MAX_INVITED_SLOTS).fill('')); onBooked() }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
@@ -381,13 +394,24 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           2x2 (4 игрока)
         </label>
       </div>
+      {isModerator && (
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ color: '#ffc107', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <input type="checkbox" checked={isForOthers} onChange={e => setIsForOthers(e.target.checked)} style={{ accentColor: '#ffc107' }} />
+            Для других (модератор не участвует)
+          </label>
+        </div>
+      )}
       {members.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {Array.from({ length: isDoubles ? 3 : 1 }, (_, i) => {
+              {Array.from({ length: isForOthers ? (isDoubles ? 4 : 2) : (isDoubles ? 3 : 1) }, (_, i) => {
                 const showGameSystemPrompt = !gameSystem && i === 0 && invitedUserIds[i] !== RESERVED_USER_ID
+                const label = isForOthers
+                  ? (isDoubles ? `Игрок ${i + 1}:` : (i === 0 ? 'Игрок 1:' : 'Игрок 2:'))
+                  : (isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:')
                 return (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <label style={{ color: '#aaa', fontSize: 13 }}>{isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:'}</label>
+                    <label style={{ color: isForOthers ? '#ffc107' : '#aaa', fontSize: 13 }}>{label}</label>
                     <select style={inputStyle} value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)}>
                       <option value="">— не выбран —</option>
                       <option value={RESERVED_USER_ID}>ЗАБРОНИРОВАНО</option>

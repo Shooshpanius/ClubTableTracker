@@ -38,6 +38,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 b.IsDoubles,
+                b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -71,6 +72,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 b.IsDoubles,
+                b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -107,6 +109,7 @@ public class BookingController : ControllerBase
                 b.EndTime,
                 b.GameSystem,
                 b.IsDoubles,
+                b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
             })
@@ -209,7 +212,111 @@ public class BookingController : ControllerBase
             return BadRequest("Этот стол доступен только во время событий клуба.");
         }
 
-        var booking = new Booking
+        // Режим "Для других" — модератор создаёт игру за других участников, сам не играет
+        if (req.IsForOthers)
+        {
+            var isModerator = _db.Memberships.Any(m =>
+                m.UserId == userId && m.ClubId == table.ClubId &&
+                m.Status == "Approved" && m.IsModerator);
+            if (!isModerator)
+                return Forbid();
+
+            if (req.InvitedUserIds == null || req.InvitedUserIds.Count == 0)
+                return BadRequest("В режиме «Для других» необходимо выбрать хотя бы одного участника");
+
+            // Первый реальный (не __RESERVED__) участник становится владельцем бронирования
+            var firstReal = req.InvitedUserIds.FirstOrDefault(id =>
+                !string.IsNullOrEmpty(id) && id != BookingConstants.ReservedUserId);
+            if (firstReal == null)
+                return BadRequest("В режиме «Для других» необходимо выбрать хотя бы одного реального участника");
+
+            var isFirstMember = _db.Memberships.Any(m =>
+                m.UserId == firstReal && m.ClubId == table.ClubId && m.Status == "Approved");
+            if (!isFirstMember)
+                return BadRequest("Первый участник не является членом клуба");
+
+            var booking = new Booking
+            {
+                TableId = req.TableId,
+                UserId = firstReal,
+                StartTime = req.StartTime,
+                EndTime = req.EndTime,
+                GameSystem = req.GameSystem,
+                IsDoubles = req.IsDoubles,
+                IsForOthers = true
+            };
+            _db.Bookings.Add(booking);
+            _db.SaveChanges();
+
+            // Оставшиеся участники (начиная со второго) добавляются как Participants Accepted
+            int maxSlots = req.IsDoubles ? 4 : 2;
+            var seenForOthers = new HashSet<string> { firstReal };
+            var remainingInvitees = req.InvitedUserIds
+                .Where(id => !string.IsNullOrEmpty(id) && id != firstReal)
+                .Where(id => id == BookingConstants.ReservedUserId || seenForOthers.Add(id))
+                .Take(maxSlots - 1)
+                .ToList();
+
+            foreach (var inviteeId in remainingInvitees)
+            {
+                if (inviteeId == BookingConstants.ReservedUserId)
+                {
+                    _db.BookingParticipants.Add(new BookingParticipant
+                    {
+                        BookingId = booking.Id,
+                        UserId = inviteeId,
+                        Status = "Accepted"
+                    });
+                    continue;
+                }
+
+                var isMember2 = _db.Memberships.Any(m =>
+                    m.UserId == inviteeId && m.ClubId == table.ClubId && m.Status == "Approved");
+                if (!isMember2) continue;
+
+                bool canAdd = true;
+                if (!string.IsNullOrEmpty(req.GameSystem))
+                {
+                    var invitee = _db.Users.Find(inviteeId);
+                    if (invitee != null)
+                    {
+                        var systems = invitee.EnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                        canAdd = systems.Contains(req.GameSystem);
+                    }
+                    else
+                    {
+                        canAdd = false;
+                    }
+                }
+
+                if (canAdd)
+                {
+                    _db.BookingParticipants.Add(new BookingParticipant
+                    {
+                        BookingId = booking.Id,
+                        UserId = inviteeId,
+                        Status = "Accepted"
+                    });
+                }
+            }
+
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = DateTime.UtcNow,
+                Action = "Booked",
+                UserId = userId,
+                BookingId = booking.Id,
+                TableNumber = table.Number,
+                ClubId = table.ClubId,
+                BookingStartTime = req.StartTime,
+                BookingEndTime = req.EndTime
+            });
+            _db.SaveChanges();
+
+            return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
+        }
+
+        var normalBooking = new Booking
         {
             TableId = req.TableId,
             UserId = userId,
@@ -218,7 +325,7 @@ public class BookingController : ControllerBase
             GameSystem = req.GameSystem,
             IsDoubles = req.IsDoubles
         };
-        _db.Bookings.Add(booking);
+        _db.Bookings.Add(normalBooking);
         _db.SaveChanges();
 
         // Если указаны оппоненты — создаём приглашения
@@ -241,7 +348,7 @@ public class BookingController : ControllerBase
                 {
                     _db.BookingParticipants.Add(new BookingParticipant
                     {
-                        BookingId = booking.Id,
+                        BookingId = normalBooking.Id,
                         UserId = inviteeId,
                         Status = "Accepted"
                     });
@@ -271,7 +378,7 @@ public class BookingController : ControllerBase
                 {
                     _db.BookingParticipants.Add(new BookingParticipant
                     {
-                        BookingId = booking.Id,
+                        BookingId = normalBooking.Id,
                         UserId = inviteeId,
                         Status = "Invited"
                     });
@@ -284,7 +391,7 @@ public class BookingController : ControllerBase
             Timestamp = DateTime.UtcNow,
             Action = "Booked",
             UserId = userId,
-            BookingId = booking.Id,
+            BookingId = normalBooking.Id,
             TableNumber = table.Number,
             ClubId = table.ClubId,
             BookingStartTime = req.StartTime,
@@ -292,7 +399,7 @@ public class BookingController : ControllerBase
         });
         _db.SaveChanges();
 
-        return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
+        return Ok(new { normalBooking.Id, normalBooking.TableId, normalBooking.StartTime, normalBooking.EndTime, normalBooking.GameSystem });
     }
 
     [HttpPost("{id}/join")]
@@ -776,6 +883,6 @@ public class BookingController : ControllerBase
     }
 }
 
-public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, List<string>? InvitedUserIds = null);
+public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, bool IsForOthers = false, List<string>? InvitedUserIds = null);
 public record MoveTableRequest(int NewTableId);
 public record AddPlayerRequest(string UserId);
