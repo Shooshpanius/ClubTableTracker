@@ -74,7 +74,8 @@ public class AuthController : ControllerBase
                     Id = Guid.NewGuid().ToString(),
                     Email = email,
                     Name = name,
-                    GoogleId = googleId
+                    GoogleId = googleId,
+                    EnabledGameSystems = GameSystemConstants.AllJoined
                 };
                 _db.Users.Add(user);
                 _db.SaveChanges();
