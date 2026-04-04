@@ -428,6 +428,8 @@ public class ClubAdminController : ControllerBase
         var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
         if (membership == null) return NotFound();
         var systems = req.EnabledGameSystems ?? new List<string>();
+        var invalid = systems.Where(s => !GameSystemConstants.All.Contains(s)).ToList();
+        if (invalid.Count > 0) return BadRequest($"Неизвестные игровые системы: {string.Join(", ", invalid)}");
         membership.User.EnabledGameSystems = systems.Count > 0 ? string.Join("|", systems) : null;
         _db.SaveChanges();
         return Ok(new { membership.User.EnabledGameSystems });
