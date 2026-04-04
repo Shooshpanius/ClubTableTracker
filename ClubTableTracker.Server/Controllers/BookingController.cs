@@ -224,21 +224,25 @@ public class BookingController : ControllerBase
             if (req.InvitedUserIds == null || req.InvitedUserIds.Count == 0)
                 return BadRequest("В режиме «Для других» необходимо выбрать хотя бы одного участника");
 
-            // Первый реальный (не __RESERVED__) участник становится владельцем бронирования
+            // Первый реальный (не __RESERVED__) участник становится владельцем бронирования.
+            // Если все слоты — __RESERVED__, владельцем становится модератор.
             var firstReal = req.InvitedUserIds.FirstOrDefault(id =>
                 !string.IsNullOrEmpty(id) && id != BookingConstants.ReservedUserId);
-            if (firstReal == null)
-                return BadRequest("В режиме «Для других» необходимо выбрать хотя бы одного реального участника");
+            bool allReserved = firstReal == null;
+            string ownerId = firstReal ?? userId;
 
-            var isFirstMember = _db.Memberships.Any(m =>
-                m.UserId == firstReal && m.ClubId == table.ClubId && m.Status == "Approved");
-            if (!isFirstMember)
-                return BadRequest("Первый участник не является членом клуба");
+            if (!allReserved)
+            {
+                var isFirstMember = _db.Memberships.Any(m =>
+                    m.UserId == firstReal && m.ClubId == table.ClubId && m.Status == "Approved");
+                if (!isFirstMember)
+                    return BadRequest("Первый участник не является членом клуба");
+            }
 
             var booking = new Booking
             {
                 TableId = req.TableId,
-                UserId = firstReal,
+                UserId = ownerId,
                 StartTime = req.StartTime,
                 EndTime = req.EndTime,
                 GameSystem = req.GameSystem,
@@ -248,13 +252,16 @@ public class BookingController : ControllerBase
             _db.Bookings.Add(booking);
             _db.SaveChanges();
 
-            // Оставшиеся участники (начиная со второго) добавляются как Participants Accepted
+            // Оставшиеся участники добавляются как Participants Accepted.
+            // Когда все ЗАБРОНИРОВАНО: модератор — владелец (не в числе игроков),
+            // поэтому все maxSlots слотов отдаются участникам.
             int maxSlots = req.IsDoubles ? 4 : 2;
-            var seenForOthers = new HashSet<string> { firstReal };
+            var seenForOthers = new HashSet<string> { ownerId };
+            int participantSlots = allReserved ? maxSlots : maxSlots - 1;
             var remainingInvitees = req.InvitedUserIds
-                .Where(id => !string.IsNullOrEmpty(id) && id != firstReal)
+                .Where(id => !string.IsNullOrEmpty(id) && (allReserved || id != firstReal))
                 .Where(id => id == BookingConstants.ReservedUserId || seenForOthers.Add(id))
-                .Take(maxSlots - 1)
+                .Take(participantSlots)
                 .ToList();
 
             foreach (var inviteeId in remainingInvitees)
