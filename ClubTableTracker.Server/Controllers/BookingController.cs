@@ -316,7 +316,7 @@ public class BookingController : ControllerBase
             return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
         }
 
-        var booking2 = new Booking
+        var normalBooking = new Booking
         {
             TableId = req.TableId,
             UserId = userId,
@@ -325,7 +325,7 @@ public class BookingController : ControllerBase
             GameSystem = req.GameSystem,
             IsDoubles = req.IsDoubles
         };
-        _db.Bookings.Add(booking2);
+        _db.Bookings.Add(normalBooking);
         _db.SaveChanges();
 
         // Если указаны оппоненты — создаём приглашения
@@ -348,7 +348,7 @@ public class BookingController : ControllerBase
                 {
                     _db.BookingParticipants.Add(new BookingParticipant
                     {
-                        BookingId = booking2.Id,
+                        BookingId = normalBooking.Id,
                         UserId = inviteeId,
                         Status = "Accepted"
                     });
@@ -378,7 +378,7 @@ public class BookingController : ControllerBase
                 {
                     _db.BookingParticipants.Add(new BookingParticipant
                     {
-                        BookingId = booking2.Id,
+                        BookingId = normalBooking.Id,
                         UserId = inviteeId,
                         Status = "Invited"
                     });
@@ -391,7 +391,7 @@ public class BookingController : ControllerBase
             Timestamp = DateTime.UtcNow,
             Action = "Booked",
             UserId = userId,
-            BookingId = booking2.Id,
+            BookingId = normalBooking.Id,
             TableNumber = table.Number,
             ClubId = table.ClubId,
             BookingStartTime = req.StartTime,
@@ -399,7 +399,7 @@ public class BookingController : ControllerBase
         });
         _db.SaveChanges();
 
-        return Ok(new { booking2.Id, booking2.TableId, booking2.StartTime, booking2.EndTime, booking2.GameSystem });
+        return Ok(new { normalBooking.Id, normalBooking.TableId, normalBooking.StartTime, normalBooking.EndTime, normalBooking.GameSystem });
     }
 
     [HttpPost("{id}/join")]

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const RESERVED_USER_ID = '__RESERVED__'
+const MAX_INVITED_SLOTS = 4
 
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string }
@@ -257,7 +258,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
   const [isDoubles, setIsDoubles] = useState(false)
   const [isForOthers, setIsForOthers] = useState(false)
-  const [invitedUserIds, setInvitedUserIds] = useState<string[]>(['', '', '', ''])
+  const [invitedUserIds, setInvitedUserIds] = useState<string[]>(Array(MAX_INVITED_SLOTS).fill(''))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -321,7 +322,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, isDoubles, isForOthers, invitedUserIds: ids.length > 0 ? ids : null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setIsForOthers(false); setInvitedUserIds(['', '', '', '']); onBooked() }
+    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setIsForOthers(false); setInvitedUserIds(Array(MAX_INVITED_SLOTS).fill('')); onBooked() }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
