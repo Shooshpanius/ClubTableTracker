@@ -135,7 +135,7 @@ public class ClubAdminController : ControllerBase
         var memberships = _db.Memberships
             .Include(m => m.User)
             .Where(m => m.ClubId == club.Id)
-            .Select(m => new { m.Id, m.Status, m.IsModerator, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email } })
+            .Select(m => new { m.Id, m.Status, m.IsModerator, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email, m.User.EnabledGameSystems } })
             .ToList();
         return Ok(memberships);
     }
@@ -420,6 +420,19 @@ public class ClubAdminController : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("memberships/{id}/game-systems")]
+    public IActionResult UpdateMemberGameSystems(int id, [FromBody] UpdateMemberGameSystemsRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
+        if (membership == null) return NotFound();
+        var systems = req.EnabledGameSystems ?? new List<string>();
+        membership.User.EnabledGameSystems = systems.Count > 0 ? string.Join("|", systems) : null;
+        _db.SaveChanges();
+        return Ok(new { membership.User.EnabledGameSystems });
+    }
+
     [HttpGet("decorations")]
     public IActionResult GetDecorations()
     {
@@ -482,4 +495,5 @@ public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTim
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
 public record SetModeratorRequest(bool IsModerator);
+public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
 interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
-interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string } }
+interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -33,6 +33,9 @@ export default function ClubAdminPage() {
   const [inviteUserId, setInviteUserId] = useState('')
   const [editingTitleEventId, setEditingTitleEventId] = useState<number | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState('')
+  const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
+  const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
+  const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -127,6 +130,40 @@ export default function ClubAdminPage() {
       body: JSON.stringify({ isModerator: !currentValue })
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, isModerator: !currentValue } : m))
+  }
+
+  const toggleGsEditor = (m: Membership) => {
+    if (expandedGsMemberId === m.id) {
+      setExpandedGsMemberId(null)
+    } else {
+      setExpandedGsMemberId(m.id)
+      if (!(m.id in memberGameSystems)) {
+        const gs = m.user.enabledGameSystems ? m.user.enabledGameSystems.split('|').filter(Boolean) : []
+        setMemberGameSystems(prev => ({ ...prev, [m.id]: gs }))
+      }
+    }
+  }
+
+  const toggleMemberGs = (memberId: number, gs: string) => {
+    setMemberGameSystems(prev => {
+      const cur = prev[memberId] || []
+      return { ...prev, [memberId]: cur.includes(gs) ? cur.filter(s => s !== gs) : [...cur, gs] }
+    })
+  }
+
+  const saveMemberGameSystems = async (memberId: number) => {
+    setSavingGsMemberId(memberId)
+    const systems = memberGameSystems[memberId] || []
+    const res = await fetch(`/api/clubadmin/memberships/${memberId}/game-systems`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ enabledGameSystems: systems })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setMemberships(memberships.map(m => m.id === memberId ? { ...m, user: { ...m.user, enabledGameSystems: data.enabledGameSystems } } : m))
+    }
+    setSavingGsMemberId(null)
   }
 
   const saveSettings = async () => {
@@ -420,7 +457,8 @@ export default function ClubAdminPage() {
                 </thead>
                 <tbody>
                   {memberships.map(m => (
-                    <tr key={m.id} style={{ background: '#16213e' }}>
+                    <React.Fragment key={m.id}>
+                    <tr style={{ background: '#16213e' }}>
                       <td style={tdStyle}><strong>{m.user.name}</strong></td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.email}</td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
@@ -448,11 +486,64 @@ export default function ClubAdminPage() {
                             >
                               {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
                             </button>
+                            <button
+                              style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
+                              onClick={() => toggleGsEditor(m)}
+                              title="Редактировать игровые системы"
+                            >🎲 Системы</button>
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
                       </td>
                     </tr>
+                    {expandedGsMemberId === m.id && m.status === 'Approved' && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                            <button
+                              style={{ ...btnStyle, background: '#1a5a3c', fontSize: 12, padding: '4px 12px' }}
+                              onClick={() => setMemberGameSystems(prev => ({ ...prev, [m.id]: [...ALL_GAME_SYSTEMS] }))}
+                            >✓ Все включить</button>
+                            <button
+                              style={{ ...btnStyle, background: '#7b1a1a', fontSize: 12, padding: '4px 12px' }}
+                              onClick={() => setMemberGameSystems(prev => ({ ...prev, [m.id]: [] }))}
+                            >✗ Все выключить</button>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', marginBottom: 10 }}>
+                            {GAME_SYSTEMS_MAIN.map(gs => (
+                              <label key={gs} style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#eee', fontSize: 13, cursor: 'pointer', padding: '3px 0' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={(memberGameSystems[m.id] || []).includes(gs)}
+                                  onChange={() => toggleMemberGs(m.id, gs)}
+                                />
+                                {gs}
+                              </label>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', borderTop: '1px solid #0f3460', paddingTop: 8, marginBottom: 10 }}>
+                            {GAME_SYSTEMS_BOTTOM.map(gs => (
+                              <label key={gs} style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#eee', fontSize: 13, cursor: 'pointer', padding: '3px 0' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={(memberGameSystems[m.id] || []).includes(gs)}
+                                  onChange={() => toggleMemberGs(m.id, gs)}
+                                />
+                                {gs}
+                              </label>
+                            ))}
+                          </div>
+                          <button
+                            style={{ ...btnStyle, background: '#e94560', opacity: savingGsMemberId === m.id ? 0.7 : 1 }}
+                            onClick={() => saveMemberGameSystems(m.id)}
+                            disabled={savingGsMemberId === m.id}
+                          >
+                            {savingGsMemberId === m.id ? 'Сохраняем...' : 'Сохранить'}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
