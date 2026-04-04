@@ -256,7 +256,9 @@ public class BookingController : ControllerBase
             // Когда все ЗАБРОНИРОВАНО: модератор — владелец (не в числе игроков),
             // поэтому все maxSlots слотов отдаются участникам.
             int maxSlots = req.IsDoubles ? 4 : 2;
-            var seenForOthers = new HashSet<string> { ownerId };
+            // Когда все ЗАБРОНИРОВАНО — модератор не является игроком, не дедуплицируем его.
+            // Когда есть реальный первый участник — исключаем его из участников (он уже owner).
+            var seenForOthers = allReserved ? new HashSet<string>() : new HashSet<string> { ownerId };
             int participantSlots = allReserved ? maxSlots : maxSlots - 1;
             var remainingInvitees = req.InvitedUserIds
                 .Where(id => !string.IsNullOrEmpty(id) && (allReserved || id != firstReal))
