@@ -390,10 +390,10 @@ export default function HomePage() {
     )
     const memberMap = new Map(members.map(m => [m.id, m]))
     const resolveName = (id: string, fallback: string): string => {
-      const m = memberMap.get(id)
-      if (m) {
-        const regName = m.registrationName || m.name
-        return m.displayName ? `${regName} (${m.displayName})` : regName
+      const member = memberMap.get(id)
+      if (member) {
+        const regName = member.registrationName || member.name
+        return member.displayName ? `${regName} (${member.displayName})` : regName
       }
       return fallback
     }
@@ -421,6 +421,7 @@ export default function HomePage() {
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
+  const shareBtnStyle: React.CSSProperties = { background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
 
   useEffect(() => { setModeratorAddPlayerId('') }, [moderatorBookingModal])
   useEffect(() => { setOwnerInvitePlayerId('') }, [ownerBookingModal])
@@ -1523,7 +1524,7 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => handleShareBooking(b)}
-                style={{ background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                style={shareBtnStyle}
               >
                 📤 Поделиться
               </button>
@@ -1622,7 +1623,7 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => handleShareBooking(b)}
-                style={{ background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                style={shareBtnStyle}
               >
                 📤 Поделиться
               </button>
