@@ -4,8 +4,8 @@ const RESERVED_USER_ID = '__RESERVED__'
 const MAX_INVITED_SLOTS = 4
 
 interface GameTable { id: number; number: string; supportedGames?: string }
-interface ClubMember { id: string; name: string; enabledGameSystems?: string }
-interface BookingSlot { startTime: string; endTime: string; userName?: string; participants?: { name: string }[]; gameSystem?: string }
+interface ClubMember { id: string; name: string; registrationName?: string; displayName?: string; enabledGameSystems?: string }
+interface BookingSlot { startTime: string; endTime: string; userId?: string; userName?: string; participants?: { id?: string; name: string }[]; gameSystem?: string }
 
 interface Props {
   table: GameTable
@@ -326,7 +326,37 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
+  const buildShareText = (): string => {
+    if (!tableBookings || tableBookings.length === 0) return ''
+    const dateStr = selectedDate.toLocaleDateString('ru-RU')
+    const blocks = tableBookings.map(b => {
+      const fromTime = extractTime(b.startTime)
+      const toTime = extractTime(b.endTime)
+      const systemPart = b.gameSystem ? `, ${b.gameSystem}` : ''
+      const header = `${dateStr}, ${fromTime}–${toTime}`
+      const tableLine = `Стол #${table.number}${systemPart}`
+      const playerLines: string[] = []
+      const resolvePlayer = (id: string | undefined, fallbackName: string) => {
+        const m = id ? (members ?? []).find(mem => mem.id === id) : undefined
+        if (m) {
+          const regName = m.registrationName || m.name
+          return m.displayName ? `${regName} (${m.displayName})` : regName
+        }
+        return fallbackName
+      }
+      if (b.userName || b.userId) {
+        playerLines.push(resolvePlayer(b.userId, b.userName ?? ''))
+      }
+      for (const p of b.participants ?? []) {
+        playerLines.push(resolvePlayer(p.id, p.name))
+      }
+      return `=====\n${header}\n${tableLine}\n${playerLines.join('\n')}\n=====`
+    })
+    return blocks.join('\n\n')
+  }
+
   const handleShare = () => {
+    const textContent = buildShareText()
     const canvas = drawShareCanvas(table, selectedDate, clubName, tableBookings, openTime, closeTime)
     canvas.toBlob(async (blob) => {
       if (!blob) { setError('Не удалось создать изображение для отправки'); return }
@@ -334,7 +364,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       const file = new File([blob], `table-${table.number}-${dateStr}.png`, { type: 'image/png' })
       const shareData = {
         title: `${clubName || 'Клуб'} — Стол #${table.number}`,
-        text: `Состояние стола #${table.number} на ${selectedDate.toLocaleDateString('ru-RU')}`,
+        text: textContent || `Состояние стола #${table.number} на ${selectedDate.toLocaleDateString('ru-RU')}`,
         files: [file],
       }
       if (navigator.canShare && navigator.canShare(shareData)) {
@@ -351,6 +381,9 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       link.download = `table-${table.number}-${dateStr}.png`
       link.click()
       URL.revokeObjectURL(url)
+      if (textContent) {
+        try { await navigator.clipboard.writeText(textContent) } catch { /* ignore */ }
+      }
     }, 'image/png')
   }
 
