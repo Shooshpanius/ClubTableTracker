@@ -9,6 +9,8 @@ import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import { DEFAULT_BOOKING_COLORS } from '../constants'
 import type { BookingColors } from '../constants'
+import { shareTableSchedule } from '../utils/shareBooking'
+import type { ShareSlot } from '../utils/shareBooking'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -379,6 +381,32 @@ export default function HomePage() {
     setBookingEnd('')
   }
 
+  const handleShareBooking = (b: Booking) => {
+    const table = tables.find(t => t.id === b.tableId)
+    if (!table) return
+    const bookingDate = new Date(b.startTime)
+    const dayBookings = bookings.filter(bk =>
+      bk.tableId === b.tableId && isSameLocalDay(new Date(bk.startTime), bookingDate)
+    )
+    const memberMap = new Map(members.map(m => [m.id, m]))
+    const resolveName = (id: string, fallback: string): string => {
+      const member = memberMap.get(id)
+      if (member) {
+        const regName = member.registrationName || member.name
+        return member.displayName ? `${regName} (${member.displayName})` : regName
+      }
+      return fallback
+    }
+    const slots: ShareSlot[] = dayBookings.map(bk => ({
+      startTime: bk.startTime,
+      endTime: bk.endTime,
+      gameSystem: bk.gameSystem,
+      userName: resolveName(bk.user.id, bk.user.name),
+      participants: bk.participants.map(p => ({ name: resolveName(p.id, p.name) })),
+    }))
+    shareTableSchedule(table.number, bookingDate, selectedClub?.name, slots, selectedClub?.openTime, selectedClub?.closeTime)
+  }
+
   const [expandedTableId, setExpandedTableId] = useState<number | null>(null)
   const [upcomingMyBookings, setUpcomingMyBookings] = useState<UpcomingBooking[]>([])
   const [upcomingAllBookings, setUpcomingAllBookings] = useState<UpcomingBooking[]>([])
@@ -393,6 +421,7 @@ export default function HomePage() {
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
+  const shareBtnStyle: React.CSSProperties = { background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
 
   useEffect(() => { setModeratorAddPlayerId('') }, [moderatorBookingModal])
   useEffect(() => { setOwnerInvitePlayerId('') }, [ownerBookingModal])
@@ -1493,6 +1522,12 @@ export default function HomePage() {
               >
                 Закрыть
               </button>
+              <button
+                onClick={() => handleShareBooking(b)}
+                style={shareBtnStyle}
+              >
+                📤 Поделиться
+              </button>
             </div>
           </div>
         </div>
@@ -1585,6 +1620,12 @@ export default function HomePage() {
                 style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
                 Покинуть / Отменить
+              </button>
+              <button
+                onClick={() => handleShareBooking(b)}
+                style={shareBtnStyle}
+              >
+                📤 Поделиться
               </button>
               <button
                 onClick={() => setOwnerBookingModal(null)}
