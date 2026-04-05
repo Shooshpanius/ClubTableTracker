@@ -329,6 +329,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   const buildShareText = (): string => {
     if (!tableBookings || tableBookings.length === 0) return ''
     const dateStr = selectedDate.toLocaleDateString('ru-RU')
+    const memberMap = new Map((members ?? []).map(m => [m.id, m]))
+    const resolvePlayer = (id: string | undefined, fallbackName: string) => {
+      const m = id ? memberMap.get(id) : undefined
+      if (m) {
+        const regName = m.registrationName || m.name
+        return m.displayName ? `${regName} (${m.displayName})` : regName
+      }
+      return fallbackName
+    }
     const blocks = tableBookings.map(b => {
       const fromTime = extractTime(b.startTime)
       const toTime = extractTime(b.endTime)
@@ -336,14 +345,6 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       const header = `${dateStr}, ${fromTime}–${toTime}`
       const tableLine = `Стол #${table.number}${systemPart}`
       const playerLines: string[] = []
-      const resolvePlayer = (id: string | undefined, fallbackName: string) => {
-        const m = id ? (members ?? []).find(mem => mem.id === id) : undefined
-        if (m) {
-          const regName = m.registrationName || m.name
-          return m.displayName ? `${regName} (${m.displayName})` : regName
-        }
-        return fallbackName
-      }
       if (b.userName || b.userId) {
         playerLines.push(resolvePlayer(b.userId, b.userName ?? ''))
       }
