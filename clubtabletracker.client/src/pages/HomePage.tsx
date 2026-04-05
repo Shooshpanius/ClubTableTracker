@@ -9,7 +9,7 @@ import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import { DEFAULT_BOOKING_COLORS } from '../constants'
 import type { BookingColors } from '../constants'
-import { shareTableSchedule } from '../utils/shareBooking'
+import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 
 function useIsMobile(breakpoint = 768): boolean {
@@ -404,7 +404,7 @@ export default function HomePage() {
       userName: resolveName(bk.user.id, bk.user.name),
       participants: bk.participants.map(p => ({ name: resolveName(p.id, p.name) })),
     }))
-    shareTableSchedule(table.number, bookingDate, selectedClub?.name, slots, selectedClub?.openTime, selectedClub?.closeTime)
+    shareTextOnly(table.number, bookingDate, slots)
   }
 
   const [expandedTableId, setExpandedTableId] = useState<number | null>(null)
