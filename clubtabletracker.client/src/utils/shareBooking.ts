@@ -200,14 +200,15 @@ export async function shareTextOnly(
     try {
       await navigator.share(shareData)
       return
-    } catch {
-      // User cancelled or share failed, fall through to clipboard
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      // Share failed for a non-cancellation reason, fall through to clipboard
     }
   }
   try {
     await navigator.clipboard.writeText(textContent)
-  } catch {
-    onError?.('Не удалось скопировать текст')
+  } catch (err) {
+    onError?.(`Не удалось скопировать текст: ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
