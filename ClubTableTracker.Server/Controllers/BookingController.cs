@@ -141,8 +141,8 @@ public class BookingController : ControllerBase
                 UserName = l.User.DisplayName ?? l.User.Name,
                 l.TableNumber,
                 l.ClubId,
-                BookingStartTime = DateTime.SpecifyKind(l.BookingStartTime, DateTimeKind.Utc),
-                BookingEndTime = DateTime.SpecifyKind(l.BookingEndTime, DateTimeKind.Utc)
+                BookingStartTime = DateTime.SpecifyKind(l.BookingStartTime, DateTimeKind.Unspecified),
+                BookingEndTime = DateTime.SpecifyKind(l.BookingEndTime, DateTimeKind.Unspecified)
             })
             .ToList();
         return Ok(logs);
