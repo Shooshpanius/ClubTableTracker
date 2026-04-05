@@ -184,6 +184,33 @@ export function buildShareText(
   return blocks.join('\n\n')
 }
 
+export async function shareTextOnly(
+  tableNumber: string,
+  selectedDate: Date,
+  slots: ShareSlot[],
+  onError?: (msg: string) => void,
+): Promise<void> {
+  const textContent = buildShareText(tableNumber, selectedDate, slots)
+  if (!textContent) return
+  const shareData = {
+    title: `Стол #${tableNumber}`,
+    text: textContent,
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData)
+      return
+    } catch {
+      // User cancelled or share failed, fall through to clipboard
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(textContent)
+  } catch {
+    onError?.('Не удалось скопировать текст')
+  }
+}
+
 export async function shareTableSchedule(
   tableNumber: string,
   selectedDate: Date,
