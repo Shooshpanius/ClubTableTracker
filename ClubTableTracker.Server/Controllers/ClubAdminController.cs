@@ -132,12 +132,92 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        var memberships = _db.Memberships
-            .Include(m => m.User)
+        // Project DB columns needed for the response, then transform in memory
+        var rows = _db.Memberships
             .Where(m => m.ClubId == club.Id)
-            .Select(m => new { m.Id, m.Status, m.IsModerator, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email, m.User.EnabledGameSystems } })
-            .ToList();
-        return Ok(memberships);
+            .Select(m => new
+            {
+                m.Id,
+                m.Status,
+                m.IsModerator,
+                m.AppliedAt,
+                m.IsManualEntry,
+                m.UserId,
+                m.ManualName,
+                m.ManualEmail,
+                UserDisplayName = m.User != null ? m.User.DisplayName : null,
+                UserName = m.User != null ? m.User.Name : null,
+                UserEmail = m.User != null ? m.User.Email : null,
+                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null
+            })
+            .ToList()
+            .Select(m => new
+            {
+                m.Id,
+                m.Status,
+                m.IsModerator,
+                m.AppliedAt,
+                m.IsManualEntry,
+                User = new
+                {
+                    Id = m.UserId ?? "",
+                    Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.UserDisplayName ?? m.UserName ?? ""),
+                    Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.UserEmail ?? ""),
+                    EnabledGameSystems = m.IsManualEntry ? null : m.UserEnabledGameSystems
+                }
+            });
+        return Ok(rows);
+    }
+
+    [HttpPost("memberships/manual")]
+    public IActionResult AddManualMember([FromBody] ManualMemberRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest("Имя игрока не может быть пустым");
+        var membership = new ClubMembership
+        {
+            ClubId = club.Id,
+            Status = "Approved",
+            IsManualEntry = true,
+            ManualName = req.Name.Trim(),
+            ManualEmail = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim()
+        };
+        _db.Memberships.Add(membership);
+        _db.SaveChanges();
+        return Ok(new
+        {
+            membership.Id,
+            membership.Status,
+            membership.IsModerator,
+            membership.AppliedAt,
+            membership.IsManualEntry,
+            User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
+        });
+    }
+
+    [HttpPut("memberships/{id}/manual")]
+    public IActionResult UpdateManualMember(int id, [FromBody] ManualMemberRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.IsManualEntry);
+        if (membership == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest("Имя игрока не может быть пустым");
+        membership.ManualName = req.Name.Trim();
+        membership.ManualEmail = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim();
+        _db.SaveChanges();
+        return Ok(new
+        {
+            membership.Id,
+            membership.Status,
+            membership.IsModerator,
+            membership.AppliedAt,
+            membership.IsManualEntry,
+            User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
+        });
     }
 
     [HttpPost("memberships/{id}/set-moderator")]
@@ -185,6 +265,14 @@ public class ClubAdminController : ControllerBase
         if (membership == null) return NotFound();
 
         var userId = membership.UserId;
+
+        if (userId == null)
+        {
+            membership.Status = "Kicked";
+            _db.SaveChanges();
+            return Ok();
+        }
+
         var now = DateTime.UtcNow;
 
         // Cancel future bookings where the user is the organizer
@@ -427,6 +515,7 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
         if (membership == null) return NotFound();
+        if (membership.IsManualEntry || membership.User == null) return BadRequest("Нельзя задать игровые системы для записи, добавленной вручную");
         var systems = req.EnabledGameSystems ?? new List<string>();
         var invalid = systems.Where(s => !GameSystemConstants.All.Contains(s)).ToList();
         if (invalid.Count > 0) return BadRequest($"Неизвестные игровые системы: {string.Join(", ", invalid)}");
@@ -499,3 +588,4 @@ public record UpdateEventTitleRequest(string Title);
 public record SetModeratorRequest(bool IsModerator);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
+public record ManualMemberRequest(string Name, string? Email);
