@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
-interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string }
+interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string; vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string; youTubeUrl?: string; discordUrl?: string; websiteUrl?: string; contactEmail?: string; contactPhone?: string }
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
@@ -20,6 +20,15 @@ export default function ClubAdminPage() {
   const [selectedGames, setSelectedGames] = useState<string[]>([])
   const [openTime, setOpenTime] = useState('10:00')
   const [closeTime, setCloseTime] = useState('22:00')
+  const [vkUrl, setVkUrl] = useState('')
+  const [telegramUrl, setTelegramUrl] = useState('')
+  const [instagramUrl, setInstagramUrl] = useState('')
+  const [whatsAppUrl, setWhatsAppUrl] = useState('')
+  const [youTubeUrl, setYouTubeUrl] = useState('')
+  const [discordUrl, setDiscordUrl] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [events, setEvents] = useState<ClubEventData[]>([])
   const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
@@ -45,6 +54,15 @@ export default function ClubAdminPage() {
       setClub(data)
       setOpenTime(data.openTime || '10:00')
       setCloseTime(data.closeTime || '22:00')
+      setVkUrl(data.vkUrl || '')
+      setTelegramUrl(data.telegramUrl || '')
+      setInstagramUrl(data.instagramUrl || '')
+      setWhatsAppUrl(data.whatsAppUrl || '')
+      setYouTubeUrl(data.youTubeUrl || '')
+      setDiscordUrl(data.discordUrl || '')
+      setWebsiteUrl(data.websiteUrl || '')
+      setContactEmail(data.contactEmail || '')
+      setContactPhone(data.contactPhone || '')
       setError('')
       loadData(clubKey)
     } else {
@@ -170,11 +188,26 @@ export default function ClubAdminPage() {
     const res = await fetch('/api/clubadmin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
-      body: JSON.stringify({ openTime, closeTime })
+      body: JSON.stringify({
+        openTime, closeTime,
+        vkUrl: vkUrl || null, telegramUrl: telegramUrl || null,
+        instagramUrl: instagramUrl || null, whatsAppUrl: whatsAppUrl || null,
+        youTubeUrl: youTubeUrl || null, discordUrl: discordUrl || null,
+        websiteUrl: websiteUrl || null, contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null
+      })
     })
     if (res.ok) {
       const data = await res.json()
-      setClub(prev => prev ? { ...prev, openTime: data.openTime, closeTime: data.closeTime } : prev)
+      setClub(prev => prev ? {
+        ...prev,
+        openTime: data.openTime, closeTime: data.closeTime,
+        vkUrl: data.vkUrl, telegramUrl: data.telegramUrl,
+        instagramUrl: data.instagramUrl, whatsAppUrl: data.whatsAppUrl,
+        youTubeUrl: data.youTubeUrl, discordUrl: data.discordUrl,
+        websiteUrl: data.websiteUrl, contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone
+      } : prev)
       setSettingsSaved(true)
       setTimeout(() => setSettingsSaved(false), 2000)
     }
@@ -553,21 +586,48 @@ export default function ClubAdminPage() {
       )}
 
       {tab === 'settings' && (
-        <div style={cardStyle}>
-          <h3>Часы работы клуба</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div>
-              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Открытие</label>
-              <input style={inputStyle} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
+        <>
+          <div style={cardStyle}>
+            <h3>Часы работы клуба</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Открытие</label>
+                <input style={inputStyle} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Закрытие</label>
+                <input style={inputStyle} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
+              </div>
             </div>
-            <div>
-              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Закрытие</label>
-              <input style={inputStyle} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
-            </div>
-            <button style={{ ...btnStyle, marginTop: 18 }} onClick={saveSettings}>Сохранить</button>
-            {settingsSaved && <span style={{ color: '#4caf50', marginTop: 18 }}>✓ Сохранено</span>}
           </div>
-        </div>
+
+          <div style={{ ...cardStyle, marginTop: 16 }}>
+            <h3>Соцсети и контакты</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+              {([
+                { label: 'ВКонтакте', value: vkUrl, setter: setVkUrl, placeholder: 'https://vk.com/yourclub' },
+                { label: 'Telegram', value: telegramUrl, setter: setTelegramUrl, placeholder: 'https://t.me/yourclub' },
+                { label: 'Instagram', value: instagramUrl, setter: setInstagramUrl, placeholder: 'https://instagram.com/yourclub' },
+                { label: 'WhatsApp', value: whatsAppUrl, setter: setWhatsAppUrl, placeholder: 'https://wa.me/79001234567' },
+                { label: 'YouTube', value: youTubeUrl, setter: setYouTubeUrl, placeholder: 'https://youtube.com/@yourclub' },
+                { label: 'Discord', value: discordUrl, setter: setDiscordUrl, placeholder: 'https://discord.gg/yourclub' },
+                { label: 'Сайт', value: websiteUrl, setter: setWebsiteUrl, placeholder: 'https://yourclub.ru' },
+                { label: 'E-mail', value: contactEmail, setter: setContactEmail, placeholder: 'info@yourclub.ru' },
+                { label: 'Телефон', value: contactPhone, setter: setContactPhone, placeholder: '+7 900 123-45-67' },
+              ] as { label: string; value: string; setter: (v: string) => void; placeholder: string }[]).map(({ label, value, setter, placeholder }) => (
+                <div key={label}>
+                  <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>{label}</label>
+                  <input style={inputStyle} type="text" value={value} placeholder={placeholder}
+                    onChange={e => setter(e.target.value)} />
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button style={btnStyle} onClick={saveSettings}>Сохранить</button>
+              {settingsSaved && <span style={{ color: '#4caf50' }}>✓ Сохранено</span>}
+            </div>
+          </div>
+        </>
       )}
 
       {tab === 'events' && (

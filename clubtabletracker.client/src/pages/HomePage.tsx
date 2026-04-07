@@ -24,7 +24,7 @@ function useIsMobile(breakpoint = 768): boolean {
 
 
 interface User { id: string; email: string; name: string; displayName?: string }
-interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
+interface Club { id: number; name: string; description: string; openTime: string; closeTime: string; vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string; youTubeUrl?: string; discordUrl?: string; websiteUrl?: string; contactEmail?: string; contactPhone?: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
 interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId?: number; id: string; name: string; status?: string }[]; isDoubles?: boolean; isForOthers?: boolean }
@@ -80,6 +80,34 @@ const LOG_ACTION_COLOR: Record<string, string> = {
   Left: '#ffc107',
   Cancelled: '#e94560',
   MovedTable: '#9c27b0'
+}
+
+function SocialLinks({ club, onClickStop }: { club: Club; onClickStop: (e: { stopPropagation(): void }) => void }) {
+  const links = [
+    { url: club.vkUrl,         label: 'ВКонтакте', bg: '#4C75A3', abbr: 'VK' },
+    { url: club.telegramUrl,   label: 'Telegram',   bg: '#2AABEE', abbr: 'TG' },
+    { url: club.instagramUrl,  label: 'Instagram',  bg: '#E1306C', abbr: 'IG' },
+    { url: club.whatsAppUrl,   label: 'WhatsApp',   bg: '#25D366', abbr: 'WA' },
+    { url: club.youTubeUrl,    label: 'YouTube',    bg: '#FF0000', abbr: 'YT' },
+    { url: club.discordUrl,    label: 'Discord',    bg: '#5865F2', abbr: 'DC' },
+    { url: club.websiteUrl,    label: 'Сайт',       bg: '#607D8B', abbr: '🌐' },
+    { url: club.contactEmail ? `mailto:${club.contactEmail}` : undefined, label: club.contactEmail || 'E-mail', bg: '#455A64', abbr: '✉' },
+    { url: club.contactPhone ? `tel:${club.contactPhone.replace(/[\s\-()]/g, '')}` : undefined, label: club.contactPhone || 'Телефон', bg: '#455A64', abbr: '☎' },
+  ].filter(l => !!l.url) as { url: string; label: string; bg: string; abbr: string }[]
+  if (!links.length) return null
+  return (
+    <>
+      {links.map(l => (
+        <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" title={l.label}
+          onClick={onClickStop}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 26, height: 26, borderRadius: 5, background: l.bg, color: '#fff',
+            textDecoration: 'none', fontSize: 10, fontWeight: 'bold', flexShrink: 0, letterSpacing: 0.2 }}>
+          {l.abbr}
+        </a>
+      ))}
+    </>
+  )
 }
 
 export default function HomePage() {
@@ -598,6 +626,7 @@ export default function HomePage() {
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {user && (!membership || isKicked) && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
+                <SocialLinks club={club} onClickStop={e => e.stopPropagation()} />
                 {isApproved && <span style={{ fontSize: 22 }} title="Одобрено">✅</span>}
                 {isPending && <span style={{ fontSize: 22 }} title="На рассмотрении">⏳</span>}
                 {isRejected && <span style={{ fontSize: 22 }} title="Отклонено">❌</span>}
