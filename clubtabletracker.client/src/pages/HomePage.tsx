@@ -27,7 +27,7 @@ interface User { id: string; email: string; name: string; displayName?: string }
 interface Club { id: number; name: string; description: string; openTime: string; closeTime: string }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
-interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId?: number; id: string; name: string; status?: string }[]; isDoubles?: boolean }
+interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId?: number; id: string; name: string; status?: string }[]; isDoubles?: boolean; isForOthers?: boolean }
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
@@ -778,7 +778,7 @@ export default function HomePage() {
                                         clubName={club.name}
                                         tableBookings={bookings
                                           .filter(b => b.tableId === table.id && isSameLocalDay(new Date(b.startTime), selectedDate))
-                                          .map(b => ({ startTime: b.startTime, endTime: b.endTime, userId: b.user.id, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ id: p.id, name: p.name })), gameSystem: b.gameSystem }))}
+                                          .map(b => ({ startTime: b.startTime, endTime: b.endTime, userId: b.user.id, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ id: p.id, name: p.name })), gameSystem: b.gameSystem, isDoubles: b.isDoubles, isForOthers: b.isForOthers }))}
                                         isModerator={isModerator}
                                       />
                                     </div>
@@ -1106,7 +1106,7 @@ export default function HomePage() {
                                 clubName={club.name}
                                 tableBookings={bookings
                                   .filter(b => b.tableId === selectedTable.id && isSameLocalDay(new Date(b.startTime), selectedDate))
-                                  .map(b => ({ startTime: b.startTime, endTime: b.endTime, userId: b.user.id, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ id: p.id, name: p.name })), gameSystem: b.gameSystem }))}
+                                  .map(b => ({ startTime: b.startTime, endTime: b.endTime, userId: b.user.id, userName: b.user.name, participants: b.participants.filter(p => p.status !== 'Invited').map(p => ({ id: p.id, name: p.name })), gameSystem: b.gameSystem, isDoubles: b.isDoubles, isForOthers: b.isForOthers }))}
                                 isModerator={isModerator}
                               />
                             </div>

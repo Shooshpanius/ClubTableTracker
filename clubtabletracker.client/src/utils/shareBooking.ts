@@ -4,6 +4,8 @@ export interface ShareSlot {
   userName?: string
   participants?: { name: string }[]
   gameSystem?: string
+  isDoubles?: boolean
+  isForOthers?: boolean
 }
 
 function parseMinutes(t: string | undefined): number {
@@ -174,10 +176,14 @@ export function buildShareText(
     const systemPart = b.gameSystem ? `, ${b.gameSystem}` : ''
     const header = `${dateStr}, ${fromTime}–${toTime}`
     const tableLine = `Стол #${tableNumber}${systemPart}`
+    const totalSlots = b.isDoubles ? 4 : 2
     const playerLines: string[] = []
-    if (b.userName) playerLines.push(b.userName)
+    if (!b.isForOthers && b.userName) playerLines.push(b.userName)
     for (const p of b.participants ?? []) {
       playerLines.push(p.name)
+    }
+    while (playerLines.length < totalSlots) {
+      playerLines.push('--- СВОБОДНО ---')
     }
     return `=====\n${header}\n${tableLine}\n${playerLines.join('\n')}\n=====`
   })
