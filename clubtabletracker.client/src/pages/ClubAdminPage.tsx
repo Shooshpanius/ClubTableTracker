@@ -221,7 +221,8 @@ export default function ClubAdminPage() {
     }
   }
 
-  const saveSettings = async () => {    const res = await fetch('/api/clubadmin/settings', {
+  const saveSettings = async () => {
+    const res = await fetch('/api/clubadmin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
       body: JSON.stringify({

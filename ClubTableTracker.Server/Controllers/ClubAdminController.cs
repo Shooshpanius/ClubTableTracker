@@ -132,9 +132,24 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        var memberships = _db.Memberships
-            .Include(m => m.User)
+        // Project DB columns needed for the response, then transform in memory
+        var rows = _db.Memberships
             .Where(m => m.ClubId == club.Id)
+            .Select(m => new
+            {
+                m.Id,
+                m.Status,
+                m.IsModerator,
+                m.AppliedAt,
+                m.IsManualEntry,
+                m.UserId,
+                m.ManualName,
+                m.ManualEmail,
+                UserDisplayName = m.User != null ? m.User.DisplayName : null,
+                UserName = m.User != null ? m.User.Name : null,
+                UserEmail = m.User != null ? m.User.Email : null,
+                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null
+            })
             .ToList()
             .Select(m => new
             {
@@ -146,12 +161,12 @@ public class ClubAdminController : ControllerBase
                 User = new
                 {
                     Id = m.UserId ?? "",
-                    Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.User?.DisplayName ?? m.User?.Name ?? ""),
-                    Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.User?.Email ?? ""),
-                    EnabledGameSystems = m.IsManualEntry ? null : m.User?.EnabledGameSystems
+                    Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.UserDisplayName ?? m.UserName ?? ""),
+                    Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.UserEmail ?? ""),
+                    EnabledGameSystems = m.IsManualEntry ? null : m.UserEnabledGameSystems
                 }
             });
-        return Ok(memberships);
+        return Ok(rows);
     }
 
     [HttpPost("memberships/manual")]
