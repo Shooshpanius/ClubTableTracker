@@ -19,9 +19,7 @@ public class ClubController : ControllerBase
     public IActionResult GetClubs()
     {
         var clubs = _db.Clubs.Select(c => new {
-            c.Id, c.Name, c.Description, c.OpenTime, c.CloseTime,
-            c.VkUrl, c.TelegramUrl, c.InstagramUrl, c.WhatsAppUrl,
-            c.YouTubeUrl, c.DiscordUrl, c.WebsiteUrl, c.ContactEmail, c.ContactPhone
+            c.Id, c.Name, c.Description, c.OpenTime, c.CloseTime
         }).ToList();
         return Ok(clubs);
     }
