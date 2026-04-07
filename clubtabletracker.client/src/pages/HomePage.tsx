@@ -24,7 +24,12 @@ function useIsMobile(breakpoint = 768): boolean {
 
 
 interface User { id: string; email: string; name: string; displayName?: string }
-interface Club { id: number; name: string; description: string; openTime: string; closeTime: string; vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string; youTubeUrl?: string; discordUrl?: string; websiteUrl?: string; contactEmail?: string; contactPhone?: string }
+interface Club {
+  id: number; name: string; description: string; openTime: string; closeTime: string;
+  vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string;
+  youTubeUrl?: string; discordUrl?: string; websiteUrl?: string;
+  contactEmail?: string; contactPhone?: string
+}
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
 interface BookingBase { id: number; user: { id: string; name: string }; participants: { participantId?: number; id: string; name: string; status?: string }[]; isDoubles?: boolean; isForOthers?: boolean }

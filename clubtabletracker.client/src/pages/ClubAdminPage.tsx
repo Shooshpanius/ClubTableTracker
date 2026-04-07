@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
-interface ClubInfo { id: number; name: string; description: string; openTime: string; closeTime: string; vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string; youTubeUrl?: string; discordUrl?: string; websiteUrl?: string; contactEmail?: string; contactPhone?: string }
+interface ClubInfo {
+  id: number; name: string; description: string; openTime: string; closeTime: string;
+  vkUrl?: string; telegramUrl?: string; instagramUrl?: string; whatsAppUrl?: string;
+  youTubeUrl?: string; discordUrl?: string; websiteUrl?: string;
+  contactEmail?: string; contactPhone?: string
+}
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
