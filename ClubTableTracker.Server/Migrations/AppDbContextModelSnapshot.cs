@@ -181,8 +181,20 @@ namespace ClubTableTracker.Server.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("DiscordUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("InstagramUrl")
                         .HasColumnType("longtext");
 
                     b.Property<string>("Name")
@@ -191,6 +203,21 @@ namespace ClubTableTracker.Server.Migrations
 
                     b.Property<string>("OpenTime")
                         .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TelegramUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("VkUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("WhatsAppUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("YouTubeUrl")
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");

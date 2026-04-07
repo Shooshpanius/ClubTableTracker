@@ -24,7 +24,11 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime });
+        return Ok(new {
+            club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime,
+            club.VkUrl, club.TelegramUrl, club.InstagramUrl, club.WhatsAppUrl,
+            club.YouTubeUrl, club.DiscordUrl, club.WebsiteUrl, club.ContactEmail, club.ContactPhone
+        });
     }
 
     [HttpPut("settings")]
@@ -34,8 +38,21 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         club.OpenTime = req.OpenTime;
         club.CloseTime = req.CloseTime;
+        club.VkUrl = req.VkUrl;
+        club.TelegramUrl = req.TelegramUrl;
+        club.InstagramUrl = req.InstagramUrl;
+        club.WhatsAppUrl = req.WhatsAppUrl;
+        club.YouTubeUrl = req.YouTubeUrl;
+        club.DiscordUrl = req.DiscordUrl;
+        club.WebsiteUrl = req.WebsiteUrl;
+        club.ContactEmail = req.ContactEmail;
+        club.ContactPhone = req.ContactPhone;
         _db.SaveChanges();
-        return Ok(new { club.OpenTime, club.CloseTime });
+        return Ok(new {
+            club.OpenTime, club.CloseTime,
+            club.VkUrl, club.TelegramUrl, club.InstagramUrl, club.WhatsAppUrl,
+            club.YouTubeUrl, club.DiscordUrl, club.WebsiteUrl, club.ContactEmail, club.ContactPhone
+        });
     }
 
     [HttpGet("tables")]
@@ -492,7 +509,9 @@ public class ClubAdminController : ControllerBase
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
-public record ClubSettingsRequest(string OpenTime, string CloseTime);
+public record ClubSettingsRequest(string OpenTime, string CloseTime,
+    string? VkUrl, string? TelegramUrl, string? InstagramUrl, string? WhatsAppUrl,
+    string? YouTubeUrl, string? DiscordUrl, string? WebsiteUrl, string? ContactEmail, string? ContactPhone);
 public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
