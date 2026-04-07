@@ -297,11 +297,11 @@ public class ClubAdminController : ControllerBase
                 BookingEndTime = booking.EndTime
             });
 
-            if (booking.Participants.Count > 0)
+            var firstRealParticipant = booking.Participants.Where(p => p.UserId != null).OrderBy(p => p.Id).FirstOrDefault();
+            if (firstRealParticipant != null)
             {
-                var firstParticipant = booking.Participants.OrderBy(p => p.Id).First();
-                booking.UserId = firstParticipant.UserId;
-                _db.BookingParticipants.Remove(firstParticipant);
+                booking.UserId = firstRealParticipant.UserId!;
+                _db.BookingParticipants.Remove(firstRealParticipant);
             }
             else
             {
