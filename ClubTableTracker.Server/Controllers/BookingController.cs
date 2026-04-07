@@ -531,6 +531,7 @@ public class BookingController : ControllerBase
         {
             var newOwner = acceptedParticipants.First();
             booking.UserId = newOwner.UserId!;
+            _db.BookingParticipants.Remove(newOwner);
             var invitedParticipants = booking.Participants.Where(p => p.Status == "Invited").ToList();
             _db.BookingParticipants.RemoveRange(invitedParticipants);
             _db.BookingLogs.Add(log);
