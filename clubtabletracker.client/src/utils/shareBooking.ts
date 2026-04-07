@@ -9,19 +9,25 @@ export interface ShareSlot {
 }
 
 const DAY_ABBREVS = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ']
+const FREE_SLOT_TEXT = '--- СВОБОДНО ---'
+
+const SLOT_SECTION_HEADER_HEIGHT = 34
+const SLOT_ROW_HEIGHT = 22
+const SLOT_TIME_HEIGHT = 22
+const SLOT_SPACING = 6
 
 function getDayAbbr(date: Date): string {
-  return DAY_ABBREVS[date.getDay()]
+  return DAY_ABBREVS[date.getDay()] ?? ''
 }
 
 function calcSlotSectionHeight(slots: ShareSlot[] | undefined): number {
   if (!slots || slots.length === 0) return 0
-  let h = 34
+  let h = SLOT_SECTION_HEADER_HEIGHT
   for (const slot of slots) {
-    h += 22
+    h += SLOT_TIME_HEIGHT
     const totalSlots = slot.isDoubles ? 4 : 2
-    h += totalSlots * 22
-    h += 6
+    h += totalSlots * SLOT_ROW_HEIGHT
+    h += SLOT_SPACING
   }
   return h
 }
@@ -188,14 +194,14 @@ export function drawShareCanvas(
       ctx.fillStyle = '#aaaaaa'
       ctx.font = 'bold 12px sans-serif'
       ctx.fillText(`${fromTime}–${toTime}${systemPart}`, tlLeft, slotY + 14)
-      slotY += 22
+      slotY += SLOT_TIME_HEIGHT
       const totalSlots = slot.isDoubles ? 4 : 2
       const playerLines: string[] = []
       if (!slot.isForOthers && slot.userName) playerLines.push(slot.userName)
       for (const p of slot.participants ?? []) playerLines.push(p.name)
-      while (playerLines.length < totalSlots) playerLines.push('--- СВОБОДНО ---')
+      while (playerLines.length < totalSlots) playerLines.push(FREE_SLOT_TEXT)
       for (const player of playerLines) {
-        const isFree = player === '--- СВОБОДНО ---'
+        const isFree = player === FREE_SLOT_TEXT
         const rowW = tlWidth
         if (isFree) {
           ctx.fillStyle = '#4caf50'
@@ -208,9 +214,9 @@ export function drawShareCanvas(
         }
         ctx.font = '12px sans-serif'
         ctx.fillText(player, tlLeft + 6, slotY + 14)
-        slotY += 22
+        slotY += SLOT_ROW_HEIGHT
       }
-      slotY += 6
+      slotY += SLOT_SPACING
     }
   }
 
@@ -243,7 +249,7 @@ export function buildShareText(
       playerLines.push(p.name)
     }
     while (playerLines.length < totalSlots) {
-      playerLines.push('--- СВОБОДНО ---')
+      playerLines.push(FREE_SLOT_TEXT)
     }
     return `=====\n${header}\n${tableLine}\n${playerLines.join('\n')}\n=====`
   })
