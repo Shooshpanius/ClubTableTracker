@@ -758,6 +758,96 @@ public class BookingController : ControllerBase
         return Ok(new { booking.Id, booking.TableId, TableNumber = newTable.Number });
     }
 
+    [HttpPatch("{id}/reschedule")]
+    public IActionResult RescheduleBooking(int id, [FromBody] RescheduleBookingRequest req)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var clubId = booking.Table.ClubId;
+
+        var isOwner = booking.UserId == callerId;
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == clubId &&
+            m.Status == "Approved" && m.IsModerator);
+
+        if (!isOwner && !isModerator) return Forbid();
+
+        // Same time validations as CreateBooking
+        if (req.StartTime >= req.EndTime) return BadRequest("End time must be after start time");
+        if (req.StartTime < DateTime.UtcNow) return BadRequest("Booking must be in the future");
+        if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
+            return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
+
+        var club = _db.Clubs.Find(clubId);
+        if (club == null) return NotFound("Club not found");
+
+        if (!TimeSpan.TryParse(club.OpenTime, out var openSpan) || !TimeSpan.TryParse(club.CloseTime, out var closeSpan))
+            return BadRequest("Некорректная конфигурация рабочего времени клуба");
+
+        int openMinutes = (int)openSpan.TotalMinutes;
+        int closeMinutes = (int)closeSpan.TotalMinutes;
+        int startMinOfDay = req.StartTime.Hour * 60 + req.StartTime.Minute;
+        int endMinOfDay = req.EndTime.Hour * 60 + req.EndTime.Minute;
+
+        if (startMinOfDay < openMinutes || endMinOfDay > closeMinutes)
+            return BadRequest($"Время бронирования должно быть в рамках рабочего времени клуба ({club.OpenTime}–{club.CloseTime})");
+
+        // Conflict check — exclude current booking
+        var hasConflict = _db.Bookings
+            .Any(b => b.TableId == booking.TableId &&
+                      b.Id != id &&
+                      b.StartTime < req.EndTime &&
+                      b.EndTime > req.StartTime);
+
+        if (hasConflict) return BadRequest("Table is already booked during the requested time period. Please choose a different time slot.");
+
+        // Event-based restrictions
+        var eventsOnTable = _db.ClubEvents
+            .Include(e => e.Participants)
+            .Where(e => e.ClubId == clubId
+                        && e.StartTime < req.EndTime
+                        && e.EndTime > req.StartTime
+                        && e.TableIds != null)
+            .ToList()
+            .Where(e => e.TableIds!.Split(',').Select(t => t.Trim()).Contains(booking.TableId.ToString()))
+            .ToList();
+
+        if (eventsOnTable.Count > 0)
+        {
+            var isRegistered = eventsOnTable.Any(e => e.Participants.Any(p => p.UserId == booking.UserId));
+            if (!isRegistered)
+                return BadRequest("Этот стол зарезервирован для участников события. Запишитесь на событие, чтобы забронировать стол.");
+        }
+        else if (booking.Table.EventsOnly)
+        {
+            return BadRequest("Этот стол доступен только во время событий клуба.");
+        }
+
+        booking.StartTime = req.StartTime;
+        booking.EndTime = req.EndTime;
+
+        _db.BookingLogs.Add(new BookingLog
+        {
+            Timestamp = DateTime.UtcNow,
+            Action = "Rescheduled",
+            UserId = callerId,
+            BookingId = booking.Id,
+            TableNumber = booking.Table.Number,
+            ClubId = clubId,
+            BookingStartTime = req.StartTime,
+            BookingEndTime = req.EndTime
+        });
+
+        _db.SaveChanges();
+        return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime });
+    }
+
     [HttpDelete("{id}/kick-participant/{participantId:int}")]
     public IActionResult KickParticipantFromBooking(int id, int participantId)
     {
@@ -980,5 +1070,6 @@ public class BookingController : ControllerBase
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, bool IsForOthers = false, List<string>? InvitedUserIds = null);
+public record RescheduleBookingRequest(DateTime StartTime, DateTime EndTime);
 public record MoveTableRequest(int NewTableId);
 public record AddPlayerRequest(string UserId);
