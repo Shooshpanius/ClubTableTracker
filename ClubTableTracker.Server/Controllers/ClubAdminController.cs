@@ -135,9 +135,74 @@ public class ClubAdminController : ControllerBase
         var memberships = _db.Memberships
             .Include(m => m.User)
             .Where(m => m.ClubId == club.Id)
-            .Select(m => new { m.Id, m.Status, m.IsModerator, m.AppliedAt, User = new { m.User.Id, m.User.Name, m.User.Email, m.User.EnabledGameSystems } })
-            .ToList();
+            .ToList()
+            .Select(m => new
+            {
+                m.Id,
+                m.Status,
+                m.IsModerator,
+                m.AppliedAt,
+                m.IsManualEntry,
+                User = new
+                {
+                    Id = m.UserId ?? "",
+                    Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.User?.DisplayName ?? m.User?.Name ?? ""),
+                    Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.User?.Email ?? ""),
+                    EnabledGameSystems = m.IsManualEntry ? null : m.User?.EnabledGameSystems
+                }
+            });
         return Ok(memberships);
+    }
+
+    [HttpPost("memberships/manual")]
+    public IActionResult AddManualMember([FromBody] ManualMemberRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest("Имя игрока не может быть пустым");
+        var membership = new ClubMembership
+        {
+            ClubId = club.Id,
+            Status = "Approved",
+            IsManualEntry = true,
+            ManualName = req.Name.Trim(),
+            ManualEmail = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim()
+        };
+        _db.Memberships.Add(membership);
+        _db.SaveChanges();
+        return Ok(new
+        {
+            membership.Id,
+            membership.Status,
+            membership.IsModerator,
+            membership.AppliedAt,
+            membership.IsManualEntry,
+            User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
+        });
+    }
+
+    [HttpPut("memberships/{id}/manual")]
+    public IActionResult UpdateManualMember(int id, [FromBody] ManualMemberRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.IsManualEntry);
+        if (membership == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest("Имя игрока не может быть пустым");
+        membership.ManualName = req.Name.Trim();
+        membership.ManualEmail = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim();
+        _db.SaveChanges();
+        return Ok(new
+        {
+            membership.Id,
+            membership.Status,
+            membership.IsModerator,
+            membership.AppliedAt,
+            membership.IsManualEntry,
+            User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
+        });
     }
 
     [HttpPost("memberships/{id}/set-moderator")]
@@ -185,6 +250,14 @@ public class ClubAdminController : ControllerBase
         if (membership == null) return NotFound();
 
         var userId = membership.UserId;
+
+        if (userId == null)
+        {
+            membership.Status = "Kicked";
+            _db.SaveChanges();
+            return Ok();
+        }
+
         var now = DateTime.UtcNow;
 
         // Cancel future bookings where the user is the organizer
@@ -427,6 +500,7 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
         if (membership == null) return NotFound();
+        if (membership.IsManualEntry || membership.User == null) return BadRequest("Нельзя задать игровые системы для записи, добавленной вручную");
         var systems = req.EnabledGameSystems ?? new List<string>();
         var invalid = systems.Where(s => !GameSystemConstants.All.Contains(s)).ToList();
         if (invalid.Count > 0) return BadRequest($"Неизвестные игровые системы: {string.Join(", ", invalid)}");
@@ -499,3 +573,4 @@ public record UpdateEventTitleRequest(string Title);
 public record SetModeratorRequest(bool IsModerator);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
+public record ManualMemberRequest(string Name, string? Email);

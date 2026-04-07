@@ -35,7 +35,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ClubMembership>()
             .HasOne(m => m.User)
             .WithMany(u => u.Memberships)
-            .HasForeignKey(m => m.UserId);
+            .HasForeignKey(m => m.UserId)
+            .IsRequired(false);
 
         modelBuilder.Entity<ClubMembership>()
             .HasOne(m => m.Club)

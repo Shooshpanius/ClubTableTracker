@@ -5,7 +5,7 @@ import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../con
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string;
 }
-interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
+interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -38,6 +38,14 @@ export default function ClubAdminPage() {
   const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
   const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
   const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
+  const [showAddManualForm, setShowAddManualForm] = useState(false)
+  const [manualName, setManualName] = useState('')
+  const [manualEmail, setManualEmail] = useState('')
+  const [addManualError, setAddManualError] = useState('')
+  const [editingManualMemberId, setEditingManualMemberId] = useState<number | null>(null)
+  const [editingManualName, setEditingManualName] = useState('')
+  const [editingManualEmail, setEditingManualEmail] = useState('')
+  const [editingManualError, setEditingManualError] = useState('')
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -168,8 +176,52 @@ export default function ClubAdminPage() {
     setSavingGsMemberId(null)
   }
 
-  const saveSettings = async () => {
-    const res = await fetch('/api/clubadmin/settings', {
+  const addManualMember = async () => {
+    if (!manualName.trim()) { setAddManualError('Имя не может быть пустым'); return }
+    const res = await fetch('/api/clubadmin/memberships/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ name: manualName.trim(), email: manualEmail.trim() || null })
+    })
+    if (res.ok) {
+      const m = await res.json()
+      setMemberships([...memberships, m])
+      setManualName('')
+      setManualEmail('')
+      setAddManualError('')
+      setShowAddManualForm(false)
+    } else {
+      const text = await res.text()
+      setAddManualError(text || 'Ошибка при добавлении')
+    }
+  }
+
+  const startEditManualMember = (m: Membership) => {
+    setEditingManualMemberId(m.id)
+    setEditingManualName(m.user.name)
+    setEditingManualEmail(m.user.email)
+    setEditingManualError('')
+  }
+
+  const saveManualMemberEdit = async (id: number) => {
+    if (!editingManualName.trim()) { setEditingManualError('Имя не может быть пустым'); return }
+    const res = await fetch(`/api/clubadmin/memberships/${id}/manual`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ name: editingManualName.trim(), email: editingManualEmail.trim() || null })
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setMemberships(memberships.map(m => m.id === id ? { ...m, user: { ...m.user, name: updated.user.name, email: updated.user.email } } : m))
+      setEditingManualMemberId(null)
+      setEditingManualError('')
+    } else {
+      const text = await res.text()
+      setEditingManualError(text || 'Ошибка при сохранении')
+    }
+  }
+
+  const saveSettings = async () => {    const res = await fetch('/api/clubadmin/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
       body: JSON.stringify({
@@ -446,7 +498,25 @@ export default function ClubAdminPage() {
 
       {tab === 'members' && (
         <>
-          <h3>Membership Applications</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0 }}>Участники клуба</h3>
+            <button style={{ ...btnStyle, background: '#1a5a3c' }} onClick={() => { setShowAddManualForm(v => !v); setAddManualError('') }}>
+              {showAddManualForm ? '✕ Отмена' : '+ Добавить игрока вручную'}
+            </button>
+          </div>
+          {showAddManualForm && (
+            <div style={{ ...cardStyle, border: '1px solid #1a5a3c', marginBottom: 16 }}>
+              <h4 style={{ margin: '0 0 12px', color: '#4caf50' }}>Ручное добавление игрока</h4>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input style={inputStyle} placeholder="Имя игрока *" value={manualName}
+                  onChange={e => { setManualName(e.target.value); setAddManualError('') }} />
+                <input style={inputStyle} placeholder="Email (необязательно)" value={manualEmail}
+                  onChange={e => setManualEmail(e.target.value)} />
+                <button style={{ ...btnStyle, background: '#4caf50' }} onClick={addManualMember}>Добавить</button>
+              </div>
+              {addManualError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{addManualError}</p>}
+            </div>
+          )}
           {memberships.length === 0 ? (
             <p style={{ color: '#aaa' }}>No applications yet.</p>
           ) : (
@@ -466,7 +536,10 @@ export default function ClubAdminPage() {
                   {memberships.map(m => (
                     <React.Fragment key={m.id}>
                     <tr style={{ background: '#16213e' }}>
-                      <td style={tdStyle}><strong>{m.user.name}</strong></td>
+                      <td style={tdStyle}>
+                        <strong>{m.user.name}</strong>
+                        {m.isManualEntry && <span style={{ marginLeft: 6, background: '#1a3a2a', color: '#4caf50', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 600 }}>вручную</span>}
+                      </td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.email}</td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
                       <td style={{ ...tdStyle, color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</td>
@@ -486,24 +559,50 @@ export default function ClubAdminPage() {
                         )}
                         {m.status === 'Approved' && (
                           <>
-                            <button
-                              style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
-                              onClick={() => toggleModerator(m.id, m.isModerator)}
-                              title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
-                            >
-                              {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
-                            </button>
-                            <button
-                              style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
-                              onClick={() => toggleGsEditor(m)}
-                              title="Редактировать игровые системы"
-                            >🎲 Системы</button>
+                            {m.isManualEntry && (
+                              <button
+                                style={{ ...btnStyle, background: editingManualMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
+                                onClick={() => editingManualMemberId === m.id ? setEditingManualMemberId(null) : startEditManualMember(m)}
+                                title="Редактировать запись"
+                              >✏️ Изменить</button>
+                            )}
+                            {!m.isManualEntry && (
+                              <>
+                                <button
+                                  style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
+                                  onClick={() => toggleModerator(m.id, m.isModerator)}
+                                  title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
+                                >
+                                  {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
+                                </button>
+                                <button
+                                  style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
+                                  onClick={() => toggleGsEditor(m)}
+                                  title="Редактировать игровые системы"
+                                >🎲 Системы</button>
+                              </>
+                            )}
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
                       </td>
                     </tr>
-                    {expandedGsMemberId === m.id && m.status === 'Approved' && (
+                    {editingManualMemberId === m.id && m.isManualEntry && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input style={inputStyle} placeholder="Имя игрока *" value={editingManualName}
+                              onChange={e => { setEditingManualName(e.target.value); setEditingManualError('') }} />
+                            <input style={inputStyle} placeholder="Email (необязательно)" value={editingManualEmail}
+                              onChange={e => setEditingManualEmail(e.target.value)} />
+                            <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveManualMemberEdit(m.id)}>Сохранить</button>
+                            <button style={{ ...btnStyle, background: '#555' }} onClick={() => setEditingManualMemberId(null)}>Отмена</button>
+                          </div>
+                          {editingManualError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{editingManualError}</p>}
+                        </td>
+                      </tr>
+                    )}
+                    {expandedGsMemberId === m.id && m.status === 'Approved' && !m.isManualEntry && (
                       <tr>
                         <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -653,7 +752,7 @@ export default function ClubAdminPage() {
             const tableNumbers = ev.tableIds
               ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
               : ''
-            const approvedMembers = memberships.filter(m => m.status === 'Approved' && !ev.participants.some(p => p.id === m.user.id))
+            const approvedMembers = memberships.filter(m => m.status === 'Approved' && !m.isManualEntry && !ev.participants.some(p => p.id === m.user.id))
             return (
               <div key={ev.id} style={{ ...cardStyle, flexDirection: 'column', display: 'flex', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
