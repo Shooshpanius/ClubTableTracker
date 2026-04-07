@@ -14,4 +14,5 @@ public class ClubMembership
     public bool IsManualEntry { get; set; } = false;
     public string? ManualName { get; set; }
     public string? ManualEmail { get; set; }
+    public string? ManualEnabledGameSystems { get; set; }
 }
