@@ -7,7 +7,7 @@ const MAX_INVITED_SLOTS = 4
 
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; registrationName?: string; displayName?: string; enabledGameSystems?: string }
-interface BookingSlot { startTime: string; endTime: string; userId?: string; userName?: string; participants?: { id?: string; name: string }[]; gameSystem?: string }
+interface BookingSlot { startTime: string; endTime: string; userId?: string; userName?: string; participants?: { id?: string; name: string }[]; gameSystem?: string; isDoubles?: boolean; isForOthers?: boolean }
 
 interface Props {
   table: GameTable
@@ -200,7 +200,9 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       startTime: b.startTime,
       endTime: b.endTime,
       gameSystem: b.gameSystem,
-      userName: (b.userName || b.userId) ? resolvePlayer(b.userId, b.userName ?? '') : undefined,
+      isDoubles: b.isDoubles,
+      isForOthers: b.isForOthers,
+      userName: (!b.isForOthers && (b.userName || b.userId)) ? resolvePlayer(b.userId, b.userName ?? '') : undefined,
       participants: (b.participants ?? []).map(p => ({ name: resolvePlayer(p.id, p.name) })),
     }))
   }
