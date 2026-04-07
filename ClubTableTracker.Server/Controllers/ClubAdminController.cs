@@ -145,6 +145,7 @@ public class ClubAdminController : ControllerBase
                 m.UserId,
                 m.ManualName,
                 m.ManualEmail,
+                m.ManualEnabledGameSystems,
                 UserDisplayName = m.User != null ? m.User.DisplayName : null,
                 UserName = m.User != null ? m.User.Name : null,
                 UserEmail = m.User != null ? m.User.Email : null,
@@ -163,7 +164,7 @@ public class ClubAdminController : ControllerBase
                     Id = m.UserId ?? "",
                     Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.UserDisplayName ?? m.UserName ?? ""),
                     Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.UserEmail ?? ""),
-                    EnabledGameSystems = m.IsManualEntry ? null : m.UserEnabledGameSystems
+                    EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.UserEnabledGameSystems
                 }
             });
         return Ok(rows);
@@ -515,13 +516,21 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
         if (membership == null) return NotFound();
-        if (membership.IsManualEntry || membership.User == null) return BadRequest("Нельзя задать игровые системы для записи, добавленной вручную");
         var systems = req.EnabledGameSystems ?? new List<string>();
         var invalid = systems.Where(s => !GameSystemConstants.All.Contains(s)).ToList();
         if (invalid.Count > 0) return BadRequest($"Неизвестные игровые системы: {string.Join(", ", invalid)}");
-        membership.User.EnabledGameSystems = systems.Count > 0 ? string.Join("|", systems) : null;
+        var value = systems.Count > 0 ? string.Join("|", systems) : null;
+        if (membership.IsManualEntry)
+        {
+            membership.ManualEnabledGameSystems = value;
+        }
+        else
+        {
+            if (membership.User == null) return BadRequest("Пользователь не найден");
+            membership.User.EnabledGameSystems = value;
+        }
         _db.SaveChanges();
-        return Ok(new { membership.User.EnabledGameSystems });
+        return Ok(new { enabledGameSystems = value });
     }
 
     [HttpGet("decorations")]

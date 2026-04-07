@@ -568,21 +568,19 @@ export default function ClubAdminPage() {
                               >✏️ Изменить</button>
                             )}
                             {!m.isManualEntry && (
-                              <>
-                                <button
-                                  style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
-                                  onClick={() => toggleModerator(m.id, m.isModerator)}
-                                  title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
-                                >
-                                  {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
-                                </button>
-                                <button
-                                  style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
-                                  onClick={() => toggleGsEditor(m)}
-                                  title="Редактировать игровые системы"
-                                >🎲 Системы</button>
-                              </>
+                              <button
+                                style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
+                                onClick={() => toggleModerator(m.id, m.isModerator)}
+                                title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
+                              >
+                                {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
+                              </button>
                             )}
+                            <button
+                              style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
+                              onClick={() => toggleGsEditor(m)}
+                              title="Редактировать игровые системы"
+                            >🎲 Системы</button>
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
@@ -603,7 +601,7 @@ export default function ClubAdminPage() {
                         </td>
                       </tr>
                     )}
-                    {expandedGsMemberId === m.id && m.status === 'Approved' && !m.isManualEntry && (
+                    {expandedGsMemberId === m.id && m.status === 'Approved' && (
                       <tr>
                         <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
