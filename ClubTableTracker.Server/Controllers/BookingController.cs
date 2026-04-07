@@ -30,6 +30,7 @@ public class BookingController : ControllerBase
             .Include(b => b.User)
             .Include(b => b.Participants).ThenInclude(p => p.User)
             .Where(b => b.Table.ClubId == clubId)
+            .ToList()
             .Select(b => new
             {
                 b.Id,
@@ -40,7 +41,12 @@ public class BookingController : ControllerBase
                 b.IsDoubles,
                 b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new {
+                    ParticipantId = p.Id,
+                    Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
+                    Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
+                    p.Status
+                })
             })
             .ToList();
         return Ok(bookings);
@@ -61,6 +67,7 @@ public class BookingController : ControllerBase
                         (b.UserId == userId || b.Participants.Any(p => p.UserId == userId)) &&
                         _db.Memberships.Any(m => m.UserId == userId && m.ClubId == b.Table.ClubId && m.Status == "Approved"))
             .OrderBy(b => b.StartTime)
+            .ToList()
             .Select(b => new
             {
                 b.Id,
@@ -74,7 +81,12 @@ public class BookingController : ControllerBase
                 b.IsDoubles,
                 b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new {
+                    ParticipantId = p.Id,
+                    Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
+                    Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
+                    p.Status
+                })
             })
             .ToList();
         return Ok(bookings);
@@ -98,6 +110,7 @@ public class BookingController : ControllerBase
             .Include(b => b.Participants).ThenInclude(p => p.User)
             .Where(b => b.EndTime > now && approvedClubIds.Contains(b.Table.ClubId))
             .OrderBy(b => b.StartTime)
+            .ToList()
             .Select(b => new
             {
                 b.Id,
@@ -111,7 +124,12 @@ public class BookingController : ControllerBase
                 b.IsDoubles,
                 b.IsForOthers,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
-                Participants = b.Participants.Select(p => new { ParticipantId = p.Id, p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Status })
+                Participants = b.Participants.Select(p => new {
+                    ParticipantId = p.Id,
+                    Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
+                    Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
+                    p.Status
+                })
             })
             .ToList();
         return Ok(bookings);
@@ -507,14 +525,12 @@ public class BookingController : ControllerBase
             BookingEndTime = booking.EndTime
         };
 
-        // Передаём владение только принятым реальным участникам (Status == "Accepted", не виртуальный RESERVED)
-        var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted" && p.UserId != BookingConstants.ReservedUserId).OrderBy(p => p.Id).ToList();
+        // Передаём владение только принятым реальным участникам (Status == "Accepted", не виртуальный RESERVED, не ручной)
+        var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted" && p.UserId != null && p.UserId != BookingConstants.ReservedUserId).OrderBy(p => p.Id).ToList();
         if (acceptedParticipants.Count > 0)
         {
             var newOwner = acceptedParticipants.First();
-            booking.UserId = newOwner.UserId;
-            _db.BookingParticipants.Remove(newOwner);
-            // Оставшихся приглашённых (не принятых) удаляем — владелец покидает игру
+            booking.UserId = newOwner.UserId!;
             var invitedParticipants = booking.Participants.Where(p => p.Status == "Invited").ToList();
             _db.BookingParticipants.RemoveRange(invitedParticipants);
             _db.BookingLogs.Add(log);
@@ -630,8 +646,8 @@ public class BookingController : ControllerBase
 
         if (booking.UserId == targetUserId)
         {
-            // Transfer ownership to first accepted participant, or delete booking
-            var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted").OrderBy(p => p.Id).ToList();
+            // Transfer ownership to first accepted real participant, or delete booking
+            var acceptedParticipants = booking.Participants.Where(p => p.Status == "Accepted" && p.UserId != null && p.UserId != BookingConstants.ReservedUserId).OrderBy(p => p.Id).ToList();
             _db.BookingLogs.Add(new BookingLog
             {
                 Timestamp = now,
@@ -646,7 +662,7 @@ public class BookingController : ControllerBase
             if (acceptedParticipants.Count > 0)
             {
                 var newOwner = acceptedParticipants.First();
-                booking.UserId = newOwner.UserId;
+                booking.UserId = newOwner.UserId!;
                 _db.BookingParticipants.Remove(newOwner);
                 var invitedParticipants = booking.Participants.Where(p => p.Status == "Invited").ToList();
                 _db.BookingParticipants.RemoveRange(invitedParticipants);
@@ -762,17 +778,20 @@ public class BookingController : ControllerBase
         if (participant == null) return NotFound("Participant not found in this booking");
 
         var now = DateTime.UtcNow;
-        _db.BookingLogs.Add(new BookingLog
+        if (participant.UserId != null)
         {
-            Timestamp = now,
-            Action = "Left",
-            UserId = participant.UserId,
-            BookingId = booking.Id,
-            TableNumber = booking.Table.Number,
-            ClubId = booking.Table.ClubId,
-            BookingStartTime = booking.StartTime,
-            BookingEndTime = booking.EndTime
-        });
+            _db.BookingLogs.Add(new BookingLog
+            {
+                Timestamp = now,
+                Action = "Left",
+                UserId = participant.UserId,
+                BookingId = booking.Id,
+                TableNumber = booking.Table.Number,
+                ClubId = booking.Table.ClubId,
+                BookingStartTime = booking.StartTime,
+                BookingEndTime = booking.EndTime
+            });
+        }
         _db.BookingParticipants.Remove(participant);
 
         _db.SaveChanges();
@@ -795,6 +814,36 @@ public class BookingController : ControllerBase
             m.UserId == callerId && m.ClubId == booking.Table.ClubId &&
             m.Status == "Approved" && m.IsModerator);
         if (!isModerator) return Forbid();
+
+        // Поддержка ручных участников: userId имеет вид "manual:{membershipId}"
+        if (req.UserId.StartsWith("manual:", StringComparison.Ordinal))
+        {
+            if (!int.TryParse(req.UserId["manual:".Length..], out var membershipId))
+                return BadRequest("Некорректный идентификатор игрока");
+
+            var membership = _db.Memberships.FirstOrDefault(m =>
+                m.Id == membershipId && m.ClubId == booking.Table.ClubId &&
+                m.Status == "Approved" && m.IsManualEntry);
+            if (membership == null) return BadRequest("Игрок не является членом клуба");
+
+            if (booking.Participants.Any(p => p.ManualMembershipId == membershipId))
+                return BadRequest("Игрок уже участвует в этой игре");
+
+            int maxPlayersManual = booking.IsDoubles ? 4 : 2;
+            int acceptedCountManual = 1 + booking.Participants.Count(p => p.Status == "Accepted");
+            if (acceptedCountManual >= maxPlayersManual)
+                return BadRequest($"Нет свободных мест (max {maxPlayersManual})");
+
+            _db.BookingParticipants.Add(new BookingParticipant
+            {
+                BookingId = id,
+                ManualMembershipId = membershipId,
+                ManualName = membership.ManualName,
+                Status = "Accepted"
+            });
+            _db.SaveChanges();
+            return Ok();
+        }
 
         if (req.UserId != BookingConstants.ReservedUserId)
         {
@@ -850,6 +899,43 @@ public class BookingController : ControllerBase
         if (booking == null) return NotFound();
 
         if (booking.UserId != callerId) return Forbid();
+
+        // Поддержка ручных участников: userId имеет вид "manual:{membershipId}"
+        if (req.UserId.StartsWith("manual:", StringComparison.Ordinal))
+        {
+            if (!int.TryParse(req.UserId["manual:".Length..], out var membershipId))
+                return BadRequest("Некорректный идентификатор игрока");
+
+            var membership = _db.Memberships.FirstOrDefault(m =>
+                m.Id == membershipId && m.ClubId == booking.Table.ClubId &&
+                m.Status == "Approved" && m.IsManualEntry);
+            if (membership == null) return BadRequest("Игрок не является членом клуба");
+
+            if (booking.Participants.Any(p => p.ManualMembershipId == membershipId))
+                return BadRequest("Игрок уже участвует или приглашён в эту игру");
+
+            int maxPlayersManual = booking.IsDoubles ? 4 : 2;
+            int takenSlotsManual = 1 + booking.Participants.Count;
+            if (takenSlotsManual >= maxPlayersManual)
+                return BadRequest($"Нет свободных мест (max {maxPlayersManual})");
+
+            if (!string.IsNullOrEmpty(booking.GameSystem) && !string.IsNullOrEmpty(membership.ManualEnabledGameSystems))
+            {
+                var memberSystems = membership.ManualEnabledGameSystems.Split('|', StringSplitOptions.RemoveEmptyEntries);
+                if (!memberSystems.Contains(booking.GameSystem))
+                    return BadRequest($"Игрок не играет в {booking.GameSystem}");
+            }
+
+            _db.BookingParticipants.Add(new BookingParticipant
+            {
+                BookingId = id,
+                ManualMembershipId = membershipId,
+                ManualName = membership.ManualName,
+                Status = "Accepted"
+            });
+            _db.SaveChanges();
+            return Ok();
+        }
 
         if (req.UserId != BookingConstants.ReservedUserId)
         {

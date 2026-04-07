@@ -105,8 +105,19 @@ public class ClubController : ControllerBase
         var members = _db.Memberships
             .Include(m => m.User)
             .Where(m => m.ClubId == id && m.Status == "Approved")
-            .Select(m => new { m.User.Id, Name = m.User.DisplayName ?? m.User.Name, m.User.EnabledGameSystems, RegistrationName = m.User.Name, m.User.DisplayName, m.User.Bio, JoinedAt = m.AppliedAt, m.IsModerator })
-            .ToList();
+            .ToList()
+            .Select(m => new
+            {
+                Id = m.IsManualEntry ? $"manual:{m.Id}" : m.User!.Id,
+                Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.User!.DisplayName ?? m.User.Name),
+                EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.User!.EnabledGameSystems,
+                RegistrationName = m.IsManualEntry ? (m.ManualName ?? "") : m.User!.Name,
+                DisplayName = m.IsManualEntry ? null : m.User!.DisplayName,
+                Bio = m.IsManualEntry ? null : m.User!.Bio,
+                JoinedAt = m.AppliedAt,
+                m.IsModerator,
+                m.IsManualEntry
+            });
         return Ok(members);
     }
 }

@@ -61,7 +61,14 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BookingParticipant>()
             .HasOne(p => p.User)
             .WithMany()
-            .HasForeignKey(p => p.UserId);
+            .HasForeignKey(p => p.UserId)
+            .IsRequired(false);
+
+        modelBuilder.Entity<BookingParticipant>()
+            .HasOne(p => p.ManualMembership)
+            .WithMany()
+            .HasForeignKey(p => p.ManualMembershipId)
+            .IsRequired(false);
 
         modelBuilder.Entity<BookingLog>().HasKey(l => l.Id);
         modelBuilder.Entity<BookingLog>()
