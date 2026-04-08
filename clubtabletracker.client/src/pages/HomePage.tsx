@@ -603,6 +603,21 @@ export default function HomePage() {
     return { eventTableIds, userEventTableIds, eventTableGameSystems }
   }, [clubEvents, selectedDate, user])
 
+  // Максимальная дата кампании для участника — чтобы разблокировать навигацию в календаре
+  const maxCampaignDate = useMemo(() => {
+    if (!user) return null
+    const campaignEvents = clubEvents.filter(ev =>
+      ev.eventType === 'Campaign' &&
+      ev.tableIds &&
+      ev.participants.some(p => p.id === user.id)
+    )
+    if (campaignEvents.length === 0) return null
+    const maxMs = Math.max(...campaignEvents.map(ev => new Date(ev.endTime).getTime()))
+    const d = new Date(maxMs)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [clubEvents, user])
+
   return (
     <>
     <div style={{ padding: isMobile ? 16 : 40 }}>
@@ -727,6 +742,7 @@ export default function HomePage() {
                             bookings={bookings}
                             selectedDate={selectedDate}
                             onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
+                            maxCampaignDate={maxCampaignDate}
                           />
                         </div>
 
@@ -1218,6 +1234,7 @@ export default function HomePage() {
                             bookings={bookings}
                             selectedDate={selectedDate}
                             onSelectDate={date => { setSelectedDate(date); setSelectedTable(null) }}
+                            maxCampaignDate={maxCampaignDate}
                           />
                         </div>
                       </div>

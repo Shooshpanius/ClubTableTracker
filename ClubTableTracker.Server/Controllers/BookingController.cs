@@ -174,14 +174,28 @@ public class BookingController : ControllerBase
 
         if (req.StartTime >= req.EndTime) return BadRequest("End time must be after start time");
         if (req.StartTime < DateTime.UtcNow) return BadRequest("Booking must be in the future");
-        if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
-            return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
-
         var table = _db.GameTables.Find(req.TableId);
         if (table == null) return NotFound("Table not found");
 
         var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == table.ClubId && m.Status == "Approved");
         if (!isMember) return Forbid();
+
+        if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
+        {
+            // Участники кампании могут бронировать столы на весь срок кампании, не ограничиваясь стандартным окном
+            var isCampaignParticipant = _db.ClubEvents
+                .Include(e => e.Participants)
+                .Where(e => e.EventType == "Campaign"
+                            && e.ClubId == table.ClubId
+                            && e.StartTime <= req.StartTime
+                            && e.EndTime > req.StartTime
+                            && e.TableIds != null)
+                .ToList()
+                .Any(e => e.TableIds!.Split(',').Select(id => id.Trim()).Contains(req.TableId.ToString())
+                         && e.Participants.Any(p => p.UserId == userId));
+            if (!isCampaignParticipant)
+                return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
+        }
 
         // Validate booking falls within club working hours
         var club = _db.Clubs.Find(table.ClubId);
@@ -782,7 +796,21 @@ public class BookingController : ControllerBase
         if (req.StartTime >= req.EndTime) return BadRequest("End time must be after start time");
         if (req.StartTime < DateTime.UtcNow) return BadRequest("Booking must be in the future");
         if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
-            return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
+        {
+            // Участники кампании могут переносить бронирования на весь срок кампании
+            var isCampaignParticipant = _db.ClubEvents
+                .Include(e => e.Participants)
+                .Where(e => e.EventType == "Campaign"
+                            && e.ClubId == clubId
+                            && e.StartTime <= req.StartTime
+                            && e.EndTime > req.StartTime
+                            && e.TableIds != null)
+                .ToList()
+                .Any(e => e.TableIds!.Split(',').Select(id => id.Trim()).Contains(booking.TableId.ToString())
+                         && e.Participants.Any(p => p.UserId == callerId));
+            if (!isCampaignParticipant)
+                return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
+        }
 
         // Time change is only allowed within the same calendar day as the original booking
         if (req.StartTime.Date != booking.StartTime.Date)
