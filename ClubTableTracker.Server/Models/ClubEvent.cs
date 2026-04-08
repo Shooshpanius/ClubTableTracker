@@ -12,5 +12,7 @@ public class ClubEvent
     public string EventType { get; set; } = "Tournament";
     public string? GameSystem { get; set; }
     public string? TableIds { get; set; }
+    public string? Description { get; set; }
+    public string? RegulationUrl { get; set; }
     public List<EventParticipant> Participants { get; set; } = new();
 }
