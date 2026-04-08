@@ -1,13 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <TextView 
-        android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#1a1a2e">
+
+    <!-- Контент вкладок -->
+    <FrameLayout
+        android:id="@+id/contentFrame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Нижняя навигация -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="@string/app_text"
-    />
-</RelativeLayout>
+        android:orientation="horizontal"
+        android:background="#0d0d1a">
+
+        <Button
+            android:id="@+id/tabClubs"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_clubs"
+            android:textColor="#eeeeee"
+            android:background="#16213e"
+            android:textSize="12sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/tabBookings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_bookings"
+            android:textColor="#eeeeee"
+            android:background="#16213e"
+            android:textSize="12sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/tabLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_log"
+            android:textColor="#eeeeee"
+            android:background="#16213e"
+            android:textSize="12sp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/tabProfile"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_profile"
+            android:textColor="#eeeeee"
+            android:background="#16213e"
+            android:textSize="12sp"
+            android:padding="12dp" />
+
+    </LinearLayout>
+</LinearLayout>
