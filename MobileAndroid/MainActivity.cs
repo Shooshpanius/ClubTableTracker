@@ -19,7 +19,7 @@ namespace MobileAndroid
     {
         private ApiService? _api;
         private FrameLayout? _contentFrame;
-        private Button? _tabClubs, _tabBookings, _tabLog, _tabProfile;
+        private Button? _tabClubs, _tabBookings, _tabLog, _tabProfile, _tabDebug;
         private int _currentTab = -1;
 
         private static readonly string[] GameSystems =
@@ -44,11 +44,13 @@ namespace MobileAndroid
             _tabBookings = FindViewById<Button>(Resource.Id.tabBookings)!;
             _tabLog      = FindViewById<Button>(Resource.Id.tabLog)!;
             _tabProfile  = FindViewById<Button>(Resource.Id.tabProfile)!;
+            _tabDebug    = FindViewById<Button>(Resource.Id.tabDebug)!;
 
             _tabClubs.Click    += (_, _) => SelectTab(0);
             _tabBookings.Click += (_, _) => SelectTab(1);
             _tabLog.Click      += (_, _) => SelectTab(2);
             _tabProfile.Click  += (_, _) => SelectTab(3);
+            _tabDebug.Click    += (_, _) => SelectTab(4);
 
             SelectTab(0);
         }
@@ -65,12 +67,13 @@ namespace MobileAndroid
                 case 1: LoadBookingsTab(); break;
                 case 2: LoadLogTab();      break;
                 case 3: LoadProfileTab();  break;
+                case 4: LoadDebugTab();    break;
             }
         }
 
         private void UpdateTabHighlight(int selected)
         {
-            var tabs = new[] { _tabClubs!, _tabBookings!, _tabLog!, _tabProfile! };
+            var tabs = new[] { _tabClubs!, _tabBookings!, _tabLog!, _tabProfile!, _tabDebug! };
             for (int i = 0; i < tabs.Length; i++)
                 tabs[i].SetBackgroundColor(Color.ParseColor(i == selected ? "#e94560" : "#16213e"));
         }
@@ -184,6 +187,28 @@ namespace MobileAndroid
                     list.Adapter = new LogAdapter(this, entries);
                 });
             });
+        }
+
+        // ─── Debug Tab ───────────────────────────────────────────────────────────
+
+        private void LoadDebugTab()
+        {
+            var view  = LayoutInflater!.Inflate(Resource.Layout.fragment_debug, _contentFrame, false)!;
+            _contentFrame!.AddView(view);
+
+            var empty = view.FindViewById<TextView>(Resource.Id.tvDebugEmpty)!;
+            var list  = view.FindViewById<ListView>(Resource.Id.listDebug)!;
+
+            var entries = RequestLogger.GetAll();
+            if (entries.Count == 0)
+            {
+                empty.Visibility = ViewStates.Visible;
+            }
+            else
+            {
+                list.Visibility = ViewStates.Visible;
+                list.Adapter = new DebugLogAdapter(this, entries);
+            }
         }
 
         // ─── Profile Tab ─────────────────────────────────────────────────────────
@@ -500,6 +525,77 @@ namespace MobileAndroid
                     $"Стол №{e.TableNumber} · {FormatDateTimeRange(e.BookingStartTime, e.BookingEndTime)}";
                 view.FindViewById<TextView>(Resource.Id.tvLogTime)!.Text =
                     FormatDateTime(e.Timestamp);
+
+                return view;
+            }
+        }
+        private class DebugLogAdapter : BaseAdapter<RequestLogEntry>
+        {
+            private readonly Activity _ctx;
+            private readonly List<RequestLogEntry> _items;
+
+            public DebugLogAdapter(Activity ctx, List<RequestLogEntry> items)
+            { _ctx = ctx; _items = items; }
+
+            public override int Count => _items.Count;
+            public override RequestLogEntry this[int position] => _items[position];
+            public override long GetItemId(int position) => position;
+
+            public override View GetView(int position, View? convertView, ViewGroup parent)
+            {
+                var view = convertView
+                    ?? LayoutInflater.From(_ctx)!.Inflate(Resource.Layout.item_debug_log, parent, false)!;
+
+                var e = _items[position];
+
+                var tvStatus   = view.FindViewById<TextView>(Resource.Id.tvDbgStatus)!;
+                var tvMethod   = view.FindViewById<TextView>(Resource.Id.tvDbgMethod)!;
+                var tvUrl      = view.FindViewById<TextView>(Resource.Id.tvDbgUrl)!;
+                var tvDuration = view.FindViewById<TextView>(Resource.Id.tvDbgDuration)!;
+                var tvTime     = view.FindViewById<TextView>(Resource.Id.tvDbgTime)!;
+                var tvBody     = view.FindViewById<TextView>(Resource.Id.tvDbgBody)!;
+
+                if (e.Error != null)
+                {
+                    tvStatus.Text = "ERR";
+                    tvStatus.SetTextColor(Color.ParseColor("#e94560"));
+                    tvBody.Text = e.Error;
+                    tvBody.SetTextColor(Color.ParseColor("#e94560"));
+                    tvBody.Visibility = ViewStates.Visible;
+                }
+                else if (e.StatusCode.HasValue)
+                {
+                    tvStatus.Text = e.StatusCode.Value.ToString();
+                    var statusColor = e.StatusCode.Value switch
+                    {
+                        >= 200 and < 300 => "#4caf50",
+                        >= 400 and < 500 => "#ffc107",
+                        _                => "#e94560"
+                    };
+                    tvStatus.SetTextColor(Color.ParseColor(statusColor));
+
+                    if (!string.IsNullOrEmpty(e.ResponseBody))
+                    {
+                        tvBody.Text = e.ResponseBody;
+                        tvBody.SetTextColor(Color.ParseColor("#999999"));
+                        tvBody.Visibility = ViewStates.Visible;
+                    }
+                    else
+                    {
+                        tvBody.Visibility = ViewStates.Gone;
+                    }
+                }
+                else
+                {
+                    tvStatus.Text = "---";
+                    tvStatus.SetTextColor(Color.ParseColor("#888888"));
+                    tvBody.Visibility = ViewStates.Gone;
+                }
+
+                tvMethod.Text   = e.Method;
+                tvUrl.Text      = e.Url.Replace(ApiService.BaseUrl, "");
+                tvDuration.Text = $"{e.DurationMs}ms";
+                tvTime.Text     = e.Timestamp.ToString("HH:mm:ss.fff") + " UTC";
 
                 return view;
             }

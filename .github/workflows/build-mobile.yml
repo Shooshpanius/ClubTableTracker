@@ -22,12 +22,27 @@ jobs:
       - name: Установка workload Android
         run: dotnet workload install android
 
+      - name: Получение номера последнего PR
+        id: get_pr
+        run: |
+          PR_NUMBER=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state merged \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // 0')
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Сборка APK
         run: >
           dotnet build
           MobileAndroid/MobileAndroid.csproj
           -f net10.0-android
           -c Release
+          -p:ApplicationDisplayVersion=0.0.${{ steps.get_pr.outputs.pr_number }}
+          -p:ApplicationVersion=${{ steps.get_pr.outputs.pr_number }}
 
       - name: Загрузка APK как артефакта
         uses: actions/upload-artifact@v4
