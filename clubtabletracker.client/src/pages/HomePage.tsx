@@ -1715,10 +1715,6 @@ export default function HomePage() {
     {/* Модалка: изменение времени игры */}
     {rescheduleModal && (() => {
       const b = rescheduleModal
-      const fmtFull = (s: string) => {
-        const d = new Date(s)
-        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-      }
       const selectedClubData = selectedClub
       return (
         <div
@@ -1731,7 +1727,7 @@ export default function HomePage() {
           >
             <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#00bcd4' }}>🕐 Изменить время игры</h3>
             <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#aaa' }}>
-              Текущее время: {fmtFull(b.startTime)}–{fmtFull(b.endTime)}
+              Текущее время: {fmtHHMM(b.startTime)}–{fmtHHMM(b.endTime)}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
