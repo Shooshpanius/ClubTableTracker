@@ -1,4 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MobileAndroid</string>
-    <string name="app_text">Hello, Android!</string>
+    <string name="app_name">ClubTableTracker</string>
+    <string name="login_hint">Получите JWT-токен на сайте club.wh40kcards.ru и вставьте его ниже</string>
+    <string name="hint_token">Вставьте JWT-токен</string>
+    <string name="btn_login">Войти</string>
+    <string name="tab_clubs">Клубы</string>
+    <string name="tab_bookings">Брони</string>
+    <string name="tab_log">Журнал</string>
+    <string name="tab_profile">Профиль</string>
 </resources>
+
