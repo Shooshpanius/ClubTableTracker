@@ -212,7 +212,7 @@ ClubTableTracker/
 4. Администратор может исключить участника (`Kicked`); исключённый пользователь может повторно подать заявку
 
 ### Мобильное приложение Android
-Нативное Android-приложение (.NET for Android, API 24+). Для входа вставьте JWT-токен, полученный на сайте `club.wh40kcards.ru`. Функциональность: список клубов с возможностью подать заявку, предстоящие бронирования, журнал активности за месяц, редактирование профиля. Приложение работает через тот же API по адресу `https://club.wh40kcards.ru/api`.
+Нативное Android-приложение (.NET for Android, API 24+). Для входа вставьте JWT-токен, полученный на сайте `go40k.ru`. Функциональность: список клубов с возможностью подать заявку, предстоящие бронирования, журнал активности за месяц, редактирование профиля. Приложение работает через тот же API по адресу `https://go40k.ru/api`.
 
 ---
 
@@ -308,7 +308,7 @@ ClubTableTracker/
 
 > **Почему не `--build`:** `docker-compose.yml` использует готовые образы (`image: front40club:local`), поэтому флаг `--build` не нужен. `VITE_GOOGLE_CLIENT_ID` вшивается в JS **во время запуска** контейнера (не сборки), благодаря чему одним образом можно пользоваться с любым Client ID.
 
-> **Важно:** Значение `VITE_GOOGLE_CLIENT_ID` в `.env` должно совпадать с Client ID, для которого в Google Cloud Console добавлен `https://club.wh40kcards.ru` в раздел **Authorised JavaScript origins**. Несоответствие Client ID приведёт к ошибке `origin_mismatch`.
+> **Важно:** Значение `VITE_GOOGLE_CLIENT_ID` в `.env` должно совпадать с Client ID, для которого в Google Cloud Console добавлен `https://go40k.ru` в раздел **Authorised JavaScript origins**. Несоответствие Client ID приведёт к ошибке `origin_mismatch`.
 
 ---
 
@@ -349,7 +349,7 @@ ClubTableTracker/
 1. Откройте [Google Cloud Console](https://console.cloud.google.com/)
 2. Создайте проект и перейдите в **APIs & Services → Credentials**
 3. Создайте **OAuth 2.0 Client ID** типа **Web application**
-4. В разделе **Authorised JavaScript origins** добавьте `https://localhost:5173` (для локальной разработки) и `https://club.wh40kcards.ru` (для продакшена)
+4. В разделе **Authorised JavaScript origins** добавьте `https://localhost:5173` (для локальной разработки) и `https://go40k.ru` (для продакшена)
 5. Скопируйте Client ID и вставьте:
    - в `appsettings.json` → `Google:ClientId` (для верификации токена на сервере)
    - в `.env` → `VITE_GOOGLE_CLIENT_ID` (для кнопки входа на фронтенде)
@@ -587,7 +587,7 @@ dotnet build -f net10.0-android -c Release
 
 ### Вход в приложение
 
-1. Откройте веб-интерфейс `https://club.wh40kcards.ru`
+1. Откройте веб-интерфейс `https://go40k.ru`
 2. Войдите через Google OAuth
 3. Откройте DevTools → Application → Local Storage → скопируйте значение ключа `token`
 4. Вставьте JWT в поле на экране входа приложения — токен сохранится автоматически
@@ -607,7 +607,7 @@ dotnet build -f net10.0-android -c Release
 |---|---|
 | `Activities/LoginActivity.cs` | Экран входа (MainLauncher), автоматический пропуск при наличии токена |
 | `Models/ApiModels.cs` | Типизированные модели, соответствующие JSON-ответам API |
-| `Services/ApiService.cs` | Все HTTP-запросы к `https://club.wh40kcards.ru/api` |
+| `Services/ApiService.cs` | Все HTTP-запросы к `https://go40k.ru/api` |
 | `Services/TokenStorage.cs` | SharedPreferences: сохранение и чтение JWT |
 | `MainActivity.cs` | 4 вкладки через `FrameLayout`, адаптеры `ListView`, профиль |
 | `Resources/layout/` | XML-разметки всех экранов и элементов списков |

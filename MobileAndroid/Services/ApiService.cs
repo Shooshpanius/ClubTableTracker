@@ -13,7 +13,7 @@ namespace MobileAndroid.Services
     public class ApiService
     {
         private static readonly HttpClient _client = new HttpClient();
-        internal const string BaseUrl = "https://club.wh40kcards.ru/api";
+        internal const string BaseUrl = "https://go40k.ru/api";
         private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -41,7 +41,7 @@ namespace MobileAndroid.Services
         {
             var entry = new RequestLogEntry
             {
-                Timestamp = DateTime.Now,
+                Timestamp = DateTime.UtcNow,
                 Method    = req.Method.Method,
                 Url       = req.RequestUri?.ToString() ?? ""
             };

@@ -595,7 +595,7 @@ namespace MobileAndroid
                 tvMethod.Text   = e.Method;
                 tvUrl.Text      = e.Url.Replace(ApiService.BaseUrl, "");
                 tvDuration.Text = $"{e.DurationMs}ms";
-                tvTime.Text     = e.Timestamp.ToString("HH:mm:ss.fff");
+                tvTime.Text     = e.Timestamp.ToString("HH:mm:ss.fff") + " UTC";
 
                 return view;
             }
