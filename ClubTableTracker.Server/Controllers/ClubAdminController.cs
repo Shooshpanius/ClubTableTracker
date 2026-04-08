@@ -365,6 +365,7 @@ public class ClubAdminController : ControllerBase
             .Select(e => new
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
+                e.Description, e.RegulationUrl,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
@@ -420,11 +421,12 @@ public class ClubAdminController : ControllerBase
             MaxParticipants = req.MaxParticipants,
             EventType = req.EventType,
             GameSystem = req.GameSystem,
-            TableIds = req.TableIds
+            TableIds = req.TableIds,
+            Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim()
         };
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
-        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds });
+        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl });
     }
 
     [HttpDelete("events/{id}")]
@@ -454,6 +456,75 @@ public class ClubAdminController : ControllerBase
         ev.Title = req.Title.Trim();
         _db.SaveChanges();
         return Ok(new { ev.Id, ev.Title });
+    }
+
+    [HttpPut("events/{id}/description")]
+    public IActionResult UpdateEventDescription(int id, [FromBody] UpdateEventDescriptionRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (req.Description != null && req.Description.Length > 500)
+            return BadRequest("Описание не может превышать 500 символов");
+
+        ev.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Description });
+    }
+
+    [HttpPost("events/{id}/regulation")]
+    public async Task<IActionResult> UploadRegulation(int id, IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+        if (file.ContentType != "application/pdf" && !file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Допускается только PDF файл");
+
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
+        Directory.CreateDirectory(dir);
+
+        if (!string.IsNullOrEmpty(ev.RegulationUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+        }
+
+        var fileName = "regulation.pdf";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        ev.RegulationUrl = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}";
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.RegulationUrl });
+    }
+
+    [HttpDelete("events/{id}/regulation")]
+    public IActionResult DeleteRegulation(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(ev.RegulationUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+            ev.RegulationUrl = null;
+            _db.SaveChanges();
+        }
+        return NoContent();
     }
 
     [HttpPut("events/{id}/date")]
@@ -736,9 +807,10 @@ public class ClubAdminController : ControllerBase
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
-public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds);
+public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds, string? Description);
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
+public record UpdateEventDescriptionRequest(string? Description);
 public record SetModeratorRequest(bool IsModerator);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);

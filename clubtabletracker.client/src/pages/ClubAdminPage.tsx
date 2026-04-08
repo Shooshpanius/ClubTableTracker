@@ -7,7 +7,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -24,7 +24,7 @@ export default function ClubAdminPage() {
   const [closeTime, setCloseTime] = useState('22:00')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [events, setEvents] = useState<ClubEventData[]>([])
-  const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+  const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '' })
   const [selectedEventTables, setSelectedEventTables] = useState<number[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [editingEventId, setEditingEventId] = useState<number | null>(null)
@@ -35,6 +35,9 @@ export default function ClubAdminPage() {
   const [inviteUserId, setInviteUserId] = useState('')
   const [editingTitleEventId, setEditingTitleEventId] = useState<number | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState('')
+  const [editingDescEventId, setEditingDescEventId] = useState<number | null>(null)
+  const [editingDescValue, setEditingDescValue] = useState('')
+  const [regulationUploading, setRegulationUploading] = useState<number | null>(null)
   const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
   const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
   const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
@@ -255,7 +258,8 @@ export default function ClubAdminPage() {
       maxParticipants: newEvent.maxParticipants,
       eventType: newEvent.eventType,
       gameSystem: newEvent.gameSystem || null,
-      tableIds: selectedEventTables.length > 0 ? selectedEventTables.join(',') : null
+      tableIds: selectedEventTables.length > 0 ? selectedEventTables.join(',') : null,
+      description: newEvent.description.trim() || null
     }
     const res = await fetch('/api/clubadmin/events', {
       method: 'POST',
@@ -265,7 +269,7 @@ export default function ClubAdminPage() {
     if (res.ok) {
       const ev = await res.json()
       setEvents([...events, { ...ev, participants: [] }])
-      setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '' })
+      setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '' })
       setSelectedEventTables([])
       setShowEventForm(false)
     }
@@ -347,6 +351,43 @@ export default function ClubAdminPage() {
       setEvents(events.map(e => e.id === id ? { ...e, title: data.title } : e))
       setEditingTitleEventId(null)
     }
+  }
+
+  const saveEventDescription = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/description`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ description: editingDescValue.trim() || null })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, description: data.description } : e))
+      setEditingDescEventId(null)
+    }
+  }
+
+  const uploadRegulation = async (id: number, file: File) => {
+    setRegulationUploading(id)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/clubadmin/events/${id}/regulation`, {
+      method: 'POST',
+      headers: { 'X-Club-Key': clubKey },
+      body: formData
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, regulationUrl: data.regulationUrl } : e))
+    }
+    setRegulationUploading(null)
+  }
+
+  const deleteRegulation = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/regulation`, {
+      method: 'DELETE',
+      headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, regulationUrl: undefined } : e))
   }
 
   const updateTablePosition = async (id: number, x: number, y: number) => {
@@ -864,6 +905,15 @@ export default function ClubAdminPage() {
                   ))}
                 </div>
               </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Описание (до 500 символов):</label>
+                <textarea style={{ ...inputStyle, width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
+                  placeholder="Описание события..."
+                  maxLength={500}
+                  value={newEvent.description}
+                  onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} />
+                <span style={{ color: '#888', fontSize: 11 }}>{newEvent.description.length}/500</span>
+              </div>
               <div style={{ marginTop: 14 }}>
                 <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.startTime || !newEvent.endTime}>Создать</button>
                 <button style={{ ...btnStyle, background: '#555' }} onClick={() => setShowEventForm(false)}>Отмена</button>
@@ -906,6 +956,12 @@ export default function ClubAdminPage() {
                     <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => { setInviteEventId(inviteEventId === ev.id ? null : ev.id); setInviteUserId('') }}>
                       {inviteEventId === ev.id ? '✕' : '+ Пригласить'}
                     </button>
+                    <button style={{ ...btnStyle, background: '#1a5276' }} onClick={() => {
+                      if (editingDescEventId === ev.id) { setEditingDescEventId(null) }
+                      else { setEditingDescEventId(ev.id); setEditingDescValue(ev.description ?? '') }
+                    }}>
+                      {editingDescEventId === ev.id ? '✕' : '📝 Описание'}
+                    </button>
                     <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
                   </div>
                 </div>
@@ -933,6 +989,20 @@ export default function ClubAdminPage() {
                       onChange={e => { setEditingEventEndTime(e.target.value); setEditingEventDateError('') }} />
                     <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDate(ev.id)}>Сохранить</button>
                     {editingEventDateError && <span style={{ color: '#e94560', fontSize: 13 }}>{editingEventDateError}</span>}
+                  </div>
+                )}
+
+                {editingDescEventId === ev.id && (
+                  <div style={{ paddingTop: 4 }}>
+                    <textarea style={{ ...inputStyle, width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
+                      placeholder="Описание события..."
+                      maxLength={500}
+                      value={editingDescValue}
+                      onChange={e => setEditingDescValue(e.target.value)} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#888', fontSize: 11 }}>{editingDescValue.length}/500</span>
+                      <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDescription(ev.id)}>Сохранить</button>
+                    </div>
                   </div>
                 )}
 
@@ -964,6 +1034,35 @@ export default function ClubAdminPage() {
                     ))}
                   </div>
                 )}
+
+                {ev.description && editingDescEventId !== ev.id && (
+                  <div style={{ fontSize: 13, color: '#ccc', marginTop: 2, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
+                )}
+
+                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {ev.regulationUrl ? (
+                    <>
+                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент</a>
+                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                        {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                        <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                          disabled={regulationUploading === ev.id}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
+                      </label>
+                      <button onClick={() => deleteRegulation(ev.id)}
+                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                        title="Удалить регламент">× Удалить</button>
+                    </>
+                  ) : (
+                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент (PDF, до 10 МБ)'}
+                      <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                        disabled={regulationUploading === ev.id}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
+                    </label>
+                  )}
+                </div>
               </div>
             )
           })}
