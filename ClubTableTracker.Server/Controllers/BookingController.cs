@@ -220,10 +220,11 @@ public class BookingController : ControllerBase
 
         if (hasConflict) return BadRequest("Table is already booked during the requested time period. Please choose a different time slot.");
 
-        // Check event-based restrictions
+        // Check event-based restrictions (Campaign events do not restrict table booking)
         var eventsOnTable = _db.ClubEvents
             .Include(e => e.Participants)
             .Where(e => e.ClubId == table.ClubId
+                        && e.EventType != "Campaign"
                         && e.StartTime < req.EndTime
                         && e.EndTime > req.StartTime
                         && e.TableIds != null)
@@ -839,10 +840,11 @@ public class BookingController : ControllerBase
 
         if (hasConflict) return BadRequest("Table is already booked during the requested time period. Please choose a different time slot.");
 
-        // Event-based restrictions
+        // Event-based restrictions (Campaign events do not restrict table booking)
         var eventsOnTable = _db.ClubEvents
             .Include(e => e.Participants)
             .Where(e => e.ClubId == clubId
+                        && e.EventType != "Campaign"
                         && e.StartTime < req.EndTime
                         && e.EndTime > req.StartTime
                         && e.TableIds != null)

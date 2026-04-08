@@ -578,7 +578,9 @@ export default function HomePage() {
   const { eventTableIds, userEventTableIds, eventTableGameSystems } = useMemo(() => {
     const dayStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
+    // Campaign events do not restrict table access for other players
     const eventsOnSelectedDate = clubEvents.filter(ev => {
+      if (ev.eventType === 'Campaign') return false
       const evStart = new Date(ev.startTime)
       const evEnd = new Date(ev.endTime)
       return evStart < dayEnd && evEnd > dayStart
