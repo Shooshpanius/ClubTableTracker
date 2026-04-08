@@ -430,6 +430,7 @@ export default function HomePage() {
   const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
   const [ownerInvitePlayerId, setOwnerInvitePlayerId] = useState('')
   const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
+  const [galleryPhotoModal, setGalleryPhotoModal] = useState<string | null>(null)
   const [rescheduleStartTime, setRescheduleStartTime] = useState('')
   const [rescheduleEndTime, setRescheduleEndTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
@@ -1088,7 +1089,7 @@ export default function HomePage() {
                         ) : (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                             {clubGallery.map(photo => (
-                              <img key={photo.id} src={photo.url} alt="" style={{ width: "calc(50% - 4px)", aspectRatio: "4/3", objectFit: "cover", borderRadius: 6 }} />
+                              <img key={photo.id} src={photo.url} alt="" onClick={() => setGalleryPhotoModal(photo.url)} style={{ width: "calc(50% - 4px)", aspectRatio: "4/3", objectFit: "cover", borderRadius: 6, cursor: 'pointer' }} />
                             ))}
                           </div>
                         )}
@@ -1425,7 +1426,7 @@ export default function HomePage() {
                         ) : (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                             {clubGallery.map(photo => (
-                              <img key={photo.id} src={photo.url} alt="" style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #0f3460' }} />
+                              <img key={photo.id} src={photo.url} alt="" onClick={() => setGalleryPhotoModal(photo.url)} style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #0f3460', cursor: 'pointer' }} />
                             ))}
                           </div>
                         )}
@@ -1853,6 +1854,20 @@ export default function HomePage() {
             Закрыть
           </button>
         </div>
+      </div>
+    )}
+    {/* Модалка: просмотр фото галереи */}
+    {galleryPhotoModal && (
+      <div
+        onClick={() => setGalleryPhotoModal(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'zoom-out' }}
+      >
+        <img
+          src={galleryPhotoModal}
+          alt=""
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,0.7)', objectFit: 'contain', cursor: 'default' }}
+        />
       </div>
     )}
   </>

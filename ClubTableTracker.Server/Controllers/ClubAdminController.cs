@@ -386,20 +386,30 @@ public class ClubAdminController : ControllerBase
         if (req.EndTime <= req.StartTime)
             return BadRequest("Время окончания должно быть позже времени начала");
 
-        if ((req.EndTime - req.StartTime).TotalDays > 3)
-            return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
+        bool isCampaign = req.EventType == "Campaign";
 
-        // Validate both times are within club working hours
-        if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
-            !TimeSpan.TryParse(club.CloseTime, out var closeTime))
-            return BadRequest("Неверные часы работы клуба");
+        if (isCampaign)
+        {
+            if ((req.EndTime - req.StartTime).TotalDays > 365)
+                return BadRequest("Даты начала и окончания кампании не могут отстоять более чем на год");
+        }
+        else
+        {
+            if ((req.EndTime - req.StartTime).TotalDays > 3)
+                return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
 
-        var startTimeOfDay = req.StartTime.TimeOfDay;
-        var endTimeOfDay = req.EndTime.TimeOfDay;
-        if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
-            return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
-        if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
-            return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+            // Validate both times are within club working hours
+            if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
+                !TimeSpan.TryParse(club.CloseTime, out var closeTime))
+                return BadRequest("Неверные часы работы клуба");
+
+            var startTimeOfDay = req.StartTime.TimeOfDay;
+            var endTimeOfDay = req.EndTime.TimeOfDay;
+            if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
+                return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+            if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
+                return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+        }
 
         var ev = new ClubEvent
         {
@@ -464,20 +474,30 @@ public class ClubAdminController : ControllerBase
         if (req.EndTime <= req.StartTime)
             return BadRequest("Время окончания должно быть позже времени начала");
 
-        if ((req.EndTime - req.StartTime).TotalDays > 3)
-            return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
+        bool isCampaign = ev.EventType == "Campaign";
 
-        // Validate within club working hours
-        if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
-            !TimeSpan.TryParse(club.CloseTime, out var closeTime))
-            return BadRequest("Неверные часы работы клуба");
+        if (isCampaign)
+        {
+            if ((req.EndTime - req.StartTime).TotalDays > 365)
+                return BadRequest("Даты начала и окончания кампании не могут отстоять более чем на год");
+        }
+        else
+        {
+            if ((req.EndTime - req.StartTime).TotalDays > 3)
+                return BadRequest("Даты начала и окончания события не могут отстоять более чем на 3 дня");
 
-        var startTimeOfDay = req.StartTime.TimeOfDay;
-        var endTimeOfDay = req.EndTime.TimeOfDay;
-        if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
-            return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
-        if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
-            return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+            // Validate within club working hours
+            if (!TimeSpan.TryParse(club.OpenTime, out var openTime) ||
+                !TimeSpan.TryParse(club.CloseTime, out var closeTime))
+                return BadRequest("Неверные часы работы клуба");
+
+            var startTimeOfDay = req.StartTime.TimeOfDay;
+            var endTimeOfDay = req.EndTime.TimeOfDay;
+            if (startTimeOfDay < openTime || startTimeOfDay >= closeTime)
+                return BadRequest($"Время начала события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+            if (endTimeOfDay <= openTime || endTimeOfDay > closeTime)
+                return BadRequest($"Время окончания события должно быть в рабочее время клуба ({club.OpenTime}–{club.CloseTime})");
+        }
 
         ev.StartTime = req.StartTime;
         ev.EndTime = req.EndTime;
