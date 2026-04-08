@@ -74,14 +74,16 @@ const LOG_ACTION_LABEL: Record<string, string> = {
   Joined: 'присоединился к',
   Left: 'вышел из',
   Cancelled: 'отменил',
-  MovedTable: 'переместил игру (стол)'
+  MovedTable: 'переместил игру (стол)',
+  Rescheduled: 'изменил время'
 }
 const LOG_ACTION_COLOR: Record<string, string> = {
   Booked: '#4caf50',
   Joined: '#2196f3',
   Left: '#ffc107',
   Cancelled: '#e94560',
-  MovedTable: '#9c27b0'
+  MovedTable: '#9c27b0',
+  Rescheduled: '#00bcd4'
 }
 
 export default function HomePage() {
@@ -420,6 +422,10 @@ export default function HomePage() {
   const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map'>('booking')
   const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
   const [ownerInvitePlayerId, setOwnerInvitePlayerId] = useState('')
+  const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
+  const [rescheduleStartTime, setRescheduleStartTime] = useState('')
+  const [rescheduleEndTime, setRescheduleEndTime] = useState('')
+  const [rescheduleError, setRescheduleError] = useState('')
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -466,6 +472,59 @@ export default function HomePage() {
     } else {
       const text = await res.text()
       alert(text || 'Не удалось переместить игру')
+    }
+  }
+
+  const fmtHHMM = (s: string) => {
+    const d = new Date(s)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+
+  const openRescheduleModal = (booking: Booking) => {
+    setRescheduleStartTime(fmtHHMM(booking.startTime))
+    setRescheduleEndTime(fmtHHMM(booking.endTime))
+    setRescheduleError('')
+    setRescheduleModal(booking)
+  }
+
+  const rescheduleBooking = async () => {
+    const booking = rescheduleModal
+    if (!booking) return
+    setRescheduleError('')
+    if (!rescheduleStartTime || !rescheduleEndTime) {
+      setRescheduleError('Выберите время начала и окончания')
+      return
+    }
+    const buildDt = (timeStr: string): string => {
+      const d = new Date(booking.startTime)
+      const [h, m] = timeStr.split(':').map(Number)
+      d.setHours(h, m, 0, 0)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hours = String(d.getHours()).padStart(2, '0')
+      const mins = String(d.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${mins}`
+    }
+    const startDt = buildDt(rescheduleStartTime)
+    const endDt = buildDt(rescheduleEndTime)
+    if (startDt >= endDt) {
+      setRescheduleError('Время окончания должно быть позже времени начала')
+      return
+    }
+    const res = await fetch(`/api/booking/${booking.id}/reschedule`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ startTime: startDt, endTime: endDt })
+    })
+    if (res.ok) {
+      setRescheduleModal(null)
+      setModeratorBookingModal(null)
+      setOwnerBookingModal(null)
+      onBookingCreated()
+    } else {
+      const text = await res.text()
+      setRescheduleError(text || 'Ошибка при изменении времени')
     }
   }
 
@@ -1519,6 +1578,12 @@ export default function HomePage() {
                 </button>
               )}
               <button
+                onClick={() => openRescheduleModal(b)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                🕐 Изменить время
+              </button>
+              <button
                 onClick={() => setModeratorBookingModal(null)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
@@ -1624,6 +1689,12 @@ export default function HomePage() {
                 Покинуть / Отменить
               </button>
               <button
+                onClick={() => openRescheduleModal(b)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                🕐 Изменить время
+              </button>
+              <button
                 onClick={() => handleShareBooking(b)}
                 style={shareBtnStyle}
               >
@@ -1634,6 +1705,69 @@ export default function HomePage() {
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
                 Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+
+    {/* Модалка: изменение времени игры */}
+    {rescheduleModal && (() => {
+      const b = rescheduleModal
+      const selectedClubData = selectedClub
+      return (
+        <div
+          onClick={() => setRescheduleModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#16213e', border: '1px solid #00bcd4', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 400, width: '90%' }}
+          >
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#00bcd4' }}>🕐 Изменить время игры</h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#aaa' }}>
+              Текущее время: {fmtHHMM(b.startTime)}–{fmtHHMM(b.endTime)}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 13, minWidth: 70 }}>Начало:</label>
+                <input
+                  type="time"
+                  value={rescheduleStartTime}
+                  step={900}
+                  min={selectedClubData?.openTime}
+                  max={selectedClubData?.closeTime}
+                  onChange={e => setRescheduleStartTime(e.target.value)}
+                  style={{ background: '#0f3460', color: '#eee', border: '1px solid #533483', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 13, minWidth: 70 }}>Конец:</label>
+                <input
+                  type="time"
+                  value={rescheduleEndTime}
+                  step={900}
+                  min={selectedClubData?.openTime}
+                  max={selectedClubData?.closeTime}
+                  onChange={e => setRescheduleEndTime(e.target.value)}
+                  style={{ background: '#0f3460', color: '#eee', border: '1px solid #533483', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
+                />
+              </div>
+            </div>
+            {rescheduleError && <p style={{ color: '#e94560', fontSize: 13, margin: '10px 0 0 0' }}>{rescheduleError}</p>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+              <button
+                onClick={rescheduleBooking}
+                style={{ background: '#00838f', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Сохранить
+              </button>
+              <button
+                onClick={() => setRescheduleModal(null)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Отмена
               </button>
             </div>
           </div>
