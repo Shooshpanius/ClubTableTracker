@@ -1,7 +1,0 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:ClubTableTracker.avalonia.ViewModels"
-             x:Class="ClubTableTracker.avalonia.Views.MainView"
-             x:DataType="vm:MainViewModel">
-  <ContentControl Content="{Binding CurrentPage}" />
-</UserControl>
