@@ -9,13 +9,14 @@ interface Props {
   bookings: Booking[]
   selectedDate: Date
   onSelectDate: (date: Date) => void
+  maxCampaignDate?: Date | null
 }
 
 const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
 const DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-export default function BookingCalendar({ bookings, selectedDate, onSelectDate }: Props) {
+export default function BookingCalendar({ bookings, selectedDate, onSelectDate, maxCampaignDate }: Props) {
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear())
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth())
 
@@ -34,6 +35,9 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
   today.setHours(0, 0, 0, 0)
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + MAX_BOOKING_DAYS_AHEAD)
+
+  // Участники кампании могут переходить к датам в пределах срока кампании
+  const effectiveMaxDate = (maxCampaignDate && maxCampaignDate > maxDate) ? maxCampaignDate : maxDate
 
   const weeks: (number | null)[][] = []
   let day = 1
@@ -81,8 +85,9 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
                 const cellDate = new Date(viewYear, viewMonth, dayNum)
                 cellDate.setHours(0, 0, 0, 0)
                 const isPast = cellDate < today
-                const isBeyondMax = cellDate > maxDate
+                const isBeyondMax = cellDate > effectiveMaxDate
                 const isDisabled = isPast || isBeyondMax
+                const isCampaignDate = maxCampaignDate != null && cellDate > maxDate && !isBeyondMax
                 const dateKey = `${viewYear}-${viewMonth}-${dayNum}`
                 const isSelected = selectedDate.getFullYear() === viewYear && selectedDate.getMonth() === viewMonth && selectedDate.getDate() === dayNum
                 const isToday = today.getFullYear() === viewYear && today.getMonth() === viewMonth && today.getDate() === dayNum
@@ -91,15 +96,15 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
                   <td
                     key={di}
                     onClick={() => !isDisabled && onSelectDate(new Date(viewYear, viewMonth, dayNum))}
-                    title={isBeyondMax ? `Бронирование доступно не более чем на ${MAX_BOOKING_DAYS_AHEAD} дней вперёд` : undefined}
+                    title={isBeyondMax ? `Бронирование доступно не более чем на ${MAX_BOOKING_DAYS_AHEAD} дней вперёд` : isCampaignDate ? 'Дата кампании' : undefined}
                     style={{
                       padding: '4px 2px', textAlign: 'center',
                       cursor: isDisabled ? 'default' : 'pointer',
                       borderRadius: 4, fontSize: 13,
                       background: isSelected ? '#e94560' : hasBookings ? '#ffc107' : 'transparent',
-                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : '#eee',
+                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : isCampaignDate ? '#ffc107' : '#eee',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
-                      outline: isToday && !isSelected ? '2px solid #4caf50' : 'none',
+                      outline: isToday && !isSelected ? '2px solid #4caf50' : isCampaignDate && !isSelected ? '1px solid #ffc107' : 'none',
                       outlineOffset: '-2px',
                       opacity: isDisabled ? 0.4 : 1,
                       textDecoration: isPast ? 'line-through' : 'none'
@@ -115,6 +120,7 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate }
       </table>
       <div style={{ marginTop: 8, fontSize: 11, color: '#666', textAlign: 'center' }}>
         Бронирование доступно на {MAX_BOOKING_DAYS_AHEAD} дней вперёд
+        {maxCampaignDate && maxCampaignDate > maxDate && ' · кампании — до конца срока'}
       </div>
     </div>
   )
