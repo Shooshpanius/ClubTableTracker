@@ -19,7 +19,7 @@ public class ClubController : ControllerBase
     public IActionResult GetClubs()
     {
         var clubs = _db.Clubs.Select(c => new {
-            c.Id, c.Name, c.Description, c.OpenTime, c.CloseTime
+            c.Id, c.Name, c.Description, c.OpenTime, c.CloseTime, c.LogoUrl
         }).ToList();
         return Ok(clubs);
     }
@@ -119,5 +119,20 @@ public class ClubController : ControllerBase
                 m.IsManualEntry
             });
         return Ok(members);
+    }
+
+    [HttpGet("{id}/gallery")]
+    [Authorize]
+    public IActionResult GetClubGallery(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == id && m.Status == "Approved");
+        if (!isMember) return Forbid();
+        var photos = _db.ClubPhotos
+            .Where(p => p.ClubId == id)
+            .OrderBy(p => p.OrderIndex)
+            .Select(p => new { p.Id, p.Url })
+            .ToList();
+        return Ok(photos);
     }
 }

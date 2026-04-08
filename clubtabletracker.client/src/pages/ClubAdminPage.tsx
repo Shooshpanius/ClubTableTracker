@@ -3,7 +3,7 @@ import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 
 interface ClubInfo {
-  id: number; name: string; description: string; openTime: string; closeTime: string;
+  id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
@@ -17,7 +17,7 @@ export default function ClubAdminPage() {
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events'>('map')
+  const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events' | 'gallery'>('map')
   const [editingTable, setEditingTable] = useState<Partial<GameTable> | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[]>([])
   const [openTime, setOpenTime] = useState('10:00')
@@ -46,6 +46,11 @@ export default function ClubAdminPage() {
   const [editingManualName, setEditingManualName] = useState('')
   const [editingManualEmail, setEditingManualEmail] = useState('')
   const [editingManualError, setEditingManualError] = useState('')
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [logoError, setLogoError] = useState('')
+  const [galleryPhotos, setGalleryPhotos] = useState<{ id: number; url: string; orderIndex: number }[]>([])
+  const [galleryUploading, setGalleryUploading] = useState(false)
+  const [galleryError, setGalleryError] = useState('')
 
   const login = async () => {
     localStorage.setItem('clubKey', clubKey)
@@ -63,16 +68,18 @@ export default function ClubAdminPage() {
   }
 
   const loadData = async (key: string) => {
-    const [tablesRes, membRes, eventsRes, decorationsRes] = await Promise.all([
+    const [tablesRes, membRes, eventsRes, decorationsRes, galleryRes] = await Promise.all([
       fetch('/api/clubadmin/tables', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/decorations', { headers: { 'X-Club-Key': key } })
+      fetch('/api/clubadmin/decorations', { headers: { 'X-Club-Key': key } }),
+      fetch('/api/clubadmin/gallery', { headers: { 'X-Club-Key': key } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (membRes.ok) setMemberships(await membRes.json())
     if (eventsRes.ok) setEvents(await eventsRes.json())
     if (decorationsRes.ok) setDecorations(await decorationsRes.json())
+    if (galleryRes.ok) setGalleryPhotos(await galleryRes.json())
   }
 
   useEffect(() => {
@@ -375,6 +382,56 @@ export default function ClubAdminPage() {
     setDecorations(decorations.filter(d => d.id !== id))
   }
 
+  const uploadLogo = async (file: File) => {
+    setLogoUploading(true)
+    setLogoError('')
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/clubadmin/logo', {
+      method: 'POST',
+      headers: { 'X-Club-Key': clubKey },
+      body: formData
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClub(prev => prev ? { ...prev, logoUrl: data.logoUrl } : prev)
+    } else {
+      const text = await res.text()
+      setLogoError(text || 'Ошибка при загрузке лого')
+    }
+    setLogoUploading(false)
+  }
+
+  const deleteLogo = async () => {
+    const res = await fetch('/api/clubadmin/logo', { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    if (res.ok) setClub(prev => prev ? { ...prev, logoUrl: undefined } : prev)
+  }
+
+  const uploadGalleryPhoto = async (file: File) => {
+    setGalleryUploading(true)
+    setGalleryError('')
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/clubadmin/gallery', {
+      method: 'POST',
+      headers: { 'X-Club-Key': clubKey },
+      body: formData
+    })
+    if (res.ok) {
+      const photo = await res.json()
+      setGalleryPhotos(prev => [...prev, photo])
+    } else {
+      const text = await res.text()
+      setGalleryError(text || 'Ошибка при загрузке фото')
+    }
+    setGalleryUploading(false)
+  }
+
+  const deleteGalleryPhoto = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/gallery/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    if (res.ok) setGalleryPhotos(prev => prev.filter(p => p.id !== id))
+  }
+
   const membershipStatusColor = (status: string) => {
     if (status === 'Approved') return '#4caf50'
     if (status === 'Rejected') return '#e94560'
@@ -429,6 +486,9 @@ export default function ClubAdminPage() {
           События{events.length > 0 && <span style={{ marginLeft: 6, background: '#533483', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{events.length}</span>}
         </button>
         <button style={tabStyle(tab === 'settings')} onClick={() => setTab('settings')}>Настройки</button>
+        <button style={tabStyle(tab === 'gallery')} onClick={() => setTab('gallery')}>
+          Галерея{galleryPhotos.length > 0 && <span style={{ marginLeft: 6, background: '#1a6e3c', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{galleryPhotos.length}</span>}
+        </button>
       </div>
 
       {tab === 'map' && (
@@ -676,6 +736,70 @@ export default function ClubAdminPage() {
               {settingsSaved && <span style={{ color: '#4caf50' }}>✓ Сохранено</span>}
             </div>
           </div>
+          <div style={cardStyle}>
+            <h3>Логотип клуба</h3>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+              {club?.logoUrl && (
+                <div style={{ position: 'relative' }}>
+                  <img src={club.logoUrl} alt="Лого клуба" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 8, background: '#0f3460', border: '1px solid #533483' }} />
+                  <button
+                    style={{ position: 'absolute', top: -8, right: -8, background: '#e94560', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', fontSize: 14, lineHeight: '24px', padding: 0, textAlign: 'center' }}
+                    onClick={deleteLogo} title="Удалить лого">×</button>
+                </div>
+              )}
+              <div>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 8 }}>
+                  {club?.logoUrl ? 'Заменить лого' : 'Загрузить лого'} (jpeg, png, webp, gif, до 5 МБ)
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  style={{ color: '#eee' }}
+                  disabled={logoUploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = '' }}
+                />
+                {logoUploading && <p style={{ color: '#aaa', fontSize: 13, margin: '8px 0 0' }}>Загрузка...</p>}
+                {logoError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{logoError}</p>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === 'gallery' && (
+        <>
+          <div style={cardStyle}>
+            <h3>Галерея клуба ({galleryPhotos.length}/10)</h3>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 8 }}>
+                Добавить фото (jpeg, png, webp, gif, до 5 МБ)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ color: '#eee' }}
+                disabled={galleryUploading || galleryPhotos.length >= 10}
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadGalleryPhoto(f); e.target.value = '' }}
+              />
+              {galleryPhotos.length >= 10 && <p style={{ color: '#ffc107', fontSize: 13, margin: '8px 0 0' }}>Достигнут лимит в 10 фото</p>}
+              {galleryUploading && <p style={{ color: '#aaa', fontSize: 13, margin: '8px 0 0' }}>Загрузка...</p>}
+              {galleryError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{galleryError}</p>}
+            </div>
+            {galleryPhotos.length === 0 ? (
+              <p style={{ color: '#aaa' }}>Фотографий пока нет.</p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                {galleryPhotos.map(photo => (
+                  <div key={photo.id} style={{ position: 'relative' }}>
+                    <img src={photo.url} alt="" style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 6, background: '#0f3460', border: '1px solid #533483', display: 'block' }} />
+                    <button
+                      style={{ position: 'absolute', top: -8, right: -8, background: '#e94560', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', fontSize: 14, lineHeight: '24px', padding: 0, textAlign: 'center' }}
+                      onClick={() => deleteGalleryPhoto(photo.id)} title="Удалить фото">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -717,6 +841,8 @@ export default function ClubAdminPage() {
                 <select style={inputStyle} value={newEvent.eventType}
                   onChange={e => setNewEvent({ ...newEvent, eventType: e.target.value })}>
                   <option value="Tournament">Турнир</option>
+                  <option value="Campaign">Кампания</option>
+                  <option value="Event">Ивент</option>
                 </select>
                 <select style={inputStyle} value={newEvent.gameSystem}
                   onChange={e => setNewEvent({ ...newEvent, gameSystem: e.target.value })}>

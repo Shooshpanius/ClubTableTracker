@@ -10,8 +10,13 @@ namespace ClubTableTracker.Server.Controllers;
 public class ClubAdminController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public ClubAdminController(AppDbContext db) => _db = db;
+    public ClubAdminController(AppDbContext db, IWebHostEnvironment env)
+    {
+        _db = db;
+        _env = env;
+    }
 
     private Club? GetAuthorizedClub()
     {
@@ -19,12 +24,25 @@ public class ClubAdminController : ControllerBase
         return _db.Clubs.FirstOrDefault(c => c.AccessKey == key.ToString());
     }
 
+    private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg", "image/png", "image/webp", "image/gif"
+    };
+
+    private static readonly Dictionary<string, string> MimeToExt = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp",
+        ["image/gif"] = ".gif"
+    };
+
     [HttpGet("me")]
     public IActionResult GetMe()
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime });
+        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime, club.LogoUrl });
     }
 
     [HttpPut("settings")]
@@ -531,6 +549,113 @@ public class ClubAdminController : ControllerBase
         }
         _db.SaveChanges();
         return Ok(new { enabledGameSystems = value });
+    }
+
+    [HttpPost("logo")]
+    public async Task<IActionResult> UploadLogo(IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 5 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 5 МБ");
+        if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
+
+        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName);
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString());
+        Directory.CreateDirectory(dir);
+
+        // Delete old logo file if exists
+        if (!string.IsNullOrEmpty(club.LogoUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, club.LogoUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+        }
+
+        var fileName = $"logo{ext}";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        club.LogoUrl = $"/uploads/clubs/{club.Id}/{fileName}";
+        _db.SaveChanges();
+        return Ok(new { logoUrl = club.LogoUrl });
+    }
+
+    [HttpDelete("logo")]
+    public IActionResult DeleteLogo()
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        if (!string.IsNullOrEmpty(club.LogoUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, club.LogoUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+            club.LogoUrl = null;
+            _db.SaveChanges();
+        }
+        return NoContent();
+    }
+
+    [HttpGet("gallery")]
+    public IActionResult GetGallery()
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var photos = _db.ClubPhotos
+            .Where(p => p.ClubId == club.Id)
+            .OrderBy(p => p.OrderIndex)
+            .Select(p => new { p.Id, p.Url, p.OrderIndex })
+            .ToList();
+        return Ok(photos);
+    }
+
+    [HttpPost("gallery")]
+    public async Task<IActionResult> UploadGalleryPhoto(IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 5 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 5 МБ");
+        if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
+
+        var count = _db.ClubPhotos.Count(p => p.ClubId == club.Id);
+        if (count >= 10) return BadRequest("Максимальное количество фото — 10");
+
+        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName);
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "gallery");
+        Directory.CreateDirectory(dir);
+
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        var maxOrder = _db.ClubPhotos.Where(p => p.ClubId == club.Id).Select(p => (int?)p.OrderIndex).Max() ?? -1;
+        var photo = new ClubPhoto
+        {
+            ClubId = club.Id,
+            Url = $"/uploads/clubs/{club.Id}/gallery/{fileName}",
+            OrderIndex = maxOrder + 1
+        };
+        _db.ClubPhotos.Add(photo);
+        _db.SaveChanges();
+        return Ok(new { photo.Id, photo.Url, photo.OrderIndex });
+    }
+
+    [HttpDelete("gallery/{id}")]
+    public IActionResult DeleteGalleryPhoto(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var photo = _db.ClubPhotos.FirstOrDefault(p => p.Id == id && p.ClubId == club.Id);
+        if (photo == null) return NotFound();
+
+        var filePath = Path.Combine(_env.ContentRootPath, photo.Url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
+
+        _db.ClubPhotos.Remove(photo);
+        _db.SaveChanges();
+        return NoContent();
     }
 
     [HttpGet("decorations")]

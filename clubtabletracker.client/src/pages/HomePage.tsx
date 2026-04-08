@@ -25,7 +25,7 @@ function useIsMobile(breakpoint = 768): boolean {
 
 interface User { id: string; email: string; name: string; displayName?: string }
 interface Club {
-  id: number; name: string; description: string; openTime: string; closeTime: string;
+  id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
 interface Membership { id: number; status: string; club: Club }
 interface GameTable { id: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly?: boolean }
@@ -198,6 +198,7 @@ export default function HomePage() {
     setSelectedTable(null)
     setClubEvents([])
     setDecorations([])
+    setClubGallery([])
     setExpandedTableId(null)
     setDesktopTab('booking')
     setMobileTab('tables')
@@ -268,6 +269,11 @@ export default function HomePage() {
   const loadActivityLog = async () => {
     const res = await fetch('/api/booking/activity-log', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) setActivityLog(await res.json())
+  }
+
+  const loadGallery = async (clubId: number) => {
+    const res = await fetch(`/api/club/${clubId}/gallery`, { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) setClubGallery(await res.json())
   }
 
   const leaveBooking = async (booking: BookingBase) => {
@@ -418,8 +424,9 @@ export default function HomePage() {
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
-  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map'>('tables')
-  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map'>('booking')
+  const [clubGallery, setClubGallery] = useState<{ id: number; url: string }[]>([])
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('tables')
+  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('booking')
   const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
   const [ownerInvitePlayerId, setOwnerInvitePlayerId] = useState('')
   const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
@@ -653,9 +660,14 @@ export default function HomePage() {
                 if (!isApproved) return
                 if (isExpanded) { setSelectedClub(null) } else { selectClub(club) }
               }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 2, color: '#eee' }}>{club.name}</div>
-                <div style={{ color: '#aaa', fontSize: 14 }}>{club.description}</div>
+              <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
+                {club.logoUrl && (
+                  <img src={club.logoUrl} alt="Лого" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, flexShrink: 0, background: '#0f3460' }} />
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 2, color: '#eee' }}>{club.name}</div>
+                  <div style={{ color: '#aaa', fontSize: 14 }}>{club.description}</div>
+                </div>
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {user && (!membership || isKicked) && <button style={btnStyle} onClick={e => { e.stopPropagation(); applyToClub(club.id) }}>Подать заявку</button>}
@@ -675,8 +687,8 @@ export default function HomePage() {
                   <div>
                     {/* Mobile tab bar */}
                     <div style={{ display: "flex", borderBottom: "2px solid #0f3460" }}>
-                      {(["tables", "games", "events", "log", "players", "map"] as const).map((tab, i) => {
-                        const labels = ["Столы", "Игры", "События", "Журнал", "👥", "🗺️"]
+                      {(["tables", "games", "events", "log", "players", "map", "gallery"] as const).map((tab, i) => {
+                        const labels = ["Столы", "Игры", "События", "📋", "👥", "🗺️", "🖼️"]
                         return (
                           <button
                             key={tab}
@@ -685,7 +697,7 @@ export default function HomePage() {
                               background: mobileTab === tab ? "#e94560" : "#0f3460",
                               color: "#fff",
                               border: "none",
-                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "map" ? "0 4px 0 0" : 0,
+                              borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "gallery" ? "0 4px 0 0" : 0,
                               padding: "9px 4px",
                               cursor: "pointer",
                               fontSize: 13,
@@ -695,6 +707,7 @@ export default function HomePage() {
                               setMobileTab(tab)
                               if (tab === "games") await loadUpcoming()
                               else if (tab === "log") await loadActivityLog()
+                              else if (tab === "gallery" && selectedClub) await loadGallery(selectedClub.id)
                             }}>
                             {labels[i]}
                           </button>
@@ -1066,6 +1079,22 @@ export default function HomePage() {
                       </div>
                     )}
 
+                    {/* Tab: Галерея (mobile) */}
+                    {mobileTab === "gallery" && (
+                      <div>
+                        <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Галерея клуба</h3>
+                        {clubGallery.length === 0 ? (
+                          <p style={{ color: "#aaa", margin: 0 }}>Фотографий нет.</p>
+                        ) : (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {clubGallery.map(photo => (
+                              <img key={photo.id} src={photo.url} alt="" style={{ width: "calc(50% - 4px)", aspectRatio: "4/3", objectFit: "cover", borderRadius: 6 }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     </div>
                   </div>
                 ) : (
@@ -1080,6 +1109,7 @@ export default function HomePage() {
                         ['log', '📋 Журнал действий'],
                         ['players', '👥 Игроки клуба'],
                         ['map', '🗺️ Схема клуба'],
+                        ['gallery', '🖼️ Галерея'],
                       ] as [string, string][]).map(([tab, label]) => (
                         <button
                           key={tab}
@@ -1087,6 +1117,7 @@ export default function HomePage() {
                           onClick={async () => {
                             if (tab === 'upcoming') await loadUpcoming()
                             else if (tab === 'log') await loadActivityLog()
+                            else if (tab === 'gallery' && selectedClub) await loadGallery(selectedClub.id)
                             setDesktopTab(tab as typeof desktopTab)
                           }}>
                           {label}
@@ -1382,6 +1413,22 @@ export default function HomePage() {
                           decorations={decorations}
                           onTableClick={table => { setSelectedTable(table); setDesktopTab('booking') }}
                         />
+                      </div>
+                    )}
+
+                    {/* Tab: Галерея */}
+                    {desktopTab === 'gallery' && (
+                      <div>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Галерея клуба</h3>
+                        {clubGallery.length === 0 ? (
+                          <p style={{ color: '#aaa', margin: 0 }}>Фотографий нет.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                            {clubGallery.map(photo => (
+                              <img key={photo.id} src={photo.url} alt="" style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #0f3460' }} />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
