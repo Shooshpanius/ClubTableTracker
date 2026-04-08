@@ -8,5 +8,6 @@
     <string name="tab_bookings">Брони</string>
     <string name="tab_log">Журнал</string>
     <string name="tab_profile">Профиль</string>
+    <string name="tab_debug">HTTP</string>
 </resources>
 

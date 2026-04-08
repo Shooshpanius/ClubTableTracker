@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -11,7 +13,7 @@ namespace MobileAndroid.Services
     public class ApiService
     {
         private static readonly HttpClient _client = new HttpClient();
-        private const string BaseUrl = "https://club.wh40kcards.ru/api";
+        internal const string BaseUrl = "https://club.wh40kcards.ru/api";
         private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -35,13 +37,44 @@ namespace MobileAndroid.Services
         private StringContent Json(object body) =>
             new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
+        private async Task<(HttpResponseMessage? Response, string Body)> SendAsync(HttpRequestMessage req)
+        {
+            var entry = new RequestLogEntry
+            {
+                Timestamp = DateTime.Now,
+                Method    = req.Method.Method,
+                Url       = req.RequestUri?.ToString() ?? ""
+            };
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                var res = await _client.SendAsync(req);
+                sw.Stop();
+                entry.DurationMs = sw.ElapsedMilliseconds;
+                entry.StatusCode = (int)res.StatusCode;
+                var body = await res.Content.ReadAsStringAsync();
+                // Truncate log display only; full body is returned for deserialization
+                entry.ResponseBody = body.Length > 300 ? body[..300] + "…" : body;
+                RequestLogger.Add(entry);
+                return (res, body);
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                entry.DurationMs = sw.ElapsedMilliseconds;
+                entry.Error      = ex.Message;
+                RequestLogger.Add(entry);
+                return (null, "");
+            }
+        }
+
         public async Task<List<Club>?> GetClubsAsync()
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/club"));
-                if (!res.IsSuccessStatusCode) return null;
-                return JsonSerializer.Deserialize<List<Club>>(await res.Content.ReadAsStringAsync(), JsonOpts);
+                var (res, body) = await SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/club"));
+                if (res == null || !res.IsSuccessStatusCode) return null;
+                return JsonSerializer.Deserialize<List<Club>>(body, JsonOpts);
             }
             catch { return null; }
         }
@@ -50,9 +83,9 @@ namespace MobileAndroid.Services
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/club/my-memberships"));
-                if (!res.IsSuccessStatusCode) return null;
-                return JsonSerializer.Deserialize<List<Membership>>(await res.Content.ReadAsStringAsync(), JsonOpts);
+                var (res, body) = await SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/club/my-memberships"));
+                if (res == null || !res.IsSuccessStatusCode) return null;
+                return JsonSerializer.Deserialize<List<Membership>>(body, JsonOpts);
             }
             catch { return null; }
         }
@@ -61,8 +94,8 @@ namespace MobileAndroid.Services
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Post, $"{BaseUrl}/club/{clubId}/apply"));
-                return res.IsSuccessStatusCode;
+                var (res, _) = await SendAsync(Req(HttpMethod.Post, $"{BaseUrl}/club/{clubId}/apply"));
+                return res?.IsSuccessStatusCode == true;
             }
             catch { return false; }
         }
@@ -71,9 +104,9 @@ namespace MobileAndroid.Services
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/booking/my-upcoming"));
-                if (!res.IsSuccessStatusCode) return null;
-                return JsonSerializer.Deserialize<List<UpcomingBooking>>(await res.Content.ReadAsStringAsync(), JsonOpts);
+                var (res, body) = await SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/booking/my-upcoming"));
+                if (res == null || !res.IsSuccessStatusCode) return null;
+                return JsonSerializer.Deserialize<List<UpcomingBooking>>(body, JsonOpts);
             }
             catch { return null; }
         }
@@ -82,9 +115,9 @@ namespace MobileAndroid.Services
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/booking/activity-log"));
-                if (!res.IsSuccessStatusCode) return null;
-                return JsonSerializer.Deserialize<List<ActivityLogEntry>>(await res.Content.ReadAsStringAsync(), JsonOpts);
+                var (res, body) = await SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/booking/activity-log"));
+                if (res == null || !res.IsSuccessStatusCode) return null;
+                return JsonSerializer.Deserialize<List<ActivityLogEntry>>(body, JsonOpts);
             }
             catch { return null; }
         }
@@ -93,9 +126,9 @@ namespace MobileAndroid.Services
         {
             try
             {
-                var res = await _client.SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/user/me"));
-                if (!res.IsSuccessStatusCode) return null;
-                return JsonSerializer.Deserialize<UserProfile>(await res.Content.ReadAsStringAsync(), JsonOpts);
+                var (res, body) = await SendAsync(Req(HttpMethod.Get, $"{BaseUrl}/user/me"));
+                if (res == null || !res.IsSuccessStatusCode) return null;
+                return JsonSerializer.Deserialize<UserProfile>(body, JsonOpts);
             }
             catch { return null; }
         }
@@ -106,7 +139,8 @@ namespace MobileAndroid.Services
             {
                 var r = Req(HttpMethod.Put, $"{BaseUrl}/user/display-name");
                 r.Content = Json(new { displayName = name });
-                return (await _client.SendAsync(r)).IsSuccessStatusCode;
+                var (res, _) = await SendAsync(r);
+                return res?.IsSuccessStatusCode == true;
             }
             catch { return false; }
         }
@@ -117,7 +151,8 @@ namespace MobileAndroid.Services
             {
                 var r = Req(HttpMethod.Put, $"{BaseUrl}/user/bio");
                 r.Content = Json(new { bio });
-                return (await _client.SendAsync(r)).IsSuccessStatusCode;
+                var (res, _) = await SendAsync(r);
+                return res?.IsSuccessStatusCode == true;
             }
             catch { return false; }
         }
@@ -128,7 +163,8 @@ namespace MobileAndroid.Services
             {
                 var r = Req(HttpMethod.Put, $"{BaseUrl}/user/game-systems");
                 r.Content = Json(new { enabledGameSystems = systems });
-                return (await _client.SendAsync(r)).IsSuccessStatusCode;
+                var (res, _) = await SendAsync(r);
+                return res?.IsSuccessStatusCode == true;
             }
             catch { return false; }
         }

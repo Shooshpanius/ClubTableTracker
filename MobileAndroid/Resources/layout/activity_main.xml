@@ -64,5 +64,16 @@
             android:textSize="12sp"
             android:padding="12dp" />
 
+        <Button
+            android:id="@+id/tabDebug"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/tab_debug"
+            android:textColor="#eeeeee"
+            android:background="#16213e"
+            android:textSize="12sp"
+            android:padding="12dp" />
+
     </LinearLayout>
 </LinearLayout>

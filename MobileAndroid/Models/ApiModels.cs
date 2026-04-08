@@ -81,4 +81,15 @@ namespace MobileAndroid.Models
         [JsonPropertyName("enabledGameSystems")] public string? EnabledGameSystems { get; set; }
         [JsonPropertyName("bio")]   public string? Bio { get; set; }
     }
+
+    public class RequestLogEntry
+    {
+        public DateTime Timestamp   { get; set; }
+        public string   Method      { get; set; } = "";
+        public string   Url         { get; set; } = "";
+        public int?     StatusCode  { get; set; }
+        public string?  Error       { get; set; }
+        public long     DurationMs  { get; set; }
+        public string?  ResponseBody { get; set; }
+    }
 }
