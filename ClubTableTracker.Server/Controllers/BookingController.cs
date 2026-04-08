@@ -784,6 +784,10 @@ public class BookingController : ControllerBase
         if (req.StartTime > DateTime.UtcNow.AddDays(MaxBookingDaysAhead))
             return BadRequest($"Бронирование можно делать не более чем на {MaxBookingDaysAhead} дней вперёд");
 
+        // Time change is only allowed within the same calendar day as the original booking
+        if (req.StartTime.Date != booking.StartTime.Date)
+            return BadRequest("Время можно изменить только в пределах этого дня");
+
         var club = _db.Clubs.Find(clubId);
         if (club == null) return NotFound("Club not found");
 
