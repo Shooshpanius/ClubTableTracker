@@ -20,6 +20,8 @@ services:
     depends_on:
       mariadb40club:
         condition: service_healthy
+    volumes:
+      - /opt/docker/data/club_uploads:/app/uploads
 
 
   front40club:

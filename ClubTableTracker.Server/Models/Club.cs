@@ -9,6 +9,7 @@ public class Club
     public string AccessKey { get; set; } = string.Empty;
     public string OpenTime { get; set; } = "10:00";
     public string CloseTime { get; set; } = "22:00";
+    public string? LogoUrl { get; set; }
     public List<GameTable> Tables { get; set; } = new();
     public List<ClubMembership> Memberships { get; set; } = new();
 }
