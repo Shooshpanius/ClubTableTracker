@@ -474,9 +474,9 @@ public class ClubAdminController : ControllerBase
         if (req.EndTime <= req.StartTime)
             return BadRequest("Время окончания должно быть позже времени начала");
 
-        bool isEvCampaign = ev.EventType == "Campaign";
+        bool isCampaign = ev.EventType == "Campaign";
 
-        if (isEvCampaign)
+        if (isCampaign)
         {
             if ((req.EndTime - req.StartTime).TotalDays > 365)
                 return BadRequest("Даты начала и окончания кампании не могут отстоять более чем на год");
