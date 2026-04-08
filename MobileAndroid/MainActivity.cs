@@ -394,7 +394,7 @@ namespace MobileAndroid
                     tvStatus.Visibility = ViewStates.Gone;
                     btnApply.Visibility = ViewStates.Visible;
                     btnApply.Enabled    = true;
-                    btnApply.Tag        = item.Club.Id;
+                    btnApply.Tag        = new Java.Lang.Integer(item.Club.Id);
                     btnApply.Click -= OnApplyClick;
                     btnApply.Click += OnApplyClick;
                 }
