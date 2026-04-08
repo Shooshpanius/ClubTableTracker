@@ -2,33 +2,22 @@ name: Сборка мобильного приложения
 
 on:
   workflow_dispatch:
-    inputs:
-      platform:
-        description: 'Платформа для сборки'
-        required: true
-        default: 'android'
-        type: choice
-        options:
-          - android
-          - ios
-          - both
 
 jobs:
   android:
     name: Android (APK)
-    if: ${{ inputs.platform == 'android' || inputs.platform == 'both' }}
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Получение кода
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Установка .NET 9
+      - name: Установка .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Установка workload Android
         run: dotnet workload install android
@@ -36,48 +25,13 @@ jobs:
       - name: Сборка APK
         run: >
           dotnet build
-          ClubTableTracker.avalonia/ClubTableTracker.avalonia.Android/ClubTableTracker.avalonia.Android.csproj
-          -f net9.0-android35.0
+          MobileAndroid/MobileAndroid.csproj
+          -f net10.0-android
           -c Release
 
       - name: Загрузка APK как артефакта
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: ClubTableTracker.avalonia/ClubTableTracker.avalonia.Android/bin/Release/net9.0-android35.0/*.apk
-          if-no-files-found: error
-
-  ios:
-    name: iOS
-    if: ${{ inputs.platform == 'ios' || inputs.platform == 'both' }}
-    runs-on: macos-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-    steps:
-      - name: Получение кода
-        uses: actions/checkout@v6
-
-      - name: Установка .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Установка workload iOS
-        run: dotnet workload install ios
-
-      - name: Сборка iOS (без подписи)
-        run: >
-          dotnet build
-          ClubTableTracker.avalonia/ClubTableTracker.avalonia.iOS/ClubTableTracker.avalonia.iOS.csproj
-          -f net9.0-ios18.0
-          -c Release
-          -p:RuntimeIdentifier=ios-arm64
-          -p:_AppleBundleSigningEnabled=false
-
-      - name: Загрузка .app как артефакта
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-app
-          path: ClubTableTracker.avalonia/ClubTableTracker.avalonia.iOS/bin/Release/net9.0-ios18.0/ios-arm64/**/*.app
+          path: MobileAndroid/bin/Release/net10.0-android/*.apk
           if-no-files-found: error
