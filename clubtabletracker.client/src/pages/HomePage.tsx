@@ -36,6 +36,7 @@ interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: st
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; isManualEntry?: boolean }
 interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
+interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 function parseHHMM(t: string): number {
@@ -441,9 +442,9 @@ export default function HomePage() {
   const [rescheduleEndTime, setRescheduleEndTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
   const [gameInfoModal, setGameInfoModal] = useState<Booking | UpcomingBooking | null>(null)
-  const [rosterModal, setRosterModal] = useState<{ booking: Booking | UpcomingBooking; canEditAll: boolean } | null>(null)
-  const [rosterEditValues, setRosterEditValues] = useState<Record<string, string>>({})
-  const [rosterSavingKey, setRosterSavingKey] = useState<string | null>(null)
+  const [playerRosterModal, setPlayerRosterModal] = useState<PlayerRosterInfo | null>(null)
+  const [playerRosterValue, setPlayerRosterValue] = useState('')
+  const [playerRosterSaving, setPlayerRosterSaving] = useState(false)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -452,26 +453,11 @@ export default function HomePage() {
   useEffect(() => { setModeratorAddPlayerId('') }, [moderatorBookingModal])
   useEffect(() => { setOwnerInvitePlayerId('') }, [ownerBookingModal])
 
-  // При открытии модалки инфо о игре — инициализируем значения ростеров из данных бронирования
+  // При открытии модалки ростера игрока — инициализируем значение ростера
   useEffect(() => {
-    if (!gameInfoModal) return
-    const vals: Record<string, string> = { owner: gameInfoModal.ownerRoster ?? '' }
-    for (const p of gameInfoModal.participants) {
-      if (p.participantId != null) vals[String(p.participantId)] = p.roster ?? ''
-    }
-    setRosterEditValues(vals)
-  }, [gameInfoModal])
-
-  // При открытии модалки ростеров — инициализируем значения ростеров
-  useEffect(() => {
-    if (!rosterModal) return
-    const b = rosterModal.booking
-    const vals: Record<string, string> = { owner: b.ownerRoster ?? '' }
-    for (const p of b.participants) {
-      if (p.participantId != null) vals[String(p.participantId)] = p.roster ?? ''
-    }
-    setRosterEditValues(vals)
-  }, [rosterModal])
+    if (!playerRosterModal) return
+    setPlayerRosterValue(playerRosterModal.roster ?? '')
+  }, [playerRosterModal])
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
 
@@ -529,14 +515,14 @@ export default function HomePage() {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   }
 
-  const saveMyRoster = async (bookingId: number, roster: string, key: string) => {
-    setRosterSavingKey(key)
+  const saveMyRoster = async (bookingId: number, roster: string) => {
+    setPlayerRosterSaving(true)
     const res = await fetch(`/api/booking/${bookingId}/roster`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ roster: roster || null })
     })
-    setRosterSavingKey(null)
+    setPlayerRosterSaving(false)
     if (res.ok) {
       onBookingCreated()
     } else {
@@ -545,19 +531,34 @@ export default function HomePage() {
     }
   }
 
-  const savePlayerRoster = async (bookingId: number, participantId: number | null, roster: string, key: string) => {
-    setRosterSavingKey(key)
+  const savePlayerRoster = async (bookingId: number, participantId: number | null, roster: string) => {
+    setPlayerRosterSaving(true)
     const res = await fetch(`/api/booking/${bookingId}/player-roster`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ participantId: participantId, roster: roster || null })
     })
-    setRosterSavingKey(null)
+    setPlayerRosterSaving(false)
     if (res.ok) {
       onBookingCreated()
     } else {
       const text = await res.text()
       alert(text || 'Не удалось сохранить ростер')
+    }
+  }
+
+  const openPlayerRoster = (info: PlayerRosterInfo) => {
+    setPlayerRosterModal(info)
+    setPlayerRosterValue(info.roster ?? '')
+  }
+
+  const saveCurrentPlayerRoster = async () => {
+    if (!playerRosterModal || !playerRosterModal.canEdit) return
+    const { booking: b, isOwnerPlayer, participantId, isAdminEdit } = playerRosterModal
+    if (isAdminEdit) {
+      await savePlayerRoster(b.id, isOwnerPlayer ? null : (participantId ?? null), playerRosterValue)
+    } else {
+      await saveMyRoster(b.id, playerRosterValue)
     }
   }
 
@@ -1000,11 +1001,28 @@ export default function HomePage() {
                                           <span style={{ color: "#4caf50", marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
                                           {b.gameSystem && <span style={{ color: "#888", marginLeft: 8, fontSize: 12, fontStyle: "italic" }}>{b.gameSystem}</span>}
                                           {b.isDoubles && <span style={{ color: "#7b2fff", marginLeft: 8, fontSize: 12, fontWeight: "bold" }}>2×2</span>}
-                                          <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
-                                            {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === "Invited" ? "(i) " : "") + p.name).join(", ")}`}
-                                            {isOwner && <span style={{ color: "#ff8c00", marginLeft: 6 }}>(организатор)</span>}
-                                            {isAcceptedParticipant && <span style={{ color: "#4caf50", marginLeft: 6 }}>(участник)</span>}
-                                            {isInvited && <span style={{ color: "#7b2fff", marginLeft: 6 }}>📩 приглашение</span>}
+                                          <div style={{ fontSize: 12, marginTop: 2 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                                              <span style={{ color: b.ownerRoster ? "#eee" : "#aaa" }}>{b.user.name}</span>
+                                              {isOwner && <span style={{ color: "#ff8c00", fontSize: 11 }}>(орг.)</span>}
+                                              <button
+                                                style={{ background: b.ownerRoster ? "#1a4a2a" : "#222", color: b.ownerRoster ? "#27ae60" : "#666", border: `1px solid ${b.ownerRoster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
+                                                onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false }) }}
+                                              >R</button>
+                                            </div>
+                                            {b.participants.filter(p => p.status !== "Invited").map(p => (
+                                              <div key={p.participantId ?? p.id} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginTop: 2 }}>
+                                                <span style={{ color: p.roster ? "#eee" : "#aaa" }}>{p.name}</span>
+                                                <button
+                                                  style={{ background: p.roster ? "#1a4a2a" : "#222", color: p.roster ? "#27ae60" : "#666", border: `1px solid ${p.roster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
+                                                  onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
+                                                >R</button>
+                                              </div>
+                                            ))}
+                                            {b.participants.filter(p => p.status === "Invited").map(p => (
+                                              <div key={p.participantId ?? p.id} style={{ color: "#7b2fff", fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
+                                            ))}
+                                            {isAcceptedParticipant && <span style={{ color: "#4caf50", fontSize: 11 }}>(участник)</span>}
                                           </div>
                                         </div>
                                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1026,7 +1044,7 @@ export default function HomePage() {
                                           {isAcceptedParticipant && (
                                             <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
                                           )}
-                                          <button style={{ ...btnStyle, background: "#1a4a2a", border: "1px solid #27ae60", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => setGameInfoModal(b)}>📋 Ростеры</button>
+
                                         </div>
                                       </div>
                                     )
@@ -1379,11 +1397,28 @@ export default function HomePage() {
                                       <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
                                       {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
                                       {b.isDoubles && <span style={{ color: '#7b2fff', marginLeft: 8, fontSize: 12, fontWeight: 'bold' }}>2×2</span>}
-                                      <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
-                                        {b.user.name}{b.participants.length > 0 && ` + ${b.participants.map(p => (p.status === 'Invited' ? '(i) ' : '') + p.name).join(', ')}`}
-                                        {isOwner && <span style={{ color: '#ff8c00', marginLeft: 6 }}>(организатор)</span>}
-                                        {isAcceptedParticipant && <span style={{ color: '#4caf50', marginLeft: 6 }}>(участник)</span>}
-                                        {isInvited && <span style={{ color: '#7b2fff', marginLeft: 6 }}>📩 приглашение</span>}
+                                      <div style={{ fontSize: 12, marginTop: 2 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                          <span style={{ color: b.ownerRoster ? '#eee' : '#aaa' }}>{b.user.name}</span>
+                                          {isOwner && <span style={{ color: '#ff8c00', fontSize: 11 }}>(орг.)</span>}
+                                          <button
+                                            style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
+                                            onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false }) }}
+                                          >R</button>
+                                        </div>
+                                        {b.participants.filter(p => p.status !== 'Invited').map(p => (
+                                          <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                                            <span style={{ color: p.roster ? '#eee' : '#aaa' }}>{p.name}</span>
+                                            <button
+                                              style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
+                                              onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
+                                            >R</button>
+                                          </div>
+                                        ))}
+                                        {b.participants.filter(p => p.status === 'Invited').map(p => (
+                                          <div key={p.participantId ?? p.id} style={{ color: '#7b2fff', fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
+                                        ))}
+                                        {isAcceptedParticipant && <span style={{ color: '#4caf50', fontSize: 11 }}>(участник)</span>}
                                       </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1405,7 +1440,7 @@ export default function HomePage() {
                                       {isAcceptedParticipant && (
                                         <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
                                       )}
-                                      <button style={{ ...btnStyle, background: '#1a4a2a', border: '1px solid #27ae60', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => setGameInfoModal(b)}>📋 Ростеры</button>
+
                                     </div>
                                   </div>
                                 )
@@ -1638,7 +1673,13 @@ export default function HomePage() {
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                <span style={{ color: '#eee', fontSize: 14 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
+                <span style={{ color: '#eee', fontSize: 14 }}>
+                  {b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span>
+                  <button
+                    style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: true })}
+                  >R</button>
+                </span>
                 {!isModeratorOwner && (
                   <button
                     style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
@@ -1650,7 +1691,13 @@ export default function HomePage() {
               </div>
               {acceptedParticipants.map(p => (
                 <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
+                  <span style={{ color: '#eee', fontSize: 14 }}>
+                    {p.name}
+                    <button
+                      style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: true, isAdminEdit: true })}
+                    >R</button>
+                  </span>
                   {!(user != null && p.id === user.id) && (
                     <button
                       style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
@@ -1784,12 +1831,7 @@ export default function HomePage() {
                   Отменить бронирование
                 </button>
               )}
-              <button
-                onClick={() => setRosterModal({ booking: b, canEditAll: true })}
-                style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                📋 Ростеры
-              </button>
+
               <button
                 onClick={() => openRescheduleModal(b)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1848,11 +1890,23 @@ export default function HomePage() {
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
               <div style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                <span style={{ color: '#eee', fontSize: 14 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span></span>
+                <span style={{ color: '#eee', fontSize: 14 }}>
+                  {b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span>
+                  <button
+                    style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: false })}
+                  >R</button>
+                </span>
               </div>
               {acceptedParticipants.map(p => (
                 <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14 }}>{p.name}</span>
+                  <span style={{ color: '#eee', fontSize: 14 }}>
+                    {p.name}
+                    <button
+                      style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}
+                    >R</button>
+                  </span>
                 </div>
               ))}
               {invitedParticipants.length > 0 && (
@@ -1902,12 +1956,7 @@ export default function HomePage() {
               >
                 Покинуть / Отменить
               </button>
-              <button
-                onClick={() => setRosterModal({ booking: b, canEditAll: false })}
-                style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                📋 Ростеры
-              </button>
+
               <button
                 onClick={() => openRescheduleModal(b)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1932,11 +1981,10 @@ export default function HomePage() {
       )
     })()}
 
-    {/* Модалка: информация об игре и ростеры (для всех игроков клуба) */}
+    {/* Модалка: информация об игре (для всех игроков клуба) */}
     {gameInfoModal && (() => {
       const b = gameInfoModal
       const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
-      const isMyBooking = user != null && (b.user.id === user.id || b.participants.some(p => p.id === user.id))
       const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
       const acceptedCount = acceptedParticipants.length
       const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
@@ -1945,7 +1993,6 @@ export default function HomePage() {
       const canJoin = user != null && !isOwner && !isParticipant && (acceptedCount + 1) < maxPlayers
       const myParticipant = user != null ? b.participants.find(p => p.id === user.id) : undefined
       const isParticipantAccepted = myParticipant && myParticipant.status !== 'Invited'
-      const hasAnyRoster = b.ownerRoster || acceptedParticipants.some(p => p.roster)
       return (
         <div
           onClick={() => setGameInfoModal(null)}
@@ -1955,74 +2002,29 @@ export default function HomePage() {
             onClick={e => e.stopPropagation()}
             style={{ background: '#16213e', border: '1px solid #27ae60', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 480, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
           >
-            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#27ae60' }}>📋 Ростеры игры</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#27ae60' }}>🎮 Игра</h3>
             <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
               {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
             </p>
-            {hasAnyRoster ? (
-              <div style={{ marginBottom: 12 }}>
-                {/* Ростер организатора */}
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ color: '#ff8c00', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                    {b.user.name} <span style={{ color: '#aaa', fontWeight: 400 }}>(организатор)</span>
-                  </div>
-                  {b.ownerRoster
-                    ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{b.ownerRoster}</pre>
-                    : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>}
-                </div>
-                {/* Ростеры участников */}
-                {acceptedParticipants.map(p => (
-                  <div key={p.participantId ?? p.id} style={{ marginBottom: 10 }}>
-                    <div style={{ color: '#4caf50', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
-                    {p.roster
-                      ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
-                      : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>}
-                  </div>
-                ))}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки:</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
+                <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
+                <button
+                  style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                  onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false })}
+                >R</button>
               </div>
-            ) : (
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ color: '#555', fontSize: 13, marginBottom: 10 }}>Ни один из игроков ещё не добавил ростер.</div>
-                {/* Отображаем список игроков хотя бы */}
-                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 4, fontWeight: 600 }}>Игроки:</div>
-                <div style={{ color: '#eee', fontSize: 13 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 11 }}>(организатор)</span></div>
-                {acceptedParticipants.map(p => (
-                  <div key={p.participantId ?? p.id} style={{ color: '#eee', fontSize: 13 }}>{p.name}</div>
-                ))}
-              </div>
-            )}
-            {/* Редактирование своего ростера (если участник) */}
-            {isMyBooking && (() => {
-              const isOwnerKey = isOwner
-              const myParticipantAccepted = isParticipantAccepted
-              if (!isOwnerKey && !myParticipantAccepted) return null
-              const key = isOwnerKey ? 'owner' : String(myParticipant!.participantId)
-              return (
-                <div style={{ marginBottom: 12, borderTop: '1px solid #1a4a2a', paddingTop: 10 }}>
-                  <div style={{ color: '#27ae60', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Мой ростер:</div>
-                  <textarea
-                    rows={4}
-                    placeholder="Введите свой ростер (список армии, состав и т.п.)"
-                    value={rosterEditValues[key] ?? ''}
-                    onChange={e => setRosterEditValues(v => ({ ...v, [key]: e.target.value }))}
-                    style={{ width: '100%', background: '#0f3460', color: '#eee', border: '1px solid #27ae60', borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                  />
+              {acceptedParticipants.map(p => (
+                <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
+                  <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{p.name}</span>
                   <button
-                    onClick={async () => {
-                      if (isOwnerKey) {
-                        await saveMyRoster(b.id, rosterEditValues['owner'] ?? '', 'owner')
-                      } else {
-                        await saveMyRoster(b.id, rosterEditValues[key] ?? '', key)
-                      }
-                    }}
-                    disabled={rosterSavingKey === key}
-                    style={{ marginTop: 6, background: '#1a4a2a', color: '#eee', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 14px', fontSize: 12, cursor: 'pointer' }}
-                  >
-                    {rosterSavingKey === key ? 'Сохраняю...' : 'Сохранить ростер'}
-                  </button>
+                    style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}
+                  >R</button>
                 </div>
-              )
-            })()}
+              ))}
+            </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {canJoin && (
                 <button
@@ -2052,100 +2054,67 @@ export default function HomePage() {
       )
     })()}
 
-    {/* Модалка: просмотр и редактирование ростеров */}
-    {rosterModal && (() => {
-      const { booking: b, canEditAll } = rosterModal
+    {/* Модалка: просмотр и редактирование ростера одного игрока */}
+    {playerRosterModal && (() => {
+      const { booking: b, playerName, isOwnerPlayer, roster, canEdit, isAdminEdit } = playerRosterModal
       const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
-      const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
-      const isOwner = user != null && b.user.id === user.id
-      const myParticipant = user != null ? b.participants.find(p => p.id === user.id) : undefined
-      const myKey = isOwner ? 'owner' : (myParticipant?.participantId != null ? String(myParticipant.participantId) : null)
-      const borderColor = canEditAll ? '#e94560' : '#27ae60'
+      const borderColor = isAdminEdit ? '#e94560' : '#27ae60'
       return (
         <div
-          onClick={() => setRosterModal(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050 }}
+          onClick={() => setPlayerRosterModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1050, paddingTop: '2vh', paddingBottom: '2vh', boxSizing: 'border-box' }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 480, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
+            style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 520, width: '92%', height: '96vh', maxHeight: '96vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
           >
-            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: borderColor }}>📋 Ростеры игры</h3>
-            <p style={{ margin: '0 0 14px 0', fontSize: 13, color: '#aaa' }}>
+            <h3 style={{ margin: '0 0 2px 0', fontSize: 16, color: borderColor, flexShrink: 0 }}>
+              {isOwnerPlayer ? '👑' : '🎮'} {playerName}
+            </h3>
+            <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa', flexShrink: 0 }}>
               {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
             </p>
-            {/* Ростер организатора */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ color: '#ff8c00', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                {b.user.name} <span style={{ color: '#aaa', fontWeight: 400 }}>(организатор)</span>
-              </div>
-              {(canEditAll || myKey === 'owner') ? (
-                <>
-                  <textarea
-                    rows={3}
-                    placeholder="Ростер не задан"
-                    value={rosterEditValues['owner'] ?? ''}
-                    onChange={e => setRosterEditValues(v => ({ ...v, owner: e.target.value }))}
-                    style={{ width: '100%', background: '#0f3460', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                  />
+            {canEdit ? (
+              <>
+                <textarea
+                  rows={8}
+                  placeholder="Ростер не задан. Введите список армии, состав и т.п."
+                  value={playerRosterValue}
+                  onChange={e => setPlayerRosterValue(e.target.value)}
+                  style={{ flex: 1, width: '100%', background: '#0a1628', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '10px 12px', fontSize: 13, resize: 'none', boxSizing: 'border-box', fontFamily: 'monospace', lineHeight: 1.5 }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexShrink: 0 }}>
                   <button
-                    onClick={() => canEditAll
-                      ? savePlayerRoster(b.id, null, rosterEditValues['owner'] ?? '', 'owner')
-                      : saveMyRoster(b.id, rosterEditValues['owner'] ?? '', 'owner')}
-                    disabled={rosterSavingKey === 'owner'}
-                    style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
+                    onClick={saveCurrentPlayerRoster}
+                    disabled={playerRosterSaving}
+                    style={{ background: borderColor === '#e94560' ? '#4a1a2a' : '#1a4a2a', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 20px', fontSize: 13, cursor: 'pointer', flex: 1 }}
                   >
-                    {rosterSavingKey === 'owner' ? 'Сохраняю...' : 'Сохранить'}
+                    {playerRosterSaving ? 'Сохраняю...' : 'Сохранить ростер'}
                   </button>
-                </>
-              ) : (
-                b.ownerRoster
-                  ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{b.ownerRoster}</pre>
-                  : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>
-              )}
-            </div>
-            {/* Ростеры участников */}
-            {acceptedParticipants.map(p => {
-              const key = p.participantId != null ? String(p.participantId) : null
-              const canEdit = key != null && (canEditAll || (myKey != null && myKey === key))
-              return (
-                <div key={p.participantId ?? p.id} style={{ marginBottom: 12 }}>
-                  <div style={{ color: '#4caf50', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
-                  {canEdit ? (
-                    <>
-                      <textarea
-                        rows={3}
-                        placeholder="Ростер не задан"
-                        value={rosterEditValues[key] ?? ''}
-                        onChange={e => setRosterEditValues(v => ({ ...v, [key]: e.target.value }))}
-                        style={{ width: '100%', background: '#0f3460', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                      />
-                      <button
-                        onClick={() => canEditAll
-                          ? savePlayerRoster(b.id, p.participantId!, rosterEditValues[key] ?? '', key)
-                          : saveMyRoster(b.id, rosterEditValues[key] ?? '', key)}
-                        disabled={rosterSavingKey === key}
-                        style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
-                      >
-                        {rosterSavingKey === key ? 'Сохраняю...' : 'Сохранить'}
-                      </button>
-                    </>
-                  ) : (
-                    p.roster
-                      ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
-                      : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>
-                  )}
+                  <button
+                    onClick={() => setPlayerRosterModal(null)}
+                    style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                  >
+                    Закрыть
+                  </button>
                 </div>
-              )
-            })}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-              <button
-                onClick={() => setRosterModal(null)}
-                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                Закрыть
-              </button>
-            </div>
+              </>
+            ) : (
+              <>
+                {roster
+                  ? <pre style={{ flex: 1, color: '#ccc', fontSize: 13, background: '#0a1628', padding: '12px 14px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowY: 'auto', fontFamily: 'monospace', lineHeight: 1.5 }}>{roster}</pre>
+                  : <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 14 }}>Ростер не задан</div>
+                }
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
+                  <button
+                    onClick={() => setPlayerRosterModal(null)}
+                    style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )
