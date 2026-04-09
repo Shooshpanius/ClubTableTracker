@@ -549,7 +549,6 @@ export default function HomePage() {
 
   const openPlayerRoster = (info: PlayerRosterInfo) => {
     setPlayerRosterModal(info)
-    setPlayerRosterValue(info.roster ?? '')
   }
 
   const saveCurrentPlayerRoster = async () => {
