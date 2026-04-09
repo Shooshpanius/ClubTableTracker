@@ -441,6 +441,7 @@ export default function HomePage() {
   const [rescheduleEndTime, setRescheduleEndTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
   const [gameInfoModal, setGameInfoModal] = useState<Booking | UpcomingBooking | null>(null)
+  const [rosterModal, setRosterModal] = useState<{ booking: Booking | UpcomingBooking; canEditAll: boolean } | null>(null)
   const [rosterEditValues, setRosterEditValues] = useState<Record<string, string>>({})
   const [rosterSavingKey, setRosterSavingKey] = useState<string | null>(null)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
@@ -461,25 +462,16 @@ export default function HomePage() {
     setRosterEditValues(vals)
   }, [gameInfoModal])
 
-  // При открытии модалки модератора — инициализируем ростеры
+  // При открытии модалки ростеров — инициализируем значения ростеров
   useEffect(() => {
-    if (!moderatorBookingModal) return
-    const vals: Record<string, string> = { owner: moderatorBookingModal.ownerRoster ?? '' }
-    for (const p of moderatorBookingModal.participants) {
+    if (!rosterModal) return
+    const b = rosterModal.booking
+    const vals: Record<string, string> = { owner: b.ownerRoster ?? '' }
+    for (const p of b.participants) {
       if (p.participantId != null) vals[String(p.participantId)] = p.roster ?? ''
     }
     setRosterEditValues(vals)
-  }, [moderatorBookingModal])
-
-  // При открытии модалки организатора — инициализируем свой ростер
-  useEffect(() => {
-    if (!ownerBookingModal) return
-    const vals: Record<string, string> = { owner: ownerBookingModal.ownerRoster ?? '' }
-    for (const p of ownerBookingModal.participants) {
-      if (p.participantId != null) vals[String(p.participantId)] = p.roster ?? ''
-    }
-    setRosterEditValues(vals)
-  }, [ownerBookingModal])
+  }, [rosterModal])
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
 
@@ -1766,46 +1758,7 @@ export default function HomePage() {
                 </div>
               )
             })()}
-            {/* Ростеры игроков — модератор может редактировать за любого */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Ростеры игроков:</div>
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ color: '#eee', fontSize: 13, marginBottom: 3 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 11 }}>(организатор)</span></div>
-                <textarea
-                  rows={3}
-                  placeholder="Ростер не задан"
-                  value={rosterEditValues['owner'] ?? ''}
-                  onChange={e => setRosterEditValues(v => ({ ...v, owner: e.target.value }))}
-                  style={{ width: '100%', background: '#0f3460', color: '#eee', border: '1px solid #e94560', borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                />
-                <button
-                  onClick={() => savePlayerRoster(b.id, null, rosterEditValues['owner'] ?? '', 'owner')}
-                  disabled={rosterSavingKey === 'owner'}
-                  style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: '1px solid #e94560', borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
-                >
-                  {rosterSavingKey === 'owner' ? 'Сохраняю...' : 'Сохранить'}
-                </button>
-              </div>
-              {acceptedParticipants.map(p => p.participantId != null ? (
-                <div key={p.participantId} style={{ marginBottom: 8 }}>
-                  <div style={{ color: '#eee', fontSize: 13, marginBottom: 3 }}>{p.name}</div>
-                  <textarea
-                    rows={3}
-                    placeholder="Ростер не задан"
-                    value={rosterEditValues[String(p.participantId)] ?? ''}
-                    onChange={e => setRosterEditValues(v => ({ ...v, [String(p.participantId)]: e.target.value }))}
-                    style={{ width: '100%', background: '#0f3460', color: '#eee', border: '1px solid #e94560', borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                  />
-                  <button
-                    onClick={() => savePlayerRoster(b.id, p.participantId!, rosterEditValues[String(p.participantId)] ?? '', String(p.participantId))}
-                    disabled={rosterSavingKey === String(p.participantId)}
-                    style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: '1px solid #e94560', borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
-                  >
-                    {rosterSavingKey === String(p.participantId) ? 'Сохраняю...' : 'Сохранить'}
-                  </button>
-                </div>
-              ) : null)}
-            </div>
+            {/* Ростеры игроков — открываются отдельным модальным окном */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {canJoin && (
                 <button
@@ -1831,6 +1784,12 @@ export default function HomePage() {
                   Отменить бронирование
                 </button>
               )}
+              <button
+                onClick={() => setRosterModal({ booking: b, canEditAll: true })}
+                style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                📋 Ростеры
+              </button>
               <button
                 onClick={() => openRescheduleModal(b)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1935,41 +1894,19 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-            {/* Мой ростер (организатор редактирует свой, остальные — только просмотр) */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Ростеры игроков:</div>
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ color: '#eee', fontSize: 13, marginBottom: 3 }}>Ваш ростер</div>
-                <textarea
-                  rows={3}
-                  placeholder="Введите свой ростер (список армии, состав и т.п.)"
-                  value={rosterEditValues['owner'] ?? ''}
-                  onChange={e => setRosterEditValues(v => ({ ...v, owner: e.target.value }))}
-                  style={{ width: '100%', background: '#0f3460', color: '#eee', border: '1px solid #ff8c00', borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                />
-                <button
-                  onClick={() => saveMyRoster(b.id, rosterEditValues['owner'] ?? '', 'owner')}
-                  disabled={rosterSavingKey === 'owner'}
-                  style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: '1px solid #ff8c00', borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
-                >
-                  {rosterSavingKey === 'owner' ? 'Сохраняю...' : 'Сохранить ростер'}
-                </button>
-              </div>
-              {acceptedParticipants.map(p => (
-                <div key={p.participantId ?? p.id} style={{ marginBottom: 6 }}>
-                  <div style={{ color: '#aaa', fontSize: 12, marginBottom: 2 }}>{p.name}:</div>
-                  {p.roster
-                    ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '6px 8px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
-                    : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>}
-                </div>
-              ))}
-            </div>
+            {/* Ростеры — открываются отдельным модальным окном */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
                 onClick={async () => { setOwnerBookingModal(null); await cancelBooking(b) }}
                 style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
                 Покинуть / Отменить
+              </button>
+              <button
+                onClick={() => setRosterModal({ booking: b, canEditAll: false })}
+                style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                📋 Ростеры
               </button>
               <button
                 onClick={() => openRescheduleModal(b)}
@@ -2105,6 +2042,105 @@ export default function HomePage() {
               )}
               <button
                 onClick={() => setGameInfoModal(null)}
+                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+
+    {/* Модалка: просмотр и редактирование ростеров */}
+    {rosterModal && (() => {
+      const { booking: b, canEditAll } = rosterModal
+      const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+      const acceptedParticipants = b.participants.filter(p => p.status !== 'Invited')
+      const isOwner = user != null && b.user.id === user.id
+      const myParticipant = user != null ? b.participants.find(p => p.id === user.id) : undefined
+      const myKey = isOwner ? 'owner' : (myParticipant?.participantId != null ? String(myParticipant.participantId) : null)
+      const borderColor = canEditAll ? '#e94560' : '#27ae60'
+      return (
+        <div
+          onClick={() => setRosterModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 480, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
+          >
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: borderColor }}>📋 Ростеры игры</h3>
+            <p style={{ margin: '0 0 14px 0', fontSize: 13, color: '#aaa' }}>
+              {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
+            </p>
+            {/* Ростер организатора */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ color: '#ff8c00', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                {b.user.name} <span style={{ color: '#aaa', fontWeight: 400 }}>(организатор)</span>
+              </div>
+              {(canEditAll || myKey === 'owner') ? (
+                <>
+                  <textarea
+                    rows={3}
+                    placeholder="Ростер не задан"
+                    value={rosterEditValues['owner'] ?? ''}
+                    onChange={e => setRosterEditValues(v => ({ ...v, owner: e.target.value }))}
+                    style={{ width: '100%', background: '#0f3460', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                  <button
+                    onClick={() => canEditAll
+                      ? savePlayerRoster(b.id, null, rosterEditValues['owner'] ?? '', 'owner')
+                      : saveMyRoster(b.id, rosterEditValues['owner'] ?? '', 'owner')}
+                    disabled={rosterSavingKey === 'owner'}
+                    style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
+                  >
+                    {rosterSavingKey === 'owner' ? 'Сохраняю...' : 'Сохранить'}
+                  </button>
+                </>
+              ) : (
+                b.ownerRoster
+                  ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{b.ownerRoster}</pre>
+                  : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>
+              )}
+            </div>
+            {/* Ростеры участников */}
+            {acceptedParticipants.map(p => {
+              const key = p.participantId != null ? String(p.participantId) : null
+              const canEdit = key != null && (canEditAll || (myKey != null && myKey === key))
+              return (
+                <div key={p.participantId ?? p.id} style={{ marginBottom: 12 }}>
+                  <div style={{ color: '#4caf50', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
+                  {canEdit ? (
+                    <>
+                      <textarea
+                        rows={3}
+                        placeholder="Ростер не задан"
+                        value={rosterEditValues[key] ?? ''}
+                        onChange={e => setRosterEditValues(v => ({ ...v, [key]: e.target.value }))}
+                        style={{ width: '100%', background: '#0f3460', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 8px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
+                      />
+                      <button
+                        onClick={() => canEditAll
+                          ? savePlayerRoster(b.id, p.participantId!, rosterEditValues[key] ?? '', key)
+                          : saveMyRoster(b.id, rosterEditValues[key] ?? '', key)}
+                        disabled={rosterSavingKey === key}
+                        style={{ marginTop: 4, background: '#1a1a4a', color: '#ccc', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
+                      >
+                        {rosterSavingKey === key ? 'Сохраняю...' : 'Сохранить'}
+                      </button>
+                    </>
+                  ) : (
+                    p.roster
+                      ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '8px 10px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
+                      : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>
+                  )}
+                </div>
+              )
+            })}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <button
+                onClick={() => setRosterModal(null)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
               >
                 Закрыть
