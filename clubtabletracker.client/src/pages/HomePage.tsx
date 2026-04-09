@@ -431,6 +431,7 @@ export default function HomePage() {
   const [ownerInvitePlayerId, setOwnerInvitePlayerId] = useState('')
   const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
   const [galleryPhotoModal, setGalleryPhotoModal] = useState<string | null>(null)
+  const [playersSystemFilter, setPlayersSystemFilter] = useState<string>('')
   const [rescheduleStartTime, setRescheduleStartTime] = useState('')
   const [rescheduleEndTime, setRescheduleEndTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
@@ -1054,7 +1055,19 @@ export default function HomePage() {
                     {/* Tab: Игроки клуба */}
                     {mobileTab === "players" && (
                       <div>
-                        <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Игроки клуба</h3>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                          <h3 style={{ margin: 0, fontSize: 15 }}>Игроки клуба</h3>
+                          <select
+                            value={playersSystemFilter}
+                            onChange={e => setPlayersSystemFilter(e.target.value)}
+                            style={{ background: "#0f3460", color: "#ccc", border: "1px solid #1a4a8a", borderRadius: 4, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}
+                          >
+                            <option value="">Все системы</option>
+                            {Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort().map(sys => (
+                              <option key={sys} value={sys}>{sys}</option>
+                            ))}
+                          </select>
+                        </div>
                         {members.length === 0 ? (
                           <p style={{ color: "#aaa", margin: 0 }}>Нет принятых игроков</p>
                         ) : (
@@ -1070,7 +1083,7 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.map(m => (
+                                {members.filter(m => !playersSystemFilter || (m.enabledGameSystems || '').split('|').includes(playersSystemFilter)).map(m => (
                                   <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
                                     <td style={{ padding: "6px 8px" }}>{m.registrationName}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
@@ -1400,7 +1413,19 @@ export default function HomePage() {
                     {/* Tab: Игроки клуба */}
                     {desktopTab === 'players' && (
                       <div>
-                        <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Игроки клуба</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                          <h3 style={{ margin: 0, fontSize: 15 }}>Игроки клуба</h3>
+                          <select
+                            value={playersSystemFilter}
+                            onChange={e => setPlayersSystemFilter(e.target.value)}
+                            style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}
+                          >
+                            <option value=''>Все системы</option>
+                            {Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort().map(sys => (
+                              <option key={sys} value={sys}>{sys}</option>
+                            ))}
+                          </select>
+                        </div>
                         {members.length === 0 ? (
                           <p style={{ color: '#aaa', margin: 0 }}>Нет принятых игроков</p>
                         ) : (
@@ -1416,7 +1441,7 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.map(m => (
+                                {members.filter(m => !playersSystemFilter || (m.enabledGameSystems || '').split('|').includes(playersSystemFilter)).map(m => (
                                   <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
                                     <td style={{ padding: '8px 12px' }}>{m.registrationName}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
