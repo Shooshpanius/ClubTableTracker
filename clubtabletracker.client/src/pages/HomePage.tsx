@@ -1019,7 +1019,7 @@ export default function HomePage() {
                                   )}
                                   {ev.missionMapUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl!)}
+                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
                                         style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
                                         title="Нажмите для просмотра" />
                                     </div>
@@ -1395,7 +1395,7 @@ export default function HomePage() {
                                   )}
                                   {ev.missionMapUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl!)}
+                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
                                         style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
                                         title="Нажмите для просмотра" />
                                     </div>
