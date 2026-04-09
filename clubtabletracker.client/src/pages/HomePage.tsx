@@ -2106,12 +2106,12 @@ export default function HomePage() {
             </div>
             {/* Ростеры участников */}
             {acceptedParticipants.map(p => {
-              const key = p.participantId != null ? String(p.participantId) : p.id
-              const canEdit = canEditAll || (myKey != null && myKey === key)
+              const key = p.participantId != null ? String(p.participantId) : null
+              const canEdit = key != null && (canEditAll || (myKey != null && myKey === key))
               return (
                 <div key={p.participantId ?? p.id} style={{ marginBottom: 12 }}>
                   <div style={{ color: '#4caf50', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
-                  {canEdit && p.participantId != null ? (
+                  {canEdit ? (
                     <>
                       <textarea
                         rows={3}
