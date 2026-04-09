@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Базовая конфигурация: только HTTPS, доверяем системным CA -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+    <!-- Для домена go40k.ru дополнительно доверяем пользовательским
+         (вручную установленным) CA — нужно если сервер использует
+         CA не входящий в стандартный Android trust store -->
+    <domain-config>
+        <domain includeSubdomains="true">go40k.ru</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
