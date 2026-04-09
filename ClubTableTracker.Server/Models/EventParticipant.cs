@@ -7,4 +7,5 @@ public class EventParticipant
     public ClubEvent Event { get; set; } = null!;
     public string UserId { get; set; } = "";
     public AppUser User { get; set; } = null!;
+    public string? Roster { get; set; }
 }
