@@ -1047,7 +1047,7 @@ export default function HomePage() {
                                     {isRegistered && (
                                       <button
                                         style={{ ...btnStyle, background: "#1a4a6a", fontSize: 12, padding: "4px 10px", marginRight: 0 }}
-                                        onClick={() => { const p = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: p?.name ?? user.displayName ?? user.name ?? '', roster: p?.roster ?? '' }); setRosterEditText(p?.roster ?? '') }}
+                                        onClick={() => { const participant = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: participant?.name ?? user.displayName ?? user.name ?? '', roster: participant?.roster ?? '' }); setRosterEditText(participant?.roster ?? '') }}
                                       >📋 Мой ростер</button>
                                     )}
                                     {isModerator && ev.participants.filter(p => p.id !== user.id).map(p => (
@@ -1437,7 +1437,7 @@ export default function HomePage() {
                                     {isRegistered && (
                                       <button
                                         style={{ ...btnStyle, background: '#1a4a6a', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
-                                        onClick={() => { const p = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: p?.name ?? '', roster: p?.roster ?? '' }); setRosterEditText(p?.roster ?? '') }}
+                                        onClick={() => { const participant = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: participant?.name ?? '', roster: participant?.roster ?? '' }); setRosterEditText(participant?.roster ?? '') }}
                                       >📋 Мой ростер</button>
                                     )}
                                     {isModerator && ev.participants.filter(p => p.id !== user.id).map(p => (
