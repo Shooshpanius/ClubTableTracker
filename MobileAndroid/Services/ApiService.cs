@@ -12,8 +12,7 @@ namespace MobileAndroid.Services
 {
     public class ApiService
     {
-        private static readonly Xamarin.Android.Net.AndroidMessageHandler _handler = new Xamarin.Android.Net.AndroidMessageHandler();
-        private static readonly HttpClient _client = new HttpClient(_handler);
+        private static readonly HttpClient _client = new HttpClient();
         internal const string BaseUrl = "https://go40k.ru/api";
         private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions
         {
