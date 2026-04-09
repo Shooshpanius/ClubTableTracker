@@ -445,6 +445,16 @@ export default function HomePage() {
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
 
+  const availablePlayerSystems = useMemo(
+    () => Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort(),
+    [members]
+  )
+
+  const filteredMembers = useMemo(
+    () => !playersSystemFilter ? members : members.filter(m => (m.enabledGameSystems || '').split('|').includes(playersSystemFilter)),
+    [members, playersSystemFilter]
+  )
+
   const kickPlayerFromBooking = async (booking: Booking, targetId: string, participantId?: number) => {
     const targetName = booking.user.id === targetId
       ? booking.user.name
@@ -1063,7 +1073,7 @@ export default function HomePage() {
                             style={{ background: "#0f3460", color: "#ccc", border: "1px solid #1a4a8a", borderRadius: 4, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}
                           >
                             <option value="">Все системы</option>
-                            {Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort().map(sys => (
+                            {availablePlayerSystems.map(sys => (
                               <option key={sys} value={sys}>{sys}</option>
                             ))}
                           </select>
@@ -1083,7 +1093,7 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.filter(m => !playersSystemFilter || (m.enabledGameSystems || '').split('|').includes(playersSystemFilter)).map(m => (
+                                {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
                                     <td style={{ padding: "6px 8px" }}>{m.registrationName}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
@@ -1421,7 +1431,7 @@ export default function HomePage() {
                             style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}
                           >
                             <option value=''>Все системы</option>
-                            {Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort().map(sys => (
+                            {availablePlayerSystems.map(sys => (
                               <option key={sys} value={sys}>{sys}</option>
                             ))}
                           </select>
@@ -1441,7 +1451,7 @@ export default function HomePage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {members.filter(m => !playersSystemFilter || (m.enabledGameSystems || '').split('|').includes(playersSystemFilter)).map(m => (
+                                {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
                                     <td style={{ padding: '8px 12px' }}>{m.registrationName}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
