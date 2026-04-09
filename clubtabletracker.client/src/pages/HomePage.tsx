@@ -1955,10 +1955,12 @@ export default function HomePage() {
                   {rosterSavingKey === 'owner' ? 'Сохраняю...' : 'Сохранить ростер'}
                 </button>
               </div>
-              {acceptedParticipants.filter(p => p.roster).map(p => (
-                <div key={p.participantId} style={{ marginBottom: 6 }}>
+              {acceptedParticipants.map(p => (
+                <div key={p.participantId ?? p.id} style={{ marginBottom: 6 }}>
                   <div style={{ color: '#aaa', fontSize: 12, marginBottom: 2 }}>{p.name}:</div>
-                  <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '6px 8px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
+                  {p.roster
+                    ? <pre style={{ color: '#ccc', fontSize: 12, background: '#0a1628', padding: '6px 8px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{p.roster}</pre>
+                    : <span style={{ color: '#555', fontSize: 12 }}>Ростер не задан</span>}
                 </div>
               ))}
             </div>
