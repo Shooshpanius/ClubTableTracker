@@ -1046,7 +1046,7 @@ export default function ClubAdminPage() {
                         style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
-                        <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                        <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                           disabled={regulationUploading === ev.id}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
                       </label>
@@ -1056,8 +1056,8 @@ export default function ClubAdminPage() {
                     </>
                   ) : (
                     <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент (PDF, до 10 МБ)'}
-                      <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент (PDF / Word, до 10 МБ)'}
+                      <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                         disabled={regulationUploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
                     </label>
