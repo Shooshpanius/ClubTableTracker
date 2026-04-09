@@ -33,7 +33,7 @@ public class EventController : ControllerBase
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl,
-                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Roster })
             })
             .ToList();
         return Ok(events);
@@ -77,4 +77,44 @@ public class EventController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    [HttpPut("{id}/roster")]
+    public IActionResult UpdateOwnRoster(int id, [FromBody] RosterRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var participant = _db.EventParticipants
+            .Include(p => p.Event)
+            .FirstOrDefault(p => p.EventId == id && p.UserId == userId);
+        if (participant == null) return NotFound("Вы не зарегистрированы на это событие");
+
+        participant.Roster = req.Roster;
+        _db.SaveChanges();
+        return Ok();
+    }
+
+    [HttpPut("{id}/roster/{userId}")]
+    public IActionResult UpdateParticipantRoster(int id, string userId, [FromBody] RosterRequest req)
+    {
+        var currentUserId = GetUserId();
+        if (currentUserId == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id);
+        if (ev == null) return NotFound();
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == currentUserId && m.ClubId == ev.ClubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        var participant = _db.EventParticipants.FirstOrDefault(p => p.EventId == id && p.UserId == userId);
+        if (participant == null) return NotFound("Участник не найден");
+
+        participant.Roster = req.Roster;
+        _db.SaveChanges();
+        return Ok();
+    }
 }
+
+public record RosterRequest(string? Roster);

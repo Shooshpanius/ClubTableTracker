@@ -34,7 +34,7 @@ interface Booking extends BookingBase { tableId: number; startTime: string; endT
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; isManualEntry?: boolean }
-interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; participants: { id: string; name: string }[] }
+interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; participants: { id: string; name: string; roster?: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 function parseHHMM(t: string): number {
@@ -249,6 +249,24 @@ export default function HomePage() {
     }
   }
 
+  const updateRoster = async (eventId: number, roster: string, targetUserId?: string) => {
+    const url = targetUserId ? `/api/event/${eventId}/roster/${targetUserId}` : `/api/event/${eventId}/roster`
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roster })
+    })
+    if (res.ok) {
+      if (!selectedClub) return
+      const evRes = await fetch(`/api/event/club/${selectedClub.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (evRes.ok) setClubEvents(await evRes.json())
+      setRosterEditModal(null)
+    } else {
+      const text = await res.text()
+      alert(text || 'Не удалось сохранить ростер')
+    }
+  }
+
   const onBookingCreated = async () => {
     if (!selectedClub) return
     const res = await fetch(`/api/booking/club/${selectedClub.id}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -432,6 +450,8 @@ export default function HomePage() {
   const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
   const [galleryPhotoModal, setGalleryPhotoModal] = useState<string | null>(null)
   const [playersSystemFilter, setPlayersSystemFilter] = useState<string>('')
+  const [rosterEditModal, setRosterEditModal] = useState<{ eventId: number; userId: string; name: string; roster: string } | null>(null)
+  const [rosterEditText, setRosterEditText] = useState('')
   const [rescheduleStartTime, setRescheduleStartTime] = useState('')
   const [rescheduleEndTime, setRescheduleEndTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
@@ -998,9 +1018,19 @@ export default function HomePage() {
                                     &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
                                     {isRegistered && <span style={{ color: "#4caf50", marginLeft: 8 }}>✓ вы записаны</span>}
                                   </div>
-                                  {ev.participants.length > 0 && (
+                                   {ev.participants.length > 0 && (
                                     <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
                                       {ev.participants.map(p => p.name).join(", ")}
+                                    </div>
+                                  )}
+                                  {ev.participants.length > 0 && ev.participants.some(p => p.roster) && (
+                                    <div style={{ marginTop: 6 }}>
+                                      {ev.participants.filter(p => p.roster).map(p => (
+                                        <div key={p.id} style={{ marginTop: 4 }}>
+                                          <span style={{ fontSize: 11, color: "#7eb8f7", fontWeight: "bold" }}>{p.name}:</span>
+                                          <div style={{ fontSize: 11, color: "#ccc", whiteSpace: "pre-wrap", marginLeft: 8, marginTop: 2, background: "#0a1628", borderRadius: 4, padding: "4px 6px" }}>{p.roster}</div>
+                                        </div>
+                                      ))}
                                     </div>
                                   )}
                                   {ev.description && (
@@ -1013,9 +1043,25 @@ export default function HomePage() {
                                   )}
                                 </div>
                                 {user && (
-                                  isRegistered
-                                    ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                                    : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
+                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                                    {isRegistered && (
+                                      <button
+                                        style={{ ...btnStyle, background: "#1a4a6a", fontSize: 12, padding: "4px 10px", marginRight: 0 }}
+                                        onClick={() => { const participant = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: participant?.name ?? user.displayName ?? user.name ?? '', roster: participant?.roster ?? '' }); setRosterEditText(participant?.roster ?? '') }}
+                                      >📋 Мой ростер</button>
+                                    )}
+                                    {isModerator && ev.participants.filter(p => p.id !== user.id).map(p => (
+                                      <button
+                                        key={p.id}
+                                        style={{ ...btnStyle, background: "#2a3a1a", fontSize: 11, padding: "3px 8px", marginRight: 0 }}
+                                        onClick={() => { setRosterEditModal({ eventId: ev.id, userId: p.id, name: p.name, roster: p.roster ?? '' }); setRosterEditText(p.roster ?? '') }}
+                                      >📋 {p.name}</button>
+                                    ))}
+                                    {isRegistered
+                                      ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                                      : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
+                                    }
+                                  </div>
                                 )}
                               </div>
                             )
@@ -1367,6 +1413,16 @@ export default function HomePage() {
                                       {ev.participants.map(p => p.name).join(', ')}
                                     </div>
                                   )}
+                                  {ev.participants.length > 0 && ev.participants.some(p => p.roster) && (
+                                    <div style={{ marginTop: 6 }}>
+                                      {ev.participants.filter(p => p.roster).map(p => (
+                                        <div key={p.id} style={{ marginTop: 4 }}>
+                                          <span style={{ fontSize: 11, color: '#7eb8f7', fontWeight: 'bold' }}>{p.name}:</span>
+                                          <div style={{ fontSize: 11, color: '#ccc', whiteSpace: 'pre-wrap', marginLeft: 8, marginTop: 2, background: '#0a1628', borderRadius: 4, padding: '4px 6px' }}>{p.roster}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                   {ev.description && (
                                     <div style={{ fontSize: 12, color: '#bbb', marginTop: 4, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
                                   )}
@@ -1377,9 +1433,25 @@ export default function HomePage() {
                                   )}
                                 </div>
                                 {user && (
-                                  isRegistered
-                                    ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                                    : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {isRegistered && (
+                                      <button
+                                        style={{ ...btnStyle, background: '#1a4a6a', fontSize: 12, padding: '4px 10px', marginRight: 0 }}
+                                        onClick={() => { const participant = ev.participants.find(p => p.id === user.id); setRosterEditModal({ eventId: ev.id, userId: user.id, name: participant?.name ?? '', roster: participant?.roster ?? '' }); setRosterEditText(participant?.roster ?? '') }}
+                                      >📋 Мой ростер</button>
+                                    )}
+                                    {isModerator && ev.participants.filter(p => p.id !== user.id).map(p => (
+                                      <button
+                                        key={p.id}
+                                        style={{ ...btnStyle, background: '#2a3a1a', fontSize: 11, padding: '3px 8px', marginRight: 0 }}
+                                        onClick={() => { setRosterEditModal({ eventId: ev.id, userId: p.id, name: p.name, roster: p.roster ?? '' }); setRosterEditText(p.roster ?? '') }}
+                                      >📋 {p.name}</button>
+                                    ))}
+                                    {isRegistered
+                                      ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                                      : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                                    }
+                                  </div>
                                 )}
                               </div>
                             )
@@ -1938,6 +2010,37 @@ export default function HomePage() {
           onClick={e => e.stopPropagation()}
           style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,0.7)', objectFit: 'contain', cursor: 'default' }}
         />
+      </div>
+    )}
+    {/* Модалка: редактирование ростера */}
+    {rosterEditModal && (
+      <div
+        onClick={() => setRosterEditModal(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 24, width: '90%', maxWidth: 480 }}
+        >
+          <h3 style={{ margin: '0 0 12px 0', color: '#eee', fontSize: 16 }}>Ростер: {rosterEditModal.name}</h3>
+          <textarea
+            value={rosterEditText}
+            onChange={e => setRosterEditText(e.target.value)}
+            rows={10}
+            style={{ width: '100%', background: '#0a1628', color: '#eee', border: '1px solid #0f3460', borderRadius: 4, padding: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'monospace' }}
+            placeholder="Введите описание команды/ростера..."
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+            <button
+              style={{ background: '#533483', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              onClick={() => updateRoster(rosterEditModal.eventId, rosterEditText, rosterEditModal.userId !== (user?.id ?? '') ? rosterEditModal.userId : undefined)}
+            >Сохранить</button>
+            <button
+              style={{ background: '#333', color: '#ccc', border: '1px solid #555', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              onClick={() => setRosterEditModal(null)}
+            >Отмена</button>
+          </div>
+        </div>
       </div>
     )}
   </>
