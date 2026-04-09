@@ -6,14 +6,14 @@
             <certificates src="system"/>
         </trust-anchors>
     </base-config>
-    <!-- Для домена go40k.ru дополнительно доверяем пользовательским
-         (вручную установленным) CA — нужно если сервер использует
-         CA не входящий в стандартный Android trust store -->
+    <!-- Явная конфигурация для go40k.ru — доверяем системным CA.
+         Если сертификат сервера выпущен CA не из стандартного Android trust
+         store, необходимо добавить CA-сертификат в Resources/raw/ и
+         указать его здесь: <certificates src="@raw/ca_cert"/> -->
     <domain-config>
-        <domain includeSubdomains="true">go40k.ru</domain>
+        <domain>go40k.ru</domain>
         <trust-anchors>
             <certificates src="system"/>
-            <certificates src="user"/>
         </trust-anchors>
     </domain-config>
 </network-security-config>
