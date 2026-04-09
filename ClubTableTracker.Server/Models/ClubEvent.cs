@@ -14,5 +14,7 @@ public class ClubEvent
     public string? TableIds { get; set; }
     public string? Description { get; set; }
     public string? RegulationUrl { get; set; }
+    public string? RegulationUrl2 { get; set; }
+    public string? MissionMapUrl { get; set; }
     public List<EventParticipant> Participants { get; set; } = new();
 }

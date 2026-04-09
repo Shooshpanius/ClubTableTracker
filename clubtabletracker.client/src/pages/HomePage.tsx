@@ -34,7 +34,7 @@ interface Booking extends BookingBase { tableId: number; startTime: string; endT
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; isManualEntry?: boolean }
-interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; participants: { id: string; name: string }[] }
+interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 function parseHHMM(t: string): number {
@@ -423,6 +423,7 @@ export default function HomePage() {
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
+  const [missionMapModal, setMissionMapModal] = useState<string | null>(null)
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [clubGallery, setClubGallery] = useState<{ id: number; url: string }[]>([])
   const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('tables')
@@ -1008,7 +1009,19 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 1</a>
+                                    </div>
+                                  )}
+                                  {ev.regulationUrl2 && (
+                                    <div style={{ marginTop: 2 }}>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 2</a>
+                                    </div>
+                                  )}
+                                  {ev.missionMapUrl && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
+                                        style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                                        title="Нажмите для просмотра" />
                                     </div>
                                   )}
                                 </div>
@@ -1372,7 +1385,19 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 1</a>
+                                    </div>
+                                  )}
+                                  {ev.regulationUrl2 && (
+                                    <div style={{ marginTop: 2 }}>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 2</a>
+                                    </div>
+                                  )}
+                                  {ev.missionMapUrl && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
+                                        style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                                        title="Нажмите для просмотра" />
                                     </div>
                                   )}
                                 </div>
@@ -1829,6 +1854,21 @@ export default function HomePage() {
         </div>
       )
     })()}
+
+    {/* Модалка: карта миссии */}
+    {missionMapModal && (
+      <div
+        onClick={() => setMissionMapModal(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, cursor: 'zoom-out' }}
+      >
+        <img
+          src={missionMapModal}
+          alt="Карта миссии"
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 0 40px rgba(0,0,0,0.8)', cursor: 'default' }}
+        />
+      </div>
+    )}
 
     {/* Модалка: изменение времени игры */}
     {rescheduleModal && (() => {

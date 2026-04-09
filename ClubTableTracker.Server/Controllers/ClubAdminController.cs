@@ -365,7 +365,7 @@ public class ClubAdminController : ControllerBase
             .Select(e => new
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
-                e.Description, e.RegulationUrl,
+                e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
@@ -426,7 +426,7 @@ public class ClubAdminController : ControllerBase
         };
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
-        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl });
+        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl, ev.RegulationUrl2, ev.MissionMapUrl });
     }
 
     [HttpDelete("events/{id}")]
@@ -530,6 +530,122 @@ public class ClubAdminController : ControllerBase
             var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
             ev.RegulationUrl = null;
+            _db.SaveChanges();
+        }
+        return NoContent();
+    }
+
+    [HttpPost("events/{id}/regulation2")]
+    public async Task<IActionResult> UploadRegulation2(int id, IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+
+        var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+        var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var allowedMimeTypes = new[] {
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+        if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
+            return BadRequest("Допускаются только файлы PDF и MS Word (.doc, .docx)");
+
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
+        Directory.CreateDirectory(dir);
+
+        if (!string.IsNullOrEmpty(ev.RegulationUrl2))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl2.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+        }
+
+        var fileName = $"regulation2{fileExt}";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        ev.RegulationUrl2 = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}";
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.RegulationUrl2 });
+    }
+
+    [HttpDelete("events/{id}/regulation2")]
+    public IActionResult DeleteRegulation2(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(ev.RegulationUrl2))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl2.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+            ev.RegulationUrl2 = null;
+            _db.SaveChanges();
+        }
+        return NoContent();
+    }
+
+    [HttpPost("events/{id}/missionmap")]
+    public async Task<IActionResult> UploadMissionMap(int id, IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
+            return BadRequest("Допускаются только изображения JPG, PNG, WebP");
+
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
+        Directory.CreateDirectory(dir);
+
+        if (!string.IsNullOrEmpty(ev.MissionMapUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.MissionMapUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+        }
+
+        var fileName = $"missionmap{fileExt}";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        ev.MissionMapUrl = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}";
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.MissionMapUrl });
+    }
+
+    [HttpDelete("events/{id}/missionmap")]
+    public IActionResult DeleteMissionMap(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(ev.MissionMapUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, ev.MissionMapUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+            ev.MissionMapUrl = null;
             _db.SaveChanges();
         }
         return NoContent();

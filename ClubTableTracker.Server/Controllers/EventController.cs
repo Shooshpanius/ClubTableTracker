@@ -32,7 +32,7 @@ public class EventController : ControllerBase
             .Select(e => new
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
-                e.Description, e.RegulationUrl,
+                e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();

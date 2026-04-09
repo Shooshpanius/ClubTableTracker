@@ -7,7 +7,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -38,6 +38,8 @@ export default function ClubAdminPage() {
   const [editingDescEventId, setEditingDescEventId] = useState<number | null>(null)
   const [editingDescValue, setEditingDescValue] = useState('')
   const [regulationUploading, setRegulationUploading] = useState<number | null>(null)
+  const [regulation2Uploading, setRegulation2Uploading] = useState<number | null>(null)
+  const [missionMapUploading, setMissionMapUploading] = useState<number | null>(null)
   const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
   const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
   const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
@@ -388,6 +390,54 @@ export default function ClubAdminPage() {
       headers: { 'X-Club-Key': clubKey }
     })
     if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, regulationUrl: undefined } : e))
+  }
+
+  const uploadRegulation2 = async (id: number, file: File) => {
+    setRegulation2Uploading(id)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/clubadmin/events/${id}/regulation2`, {
+      method: 'POST',
+      headers: { 'X-Club-Key': clubKey },
+      body: formData
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, regulationUrl2: data.regulationUrl2 } : e))
+    }
+    setRegulation2Uploading(null)
+  }
+
+  const deleteRegulation2 = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/regulation2`, {
+      method: 'DELETE',
+      headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, regulationUrl2: undefined } : e))
+  }
+
+  const uploadMissionMap = async (id: number, file: File) => {
+    setMissionMapUploading(id)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/clubadmin/events/${id}/missionmap`, {
+      method: 'POST',
+      headers: { 'X-Club-Key': clubKey },
+      body: formData
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, missionMapUrl: data.missionMapUrl } : e))
+    }
+    setMissionMapUploading(null)
+  }
+
+  const deleteMissionMap = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/missionmap`, {
+      method: 'DELETE',
+      headers: { 'X-Club-Key': clubKey }
+    })
+    if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, missionMapUrl: undefined } : e))
   }
 
   const updateTablePosition = async (id: number, x: number, y: number) => {
@@ -1043,7 +1093,7 @@ export default function ClubAdminPage() {
                   {ev.regulationUrl ? (
                     <>
                       <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент</a>
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 1</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
@@ -1056,10 +1106,61 @@ export default function ClubAdminPage() {
                     </>
                   ) : (
                     <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент (PDF / Word, до 10 МБ)'}
+                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент 1 (PDF / Word, до 10 МБ)'}
                       <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                         disabled={regulationUploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
+                    </label>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {ev.regulationUrl2 ? (
+                    <>
+                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer"
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 2</a>
+                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                        {regulation2Uploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                        <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
+                          disabled={regulation2Uploading === ev.id}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation2(ev.id, f); e.target.value = '' }} />
+                      </label>
+                      <button onClick={() => deleteRegulation2(ev.id)}
+                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                        title="Удалить регламент 2">× Удалить</button>
+                    </>
+                  ) : (
+                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                      {regulation2Uploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент 2 (PDF / Word, до 10 МБ)'}
+                      <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
+                        disabled={regulation2Uploading === ev.id}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation2(ev.id, f); e.target.value = '' }} />
+                    </label>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {ev.missionMapUrl ? (
+                    <>
+                      <span style={{ color: '#aaa', fontSize: 13 }}>🗺️ Карта миссии:</span>
+                      <img src={ev.missionMapUrl} alt="Карта миссии" style={{ maxHeight: 48, maxWidth: 80, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                        title="Просмотреть" />
+                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                        {missionMapUploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                        <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
+                          disabled={missionMapUploading === ev.id}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
+                      </label>
+                      <button onClick={() => deleteMissionMap(ev.id)}
+                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                        title="Удалить карту миссии">× Удалить</button>
+                    </>
+                  ) : (
+                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
+                      {missionMapUploading === ev.id ? 'Загрузка...' : '🗺️ Прикрепить карту миссии (JPG/PNG/WebP, до 10 МБ)'}
+                      <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
+                        disabled={missionMapUploading === ev.id}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
                     </label>
                   )}
                 </div>
