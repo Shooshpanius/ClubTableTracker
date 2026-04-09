@@ -15,4 +15,6 @@ public class BookingParticipant
     public string? ManualName { get; set; }
     /// <summary>"Invited" — ожидает ответа, "Accepted" — принял приглашение или присоединился самостоятельно</summary>
     public string Status { get; set; } = "Accepted";
+    /// <summary>Ростер игрока — многострочное текстовое описание армии/состава</summary>
+    public string? Roster { get; set; }
 }
