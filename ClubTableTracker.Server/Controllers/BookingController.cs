@@ -40,12 +40,14 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 b.IsForOthers,
+                b.OwnerRoster,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new {
                     ParticipantId = p.Id,
                     Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
                     Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
-                    p.Status
+                    p.Status,
+                    p.Roster
                 })
             })
             .ToList();
@@ -80,12 +82,14 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 b.IsForOthers,
+                b.OwnerRoster,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new {
                     ParticipantId = p.Id,
                     Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
                     Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
-                    p.Status
+                    p.Status,
+                    p.Roster
                 })
             })
             .ToList();
@@ -123,12 +127,14 @@ public class BookingController : ControllerBase
                 b.GameSystem,
                 b.IsDoubles,
                 b.IsForOthers,
+                b.OwnerRoster,
                 User = new { b.User.Id, Name = b.User.DisplayName ?? b.User.Name },
                 Participants = b.Participants.Select(p => new {
                     ParticipantId = p.Id,
                     Id = p.UserId ?? $"manual:{p.ManualMembershipId}",
                     Name = p.UserId != null ? (p.User?.DisplayName ?? p.User?.Name ?? "") : (p.ManualName ?? ""),
-                    p.Status
+                    p.Status,
+                    p.Roster
                 })
             })
             .ToList();
@@ -1101,9 +1107,71 @@ public class BookingController : ControllerBase
         _db.SaveChanges();
         return Ok();
     }
+
+    /// <summary>Игрок задаёт свой ростер в резерве (владелец или участник)</summary>
+    [HttpPut("{id}/roster")]
+    public IActionResult SetMyRoster(int id, [FromBody] SetRosterRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        if (booking.UserId == userId)
+        {
+            booking.OwnerRoster = req.Roster;
+            _db.SaveChanges();
+            return Ok();
+        }
+
+        var participant = booking.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null) return Forbid();
+
+        participant.Roster = req.Roster;
+        _db.SaveChanges();
+        return Ok();
+    }
+
+    /// <summary>Модератор задаёт ростер за любого игрока (participantId == null → владелец)</summary>
+    [HttpPut("{id}/player-roster")]
+    public IActionResult SetPlayerRoster(int id, [FromBody] SetPlayerRosterRequest req)
+    {
+        var callerId = GetUserId();
+        if (callerId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var isModerator = _db.Memberships.Any(m =>
+            m.UserId == callerId && m.ClubId == booking.Table.ClubId &&
+            m.Status == "Approved" && m.IsModerator);
+        if (!isModerator) return Forbid();
+
+        if (req.ParticipantId == null)
+        {
+            booking.OwnerRoster = req.Roster;
+            _db.SaveChanges();
+            return Ok();
+        }
+
+        var participant = booking.Participants.FirstOrDefault(p => p.Id == req.ParticipantId);
+        if (participant == null) return NotFound("Participant not found in this booking");
+
+        participant.Roster = req.Roster;
+        _db.SaveChanges();
+        return Ok();
+    }
 }
 
 public record CreateBookingRequest(int TableId, DateTime StartTime, DateTime EndTime, string? GameSystem = null, bool IsDoubles = false, bool IsForOthers = false, List<string>? InvitedUserIds = null);
 public record RescheduleBookingRequest(DateTime StartTime, DateTime EndTime);
 public record MoveTableRequest(int NewTableId);
 public record AddPlayerRequest(string UserId);
+public record SetRosterRequest(string? Roster);
+public record SetPlayerRosterRequest(int? ParticipantId, string? Roster);
