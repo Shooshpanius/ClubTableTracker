@@ -486,8 +486,16 @@ public class ClubAdminController : ControllerBase
 
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
         if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
-        if (file.ContentType != "application/pdf" && !file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            return BadRequest("Допускается только PDF файл");
+
+        var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+        var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var allowedMimeTypes = new[] {
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+        if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
+            return BadRequest("Допускаются только файлы PDF и MS Word (.doc, .docx)");
 
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
         Directory.CreateDirectory(dir);
@@ -498,7 +506,7 @@ public class ClubAdminController : ControllerBase
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
-        var fileName = "regulation.pdf";
+        var fileName = $"regulation{fileExt}";
         var filePath = Path.Combine(dir, fileName);
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream);
