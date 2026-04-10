@@ -1,6 +1,6 @@
 # ClubTableTracker
 
-**ClubTableTracker** — полнофункциональная система для управления столами и бронированием мест в настольных клубах. Включает **веб-приложение** (ASP.NET Core + React + TypeScript + Vite) и **мобильное приложение для Android** (.NET for Android).
+**ClubTableTracker** — полнофункциональная система для управления столами и бронированием мест в настольных клубах. Включает **веб-приложение** (ASP.NET Core + React + TypeScript + Vite).
 
 ---
 
@@ -15,13 +15,12 @@
 - [Конфигурация](#конфигурация)
 - [API](#api)
 - [Архитектура базы данных](#архитектура-базы-данных)
-- [Мобильное приложение Android](#мобильное-приложение-android)
 
 ---
 
 ## О проекте
 
-ClubTableTracker решает задачу учёта столов и бронирований в настольных клубах. Система поддерживает несколько клубов, каждый из которых управляет своими столами, участниками, событиями и расписанием. Пользователи входят через Google OAuth, подают заявки на вступление в клубы, видят карту столов, бронируют время для игры, записываются на клубные события и управляют профилем. Помимо веб-интерфейса, доступно нативное мобильное приложение для Android.
+ClubTableTracker решает задачу учёта столов и бронирований в настольных клубах. Система поддерживает несколько клубов, каждый из которых управляет своими столами, участниками, событиями и расписанием. Пользователи входят через Google OAuth, подают заявки на вступление в клубы, видят карту столов, бронируют время для игры, записываются на клубные события и управляют профилем.
 
 ---
 
@@ -44,20 +43,6 @@ ClubTableTracker решает задачу учёта столов и брони
 | Vite | Сборщик и dev-сервер |
 | React Router | Маршрутизация |
 | Google Identity Services | Вход через Google OAuth |
-
-### Десктопный клиент
-| Технология | Описание |
-|---|---|
-| Avalonia UI | Кросс-платформенный UI-фреймворк (.NET) |
-| CommunityToolkit.Mvvm | MVVM-паттерн |
-
-### Мобильное приложение (Android)
-| Технология | Описание |
-|---|---|
-| .NET for Android | Нативная разработка под Android (.NET 10, API 24+) |
-| System.Text.Json | Сериализация/десериализация JSON без лишних зависимостей |
-| SharedPreferences | Хранение JWT-токена на устройстве |
-| HttpClient | HTTP-клиент для обращений к API |
 
 ---
 
@@ -86,8 +71,11 @@ ClubTableTracker/
 │   │   ├── ClubDecoration.cs         # Декоративный элемент карты клуба
 │   │   ├── ClubEvent.cs              # Событие клуба
 │   │   ├── ClubMembership.cs         # Членство в клубе
+│   │   ├── ClubPhoto.cs              # Фото галереи клуба
 │   │   ├── EventParticipant.cs       # Участник события
+│   │   ├── GameSystemConstants.cs    # Список поддерживаемых игровых систем
 │   │   └── GameTable.cs              # Игровой стол
+│   ├── Migrations/                   # Миграции EF Core
 │   ├── appsettings.json              # Конфигурация приложения
 │   └── Program.cs                    # Точка входа и настройка DI
 │
@@ -103,31 +91,6 @@ ClubTableTracker/
 │   │   └── main.tsx                  # Точка входа React
 │   ├── .env.example                  # Пример переменных окружения
 │   └── vite.config.ts                # Конфигурация Vite
-│
-├── MobileAndroid/                    # Мобильное приложение Android
-│   ├── Activities/
-│   │   └── LoginActivity.cs          # Экран входа (JWT-токен, MainLauncher)
-│   ├── Models/
-│   │   └── ApiModels.cs              # Модели данных (Club, Membership, Booking и др.)
-│   ├── Services/
-│   │   ├── ApiService.cs             # HTTP-клиент для работы с API
-│   │   └── TokenStorage.cs           # Хранение JWT в SharedPreferences
-│   ├── Resources/
-│   │   ├── layout/
-│   │   │   ├── activity_login.xml    # Разметка экрана входа
-│   │   │   ├── activity_main.xml     # Оболочка: контент + нижняя навигация
-│   │   │   ├── fragment_clubs.xml    # Вкладка «Клубы»
-│   │   │   ├── fragment_bookings.xml # Вкладка «Бронирования»
-│   │   │   ├── fragment_log.xml      # Вкладка «Журнал активности»
-│   │   │   ├── fragment_profile.xml  # Вкладка «Профиль»
-│   │   │   ├── item_club.xml         # Элемент списка клубов
-│   │   │   ├── item_booking.xml      # Элемент списка бронирований
-│   │   │   └── item_log.xml          # Элемент журнала активности
-│   │   └── values/
-│   │       └── strings.xml           # Строки (русская локализация)
-│   ├── MainActivity.cs               # Главный экран: 4 вкладки + нижняя навигация
-│   ├── AndroidManifest.xml           # Манифест приложения
-│   └── MobileAndroid.csproj          # Файл проекта (net10.0-android)
 │
 └── ClubTableTracker.slnx             # Файл решения Visual Studio
 ```
@@ -180,16 +143,29 @@ ClubTableTracker/
 - Режим **одиночной игры**: максимум **2 игрока** за столом
 - Режим **doubles**: максимум **4 игрока** за столом
 - Создатель бронирования может заранее пригласить участников, а также добавлять новых игроков после создания; приглашённые принимают или отклоняют приглашение
+- Бронирование можно пометить как **«для других»** (`IsForOthers`): создатель бронирует место для другого игрока и сам не занимает слот
 - Слот можно пометить как **«ЗАБРОНИРОВАНО»** (`__RESERVED__`) — виртуальная занятая позиция без конкретного игрока; используется при приглашении и модераторском добавлении участников
 - Система автоматически проверяет конфликты расписания при создании бронирования
-- Бронирование нельзя создать позднее, чем за 30 дней
+- Бронирование нельзя создать позднее, чем за 30 дней (исключение — участники кампаний могут бронировать в пределах срока кампании)
+- Владелец или модератор клуба может перенести бронирование на другое время (`reschedule`) в пределах того же дня
 - Модератор клуба может перенести бронирование на другой стол, принудительно добавить или исключить участника
-- Журнал активности хранит историю действий (Booked / Joined / Left / Cancelled / MovedTable) за последний месяц
+- Журнал активности хранит историю действий (Booked / Joined / Left / Cancelled / MovedTable / Rescheduled) за последний месяц
+
+### Ростеры
+Каждый участник бронирования может добавить текстовый **ростер** — описание своей армии или состава. Модератор клуба вправе редактировать ростер любого участника.
+
+### Ручные участники
+Администратор клуба может добавить **ручного участника** (игрок без аккаунта Google) — указать имя и email. Такой участник включается в список членов клуба и может быть добавлен в бронирование.
 
 ### Клубные события
-- Администратор клуба создаёт события (тип, игровая система, дата, максимальное число участников, прикреплённые столы)
+- Администратор клуба создаёт события (тип, игровая система, дата начала и конца, максимальное число участников, прикреплённые столы, описание)
+- Поддерживаемые типы событий: **Tournament** и **Campaign** (кампания; начало и конец могут отстоять до года)
+- К событию можно прикрепить до двух файлов **регламента** (.pdf, .doc, .docx, до 10 МБ) и изображение **карты миссий** (.jpg, .png, .webp, до 10 МБ)
 - Пользователи видят события своего клуба и записываются на них
-- Столы, помеченные флагом **EventsOnly** или прикреплённые к событию, доступны для бронирования только зарегистрированным участникам этого события
+- Столы, помеченные флагом **EventsOnly** или прикреплённые к турнирному событию (тип ≠ Campaign), доступны для бронирования только зарегистрированным участникам этого события
+
+### Логотип и галерея клуба
+Администратор клуба может загрузить **логотип** (jpeg, png, webp, gif, до 5 МБ) и фотографии **галереи** (до 10 фото, каждое до 5 МБ). Логотип и галерея отображаются в списке клубов и на странице клуба.
 
 ### Столы
 Каждый стол содержит:
@@ -210,9 +186,7 @@ ClubTableTracker/
 2. Администратор клуба одобряет (`Approved`) или отклоняет (`Rejected`) заявку
 3. Только члены клуба со статусом `Approved` могут видеть столы и создавать бронирования
 4. Администратор может исключить участника (`Kicked`); исключённый пользователь может повторно подать заявку
-
-### Мобильное приложение Android
-Нативное Android-приложение (.NET for Android, API 24+). Для входа вставьте JWT-токен, полученный на сайте `go40k.ru`. Функциональность: список клубов с возможностью подать заявку, предстоящие бронирования, журнал активности за месяц, редактирование профиля. Приложение работает через тот же API по адресу `https://go40k.ru/api`.
+5. Администратор может добавить **ручного участника** (IsManualEntry) без привязки к аккаунту Google
 
 ---
 
@@ -380,10 +354,11 @@ ClubTableTracker/
 
 | Метод | Путь | Авторизация | Описание |
 |---|---|---|---|
-| `GET` | `/api/club` | — | Список всех клубов (с часами работы) |
+| `GET` | `/api/club` | — | Список всех клубов (id, name, description, openTime, closeTime, logoUrl) |
 | `GET` | `/api/club/{id}/tables` | JWT (участник) | Столы клуба |
 | `GET` | `/api/club/{id}/decorations` | JWT (участник) | Декорации карты клуба |
 | `GET` | `/api/club/{id}/members` | JWT (участник) | Список участников клуба |
+| `GET` | `/api/club/{id}/gallery` | JWT (участник) | Фотографии галереи клуба |
 | `POST` | `/api/club/{id}/apply` | JWT | Подать заявку на вступление |
 | `GET` | `/api/club/my-memberships` | JWT | Мои членства |
 
@@ -403,6 +378,9 @@ ClubTableTracker/
 | `POST` | `/api/booking/{id}/invite-player` | Пригласить игрока (владелец бронирования) |
 | `POST` | `/api/booking/{id}/add-player` | Добавить игрока без приглашения (модератор клуба) |
 | `PATCH` | `/api/booking/{id}/move-table` | Перенести бронирование на другой стол (модератор клуба) |
+| `PATCH` | `/api/booking/{id}/reschedule` | Перенести бронирование на другое время в тот же день (владелец или модератор) |
+| `PUT` | `/api/booking/{id}/roster` | Установить свой ростер (владелец или участник) |
+| `PUT` | `/api/booking/{id}/player-roster` | Установить ростер игрока (модератор клуба) |
 | `DELETE` | `/api/booking/{id}/decline-invite` | Отклонить приглашение |
 | `DELETE` | `/api/booking/{id}/leave` | Покинуть бронирование (если участник) |
 | `DELETE` | `/api/booking/{id}` | Отменить бронирование (владелец; передаёт права первому принятому участнику) |
@@ -428,6 +406,11 @@ ClubTableTracker/
 |---|---|---|
 | `GET` | `/api/clubadmin/me` | Информация о клубе по ключу |
 | `PUT` | `/api/clubadmin/settings` | Изменить часы работы клуба (openTime, closeTime) |
+| `POST` | `/api/clubadmin/logo` | Загрузить логотип клуба (jpeg/png/webp/gif, до 5 МБ) |
+| `DELETE` | `/api/clubadmin/logo` | Удалить логотип клуба |
+| `GET` | `/api/clubadmin/gallery` | Список фотографий галереи клуба |
+| `POST` | `/api/clubadmin/gallery` | Добавить фото в галерею (jpeg/png/webp/gif, до 5 МБ, максимум 10 фото) |
+| `DELETE` | `/api/clubadmin/gallery/{id}` | Удалить фото из галереи |
 | `GET` | `/api/clubadmin/tables` | Список столов |
 | `POST` | `/api/clubadmin/tables` | Создать стол |
 | `PUT` | `/api/clubadmin/tables/{id}` | Обновить стол |
@@ -438,15 +421,25 @@ ClubTableTracker/
 | `PUT` | `/api/clubadmin/decorations/{id}` | Обновить декорацию |
 | `DELETE` | `/api/clubadmin/decorations/{id}` | Удалить декорацию |
 | `GET` | `/api/clubadmin/memberships` | Заявки на вступление и список участников |
+| `POST` | `/api/clubadmin/memberships/manual` | Добавить ручного участника (без аккаунта Google) |
+| `PUT` | `/api/clubadmin/memberships/{id}/manual` | Обновить данные ручного участника |
 | `POST` | `/api/clubadmin/memberships/{id}/approve` | Одобрить заявку |
 | `POST` | `/api/clubadmin/memberships/{id}/reject` | Отклонить заявку |
 | `POST` | `/api/clubadmin/memberships/{id}/set-moderator` | Назначить / снять модератора |
 | `POST` | `/api/clubadmin/memberships/{id}/kick` | Исключить участника (отменяет его будущие бронирования) |
+| `PUT` | `/api/clubadmin/memberships/{id}/game-systems` | Обновить игровые системы участника |
 | `GET` | `/api/clubadmin/events` | Список событий клуба |
 | `POST` | `/api/clubadmin/events` | Создать событие |
 | `DELETE` | `/api/clubadmin/events/{id}` | Удалить событие |
 | `PUT` | `/api/clubadmin/events/{id}/title` | Изменить название события |
+| `PUT` | `/api/clubadmin/events/{id}/description` | Изменить описание события (до 500 символов) |
 | `PUT` | `/api/clubadmin/events/{id}/date` | Изменить дату/время события |
+| `POST` | `/api/clubadmin/events/{id}/regulation` | Загрузить файл регламента (.pdf/.doc/.docx, до 10 МБ) |
+| `DELETE` | `/api/clubadmin/events/{id}/regulation` | Удалить файл регламента |
+| `POST` | `/api/clubadmin/events/{id}/regulation2` | Загрузить второй файл регламента (.pdf/.doc/.docx, до 10 МБ) |
+| `DELETE` | `/api/clubadmin/events/{id}/regulation2` | Удалить второй файл регламента |
+| `POST` | `/api/clubadmin/events/{id}/missionmap` | Загрузить карту миссий (.jpg/.png/.webp, до 10 МБ) |
+| `DELETE` | `/api/clubadmin/events/{id}/missionmap` | Удалить карту миссий |
 | `POST` | `/api/clubadmin/events/{id}/participants/{userId}` | Добавить участника события |
 | `DELETE` | `/api/clubadmin/events/{id}/participants/{userId}` | Удалить участника события |
 
@@ -482,8 +475,10 @@ Club
   ├── AccessKey                  ← уникальный ключ для ClubAdmin
   ├── OpenTime                   ← время открытия (формат "HH:mm")
   ├── CloseTime                  ← время закрытия (формат "HH:mm")
+  ├── LogoUrl                    ← URL логотипа (опционально)
   ├── Tables[]
-  └── Memberships[]
+  ├── Memberships[]
+  └── Photos[]                   ← галерея клуба
 
 GameTable
   ├── Id
@@ -498,11 +493,15 @@ GameTable
 
 ClubMembership
   ├── Id
-  ├── UserId             → AppUser
+  ├── UserId             → AppUser (null для ручных участников)
   ├── ClubId             → Club
   ├── Status             (Pending / Approved / Rejected / Kicked)
   ├── IsModerator        ← может исключать игроков из бронирований
-  └── AppliedAt
+  ├── AppliedAt
+  ├── IsManualEntry      ← true для участников без аккаунта Google
+  ├── ManualName         ← имя ручного участника
+  ├── ManualEmail        ← email ручного участника (опционально)
+  └── ManualEnabledGameSystems ← игровые системы ручного участника
 
 Booking
   ├── Id
@@ -512,18 +511,23 @@ Booking
   ├── EndTime
   ├── GameSystem         ← игровая система (опционально)
   ├── IsDoubles          ← doubles-режим (4 игрока вместо 2)
+  ├── IsForOthers        ← владелец бронирует для других и не занимает слот
+  ├── OwnerRoster        ← ростер владельца (опционально)
   └── Participants[]
 
 BookingParticipant
   ├── Id
   ├── BookingId          → Booking
-  ├── UserId             → AppUser (или строка "__RESERVED__" для виртуального занятого слота)
-  └── Status             (Invited / Accepted)
+  ├── UserId             → AppUser (null для ручных игроков)
+  ├── ManualMembershipId → ClubMembership (для ручных игроков)
+  ├── ManualName         ← имя ручного игрока на момент добавления
+  ├── Status             (Invited / Accepted)
+  └── Roster             ← ростер участника (опционально)
 
 BookingLog
   ├── Id
   ├── Timestamp
-  ├── Action             (Booked / Joined / Left / Cancelled / MovedTable)
+  ├── Action             (Booked / Joined / Left / Cancelled / MovedTable / Rescheduled)
   ├── UserId             → AppUser
   ├── BookingId          → Booking (nullable — сохраняется после удаления)
   ├── TableNumber        ← снимок номера стола
@@ -535,11 +539,16 @@ ClubEvent
   ├── Id
   ├── ClubId             → Club
   ├── Title
-  ├── Date
+  ├── StartTime          ← дата и время начала
+  ├── EndTime            ← дата и время конца
   ├── MaxParticipants
-  ├── EventType          (Tournament / …)
+  ├── EventType          (Tournament / Campaign)
   ├── GameSystem         (опционально)
   ├── TableIds           ← id столов через ',' (опционально)
+  ├── Description        ← описание события до 500 символов (опционально)
+  ├── RegulationUrl      ← URL файла регламента (опционально)
+  ├── RegulationUrl2     ← URL второго файла регламента (опционально)
+  ├── MissionMapUrl      ← URL карты миссий (опционально)
   └── Participants[]
 
 EventParticipant
@@ -553,61 +562,13 @@ ClubDecoration
   ├── Type               (wall / window / door)
   ├── X, Y               (позиция на карте)
   └── Width, Height      (размеры на карте)
+
+ClubPhoto
+  ├── Id
+  ├── ClubId             → Club
+  ├── Url                ← URL изображения
+  └── OrderIndex         ← порядок в галерее
 ```
 
-База данных MariaDB/MySQL создаётся автоматически при первом запуске приложения (`db.Database.EnsureCreated()`). Убедитесь, что MySQL/MariaDB-сервер запущен и пользователь из строки подключения имеет права на создание базы данных.
+База данных MariaDB/MySQL создаётся и обновляется автоматически при первом запуске приложения через EF Core Migrations (`db.Database.Migrate()`). Убедитесь, что MySQL/MariaDB-сервер запущен и пользователь из строки подключения имеет права на создание и изменение базы данных.
 ---
-
-## Мобильное приложение Android
-
-### Требования
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) с workload `android`
-- Android SDK (API 24+), эмулятор или физическое устройство
-
-### Установка workload
-
-```bash
-dotnet workload install android
-```
-
-### Сборка и запуск
-
-```bash
-cd MobileAndroid
-
-# Запустить на подключённом устройстве/эмуляторе
-dotnet build -t:Run -f net10.0-android
-
-# Собрать Release APK
-dotnet build -f net10.0-android -c Release
-```
-
-Собранный APK находится в `MobileAndroid/bin/Release/net10.0-android/`.
-
-### Вход в приложение
-
-1. Откройте веб-интерфейс `https://go40k.ru`
-2. Войдите через Google OAuth
-3. Откройте DevTools → Application → Local Storage → скопируйте значение ключа `token`
-4. Вставьте JWT в поле на экране входа приложения — токен сохранится автоматически
-
-### Вкладки приложения
-
-| Вкладка | Функциональность |
-|---|---|
-| **Клубы** | Список всех клубов с часами работы, статус членства, кнопка «Подать заявку» |
-| **Брони** | Предстоящие бронирования: стол, клуб, дата/время, участники, режим (Doubles) |
-| **Журнал** | Лента активности за последние 30 дней по всем клубам пользователя |
-| **Профиль** | Редактирование отображаемого имени, биографии, списка игровых систем; выход |
-
-### Структура каталога
-
-| Путь | Описание |
-|---|---|
-| `Activities/LoginActivity.cs` | Экран входа (MainLauncher), автоматический пропуск при наличии токена |
-| `Models/ApiModels.cs` | Типизированные модели, соответствующие JSON-ответам API |
-| `Services/ApiService.cs` | Все HTTP-запросы к `https://go40k.ru/api` |
-| `Services/TokenStorage.cs` | SharedPreferences: сохранение и чтение JWT |
-| `MainActivity.cs` | 4 вкладки через `FrameLayout`, адаптеры `ListView`, профиль |
-| `Resources/layout/` | XML-разметки всех экранов и элементов списков |
