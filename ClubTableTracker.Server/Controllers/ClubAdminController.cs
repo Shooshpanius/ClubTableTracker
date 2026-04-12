@@ -485,7 +485,7 @@ public class ClubAdminController : ControllerBase
         if (ev == null) return NotFound();
 
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
-        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+        if (file.Length > 40 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 40 МБ");
 
         var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
         var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -545,7 +545,7 @@ public class ClubAdminController : ControllerBase
         if (ev == null) return NotFound();
 
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
-        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+        if (file.Length > 40 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 40 МБ");
 
         var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
         var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -605,7 +605,7 @@ public class ClubAdminController : ControllerBase
         if (ev == null) return NotFound();
 
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
-        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+        if (file.Length > 40 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 40 МБ");
 
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         var fileExt = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -772,7 +772,7 @@ public class ClubAdminController : ControllerBase
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
-        if (file.Length > 5 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 5 МБ");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
         if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
 
         var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName);
@@ -830,7 +830,7 @@ public class ClubAdminController : ControllerBase
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
-        if (file.Length > 5 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 5 МБ");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
         if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
 
         var count = _db.ClubPhotos.Count(p => p.ClubId == club.Id);
