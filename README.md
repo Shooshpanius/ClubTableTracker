@@ -1,5 +1,22 @@
 # ClubTableTracker
 
+<div align="center">
+
+[![Live](https://img.shields.io/badge/🚀%20Продакшн-go40k.ru-darkgreen?style=for-the-badge&logo=google-chrome&logoColor=white)](https://go40k.ru/)
+
+[![GitHub Stars](https://img.shields.io/github/stars/Shooshpanius/ClubTableTracker?style=flat-square&logo=github&label=Stars&cacheSeconds=3600)](https://github.com/Shooshpanius/ClubTableTracker/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Shooshpanius/ClubTableTracker?style=flat-square&logo=github&label=Forks&cacheSeconds=3600)](https://github.com/Shooshpanius/ClubTableTracker/forks)
+[![GitHub Issues](https://img.shields.io/github/issues/Shooshpanius/ClubTableTracker?style=flat-square&logo=github&label=Issues)](https://github.com/Shooshpanius/ClubTableTracker/issues)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+
+![.NET](https://img.shields.io/badge/.NET_10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat-square&logo=mariadb&logoColor=white)
+
+</div>
+
 **ClubTableTracker** — полнофункциональная система для управления столами и бронированием мест в настольных клубах. Включает **веб-приложение** (ASP.NET Core + React + TypeScript + Vite).
 
 ---
