@@ -178,7 +178,7 @@ catch
 
 ## 🟡 Средние
 
-### 6. Загрузка файлов без проверки magic bytes
+### ~~6. Загрузка файлов без проверки magic bytes~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Controllers/ClubAdminController.cs`  
 **Методы:** `UploadLogo`, `UploadGalleryPhoto`, `UploadRegulation`, `UploadRegulation2`, `UploadMissionMap`
 
@@ -347,7 +347,7 @@ private bool IsAuthorized()
 | 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ✅ Исправлен |
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ✅ Исправлен |
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ✅ Исправлен |
-| 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ❌ Открыт |
+| 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ✅ Исправлен |
 | 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ❌ Открыт |
 | 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ❌ Открыт |
 | 9 | Нет ограничений длины полей | Модели + контроллеры | 🔵 Низкий | ❌ Открыт |

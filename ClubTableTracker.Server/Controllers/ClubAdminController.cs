@@ -39,6 +39,43 @@ public class ClubAdminController : ControllerBase
         ["image/gif"] = ".gif"
     };
 
+    // Magic bytes for file type verification
+    private static readonly byte[] PdfMagic  = { 0x25, 0x50, 0x44, 0x46 };              // %PDF
+    private static readonly byte[] ZipMagic  = { 0x50, 0x4B, 0x03, 0x04 };              // PK (DOCX)
+    private static readonly byte[] Ole2Magic = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }; // DOC
+    private static readonly byte[] JpegMagic = { 0xFF, 0xD8, 0xFF };
+    private static readonly byte[] PngMagic  = { 0x89, 0x50, 0x4E, 0x47 };
+    private static readonly byte[] WebpRiff  = { 0x52, 0x49, 0x46, 0x46 };              // RIFF header
+    private static readonly byte[] WebpMark  = { 0x57, 0x45, 0x42, 0x50 };              // WEBP at offset 8
+    private static readonly byte[] GifMagic  = { 0x47, 0x49, 0x46, 0x38 };              // GIF8
+
+    private static bool MatchesMagic(byte[] buffer, byte[] magic, int offset = 0)
+    {
+        if (buffer.Length < offset + magic.Length) return false;
+        for (var i = 0; i < magic.Length; i++)
+            if (buffer[offset + i] != magic[i]) return false;
+        return true;
+    }
+
+    private static bool HasValidMagicBytes(IFormFile file, string fileExt)
+    {
+        const int headerSize = 12;
+        var buffer = new byte[headerSize];
+        using var stream = file.OpenReadStream();
+        var read = stream.Read(buffer, 0, headerSize);
+        return fileExt switch
+        {
+            ".jpg" or ".jpeg" => read >= 3  && MatchesMagic(buffer, JpegMagic),
+            ".png"            => read >= 4  && MatchesMagic(buffer, PngMagic),
+            ".webp"           => read >= 12 && MatchesMagic(buffer, WebpRiff) && MatchesMagic(buffer, WebpMark, 8),
+            ".gif"            => read >= 4  && MatchesMagic(buffer, GifMagic),
+            ".pdf"            => read >= 4  && MatchesMagic(buffer, PdfMagic),
+            ".docx"           => read >= 4  && MatchesMagic(buffer, ZipMagic),
+            ".doc"            => read >= 8  && MatchesMagic(buffer, Ole2Magic),
+            _                 => false
+        };
+    }
+
     [HttpGet("me")]
     public IActionResult GetMe()
     {
@@ -498,6 +535,8 @@ public class ClubAdminController : ControllerBase
         };
         if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
             return BadRequest("Допускаются только файлы PDF и MS Word (.doc, .docx)");
+        if (!HasValidMagicBytes(file, fileExt))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
 
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
         Directory.CreateDirectory(dir);
@@ -558,6 +597,8 @@ public class ClubAdminController : ControllerBase
         };
         if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
             return BadRequest("Допускаются только файлы PDF и MS Word (.doc, .docx)");
+        if (!HasValidMagicBytes(file, fileExt))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
 
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
         Directory.CreateDirectory(dir);
@@ -614,6 +655,8 @@ public class ClubAdminController : ControllerBase
         var allowedMimeTypes = new[] { "image/jpeg", "image/png", "image/webp" };
         if (!allowedExtensions.Contains(fileExt) || !allowedMimeTypes.Contains(file.ContentType))
             return BadRequest("Допускаются только изображения JPG, PNG, WebP");
+        if (!HasValidMagicBytes(file, fileExt))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
 
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", id.ToString());
         Directory.CreateDirectory(dir);
@@ -777,7 +820,10 @@ public class ClubAdminController : ControllerBase
         if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
         if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
 
-        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName);
+        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!HasValidMagicBytes(file, ext))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
+
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString());
         Directory.CreateDirectory(dir);
 
@@ -838,7 +884,10 @@ public class ClubAdminController : ControllerBase
         var count = _db.ClubPhotos.Count(p => p.ClubId == club.Id);
         if (count >= 10) return BadRequest("Максимальное количество фото — 10");
 
-        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName);
+        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!HasValidMagicBytes(file, ext))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
+
         var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "gallery");
         Directory.CreateDirectory(dir);
 
