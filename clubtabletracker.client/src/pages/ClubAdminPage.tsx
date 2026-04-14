@@ -5,7 +5,7 @@ import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../con
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
-interface Membership { id: number; status: string; isModerator: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
+interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -152,6 +152,15 @@ export default function ClubAdminPage() {
       body: JSON.stringify({ isModerator: !currentValue })
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, isModerator: !currentValue } : m))
+  }
+
+  const toggleKey = async (id: number, currentValue: boolean) => {
+    const res = await fetch(`/api/clubadmin/memberships/${id}/set-key`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ hasKey: !currentValue })
+    })
+    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, hasKey: !currentValue } : m))
   }
 
   const toggleGsEditor = (m: Membership) => {
@@ -681,6 +690,7 @@ export default function ClubAdminPage() {
                     <th style={thStyle}>Дата заявки</th>
                     <th style={thStyle}>Статус</th>
                     <th style={thStyle}>Модератор</th>
+                    <th style={thStyle}>Ключ</th>
                     <th style={thStyle}>Действия</th>
                   </tr>
                 </thead>
@@ -699,6 +709,13 @@ export default function ClubAdminPage() {
                         {m.status === 'Approved' && (
                           <span style={{ color: m.isModerator ? '#ffc107' : '#555', fontSize: 16 }} title={m.isModerator ? 'Модератор' : 'Не модератор'}>
                             {m.isModerator ? '⭐' : '—'}
+                          </span>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
+                        {m.status === 'Approved' && (
+                          <span style={{ color: m.hasKey ? '#ffd700' : '#555', fontSize: 16 }} title={m.hasKey ? 'С ключом' : 'Без ключа'}>
+                            {m.hasKey ? '🗝️' : '—'}
                           </span>
                         )}
                       </td>
@@ -732,6 +749,11 @@ export default function ClubAdminPage() {
                               onClick={() => toggleGsEditor(m)}
                               title="Редактировать игровые системы"
                             >🎲 Системы</button>
+                            <button
+                              style={{ ...btnStyle, background: m.hasKey ? '#7b6200' : '#3a3010' }}
+                              onClick={() => toggleKey(m.id, m.hasKey)}
+                              title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
+                            >{m.hasKey ? '🗝️ Снять' : '🗝️ Ключ'}</button>
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
@@ -739,7 +761,7 @@ export default function ClubAdminPage() {
                     </tr>
                     {editingManualMemberId === m.id && m.isManualEntry && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                             <input style={inputStyle} placeholder="Имя игрока *" value={editingManualName}
                               onChange={e => { setEditingManualName(e.target.value); setEditingManualError('') }} />
@@ -754,7 +776,7 @@ export default function ClubAdminPage() {
                     )}
                     {expandedGsMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                             <button
                               style={{ ...btnStyle, background: '#1a5a3c', fontSize: 12, padding: '4px 12px' }}

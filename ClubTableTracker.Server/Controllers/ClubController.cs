@@ -116,6 +116,7 @@ public class ClubController : ControllerBase
                 Bio = m.IsManualEntry ? null : m.User!.Bio,
                 JoinedAt = m.AppliedAt,
                 m.IsModerator,
+                m.HasKey,
                 m.IsManualEntry
             });
         return Ok(members);

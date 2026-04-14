@@ -34,7 +34,7 @@ interface BookingBase { id: number; user: { id: string; name: string }; ownerRos
 interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
-interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; isManualEntry?: boolean }
+interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isManualEntry?: boolean }
 interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -462,6 +462,10 @@ export default function HomePage() {
   }, [playerRosterModal])
 
   const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
+
+  const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
+
+  const keyIcon = (id: string) => memberMap.get(id)?.hasKey ? <span style={{ marginRight: 3 }} title="С ключом">🗝️</span> : null
 
   const availablePlayerSystems = useMemo(
     () => Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort(),
@@ -1004,7 +1008,7 @@ export default function HomePage() {
                                           {b.isDoubles && <span style={{ color: "#7b2fff", marginLeft: 8, fontSize: 12, fontWeight: "bold" }}>2×2</span>}
                                           <div style={{ fontSize: 12, marginTop: 2 }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                                              <span style={{ color: b.ownerRoster ? "#eee" : "#aaa" }}>{b.user.name}</span>
+                                              <span style={{ color: b.ownerRoster ? "#eee" : "#aaa" }}>{keyIcon(b.user.id)}{b.user.name}</span>
                                               {isOwner && <span style={{ color: "#ff8c00", fontSize: 11 }}>(орг.)</span>}
                                               <button
                                                 style={{ background: b.ownerRoster ? "#1a4a2a" : "#222", color: b.ownerRoster ? "#27ae60" : "#666", border: `1px solid ${b.ownerRoster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
@@ -1013,7 +1017,7 @@ export default function HomePage() {
                                             </div>
                                             {b.participants.filter(p => p.status !== "Invited").map(p => (
                                               <div key={p.participantId ?? p.id} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginTop: 2 }}>
-                                                <span style={{ color: p.roster ? "#eee" : "#aaa" }}>{p.name}</span>
+                                                <span style={{ color: p.roster ? "#eee" : "#aaa" }}>{keyIcon(p.id)}{p.name}</span>
                                                 <button
                                                   style={{ background: p.roster ? "#1a4a2a" : "#222", color: p.roster ? "#27ae60" : "#666", border: `1px solid ${p.roster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
                                                   onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
@@ -1189,7 +1193,7 @@ export default function HomePage() {
                               <tbody>
                                 {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
-                                    <td style={{ padding: "6px 8px" }}>{m.registrationName}</td>
+                                    <td style={{ padding: "6px 8px" }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом">🗝️</span>}{m.registrationName}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
                                     <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "#666" }}>—</span>}</td>
@@ -1400,7 +1404,7 @@ export default function HomePage() {
                                       {b.isDoubles && <span style={{ color: '#7b2fff', marginLeft: 8, fontSize: 12, fontWeight: 'bold' }}>2×2</span>}
                                       <div style={{ fontSize: 12, marginTop: 2 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                                          <span style={{ color: b.ownerRoster ? '#eee' : '#aaa' }}>{b.user.name}</span>
+                                          <span style={{ color: b.ownerRoster ? '#eee' : '#aaa' }}>{keyIcon(b.user.id)}{b.user.name}</span>
                                           {isOwner && <span style={{ color: '#ff8c00', fontSize: 11 }}>(орг.)</span>}
                                           <button
                                             style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
@@ -1409,7 +1413,7 @@ export default function HomePage() {
                                         </div>
                                         {b.participants.filter(p => p.status !== 'Invited').map(p => (
                                           <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                                            <span style={{ color: p.roster ? '#eee' : '#aaa' }}>{p.name}</span>
+                                            <span style={{ color: p.roster ? '#eee' : '#aaa' }}>{keyIcon(p.id)}{p.name}</span>
                                             <button
                                               style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
                                               onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
@@ -1577,7 +1581,7 @@ export default function HomePage() {
                               <tbody>
                                 {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
-                                    <td style={{ padding: '8px 12px' }}>{m.registrationName}</td>
+                                    <td style={{ padding: '8px 12px' }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом">🗝️</span>}{m.registrationName}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
                                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: '#666' }}>—</span>}</td>
@@ -1675,7 +1679,7 @@ export default function HomePage() {
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                 <span style={{ color: '#eee', fontSize: 14 }}>
-                  {b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span>
+                  {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span>
                   <button
                     style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                     onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: true })}
@@ -1693,7 +1697,7 @@ export default function HomePage() {
               {acceptedParticipants.map(p => (
                 <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                   <span style={{ color: '#eee', fontSize: 14 }}>
-                    {p.name}
+                    {keyIcon(p.id)}{p.name}
                     <button
                       style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                       onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: true, isAdminEdit: true })}
@@ -1892,7 +1896,7 @@ export default function HomePage() {
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
               <div style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                 <span style={{ color: '#eee', fontSize: 14 }}>
-                  {b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span>
+                  {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span>
                   <button
                     style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                     onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: false })}
@@ -1902,7 +1906,7 @@ export default function HomePage() {
               {acceptedParticipants.map(p => (
                 <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
                   <span style={{ color: '#eee', fontSize: 14 }}>
-                    {p.name}
+                    {keyIcon(p.id)}{p.name}
                     <button
                       style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                       onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}
@@ -2010,7 +2014,7 @@ export default function HomePage() {
             <div style={{ marginBottom: 14 }}>
               <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки:</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
-                <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
+                <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
                 <button
                   style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
                   onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false })}
@@ -2018,7 +2022,7 @@ export default function HomePage() {
               </div>
               {acceptedParticipants.map(p => (
                 <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{p.name}</span>
+                  <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(p.id)}{p.name}</span>
                   <button
                     style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
                     onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}

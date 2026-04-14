@@ -197,6 +197,7 @@ public class ClubAdminController : ControllerBase
                 m.Id,
                 m.Status,
                 m.IsModerator,
+                m.HasKey,
                 m.AppliedAt,
                 m.IsManualEntry,
                 m.UserId,
@@ -214,6 +215,7 @@ public class ClubAdminController : ControllerBase
                 m.Id,
                 m.Status,
                 m.IsModerator,
+                m.HasKey,
                 m.AppliedAt,
                 m.IsManualEntry,
                 User = new
@@ -249,6 +251,7 @@ public class ClubAdminController : ControllerBase
             membership.Id,
             membership.Status,
             membership.IsModerator,
+            membership.HasKey,
             membership.AppliedAt,
             membership.IsManualEntry,
             User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
@@ -272,6 +275,7 @@ public class ClubAdminController : ControllerBase
             membership.Id,
             membership.Status,
             membership.IsModerator,
+            membership.HasKey,
             membership.AppliedAt,
             membership.IsManualEntry,
             User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
@@ -288,6 +292,18 @@ public class ClubAdminController : ControllerBase
         membership.IsModerator = req.IsModerator;
         _db.SaveChanges();
         return Ok(new { membership.Id, membership.IsModerator });
+    }
+
+    [HttpPost("memberships/{id}/set-key")]
+    public IActionResult SetKey(int id, [FromBody] SetKeyRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
+        if (membership == null) return NotFound();
+        membership.HasKey = req.HasKey;
+        _db.SaveChanges();
+        return Ok(new { membership.Id, membership.HasKey });
     }
 
     [HttpPost("memberships/{id}/approve")]
@@ -987,6 +1003,7 @@ public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
 public record UpdateEventDescriptionRequest(string? Description);
 public record SetModeratorRequest(bool IsModerator);
+public record SetKeyRequest(bool HasKey);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
 public record ManualMemberRequest(string Name, string? Email);

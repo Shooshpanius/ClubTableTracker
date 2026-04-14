@@ -11,6 +11,7 @@ public class ClubMembership
     public Club Club { get; set; } = null!;
     public string Status { get; set; } = "Pending"; // Pending/Approved/Rejected
     public bool IsModerator { get; set; } = false;
+    public bool HasKey { get; set; } = false;
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
     public bool IsManualEntry { get; set; } = false;
     [MaxLength(100)]  public string? ManualName               { get; set; }
