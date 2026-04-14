@@ -37,7 +37,7 @@ var secret = _config["Jwt:Secret"]
 
 ---
 
-### 2. Пропуск валидации аудитории Google ID-токена
+### ~~2. Пропуск валидации аудитории Google ID-токена~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Controllers/AuthController.cs:44–47`
 
 **Проблема:**  
@@ -343,7 +343,7 @@ private bool IsAuthorized()
 | # | Уязвимость | Файл / Компонент | Приоритет | Статус |
 |---|---|---|---|---|
 | 1 | Жёстко закодированный JWT-секрет | `AuthController.cs:96`, `Program.cs:25` | 🔴 Критический | ✅ Исправлен |
-| 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ❌ Открыт |
+| 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ✅ Исправлен |
 | 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ❌ Открыт |
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ❌ Открыт |
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ❌ Открыт |

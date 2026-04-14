@@ -34,16 +34,15 @@ public class AuthController : ControllerBase
 
         var clientId = _config["Google:ClientId"];
         if (string.IsNullOrEmpty(clientId))
-        {
-            _logger.LogWarning("Google:ClientId is not configured. Audience validation will be skipped.");
-        }
+            return StatusCode(500, "Google authentication is not configured");
 
         GoogleJsonWebSignature.Payload payload;
         try
         {
-            var validationSettings = string.IsNullOrEmpty(clientId)
-                ? null
-                : new GoogleJsonWebSignature.ValidationSettings { Audience = new[] { clientId } };
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { clientId }
+            };
             payload = await GoogleJsonWebSignature.ValidateAsync(req.Credential, validationSettings);
         }
         catch (InvalidJwtException ex)
