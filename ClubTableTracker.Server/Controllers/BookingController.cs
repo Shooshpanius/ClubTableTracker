@@ -173,7 +173,7 @@ public class BookingController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult CreateBooking([FromBody] CreateBookingRequest req)
+    public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest req)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
@@ -218,9 +218,12 @@ public class BookingController : ControllerBase
         if (startMinOfDay < openMinutes || endMinOfDay > closeMinutes)
             return BadRequest($"Время бронирования должно быть в рамках рабочего времени клуба ({club.OpenTime}–{club.CloseTime})");
 
+        // Check for time conflicts and create booking atomically to prevent TOCTOU race conditions
+        using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
         // Check for time conflicts (no overlapping bookings allowed; touching boundaries are OK)
-        var hasConflict = _db.Bookings
-            .Any(b => b.TableId == req.TableId &&
+        var hasConflict = await _db.Bookings
+            .AnyAsync(b => b.TableId == req.TableId &&
                       b.StartTime < req.EndTime &&
                       b.EndTime > req.StartTime);
 
@@ -289,7 +292,7 @@ public class BookingController : ControllerBase
                 IsForOthers = true
             };
             _db.Bookings.Add(booking);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             // Оставшиеся участники добавляются как Participants Accepted.
             // Когда все ЗАБРОНИРОВАНО: модератор — владелец (не в числе игроков),
@@ -359,7 +362,8 @@ public class BookingController : ControllerBase
                 BookingStartTime = req.StartTime,
                 BookingEndTime = req.EndTime
             });
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
 
             return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime, booking.GameSystem });
         }
@@ -374,7 +378,7 @@ public class BookingController : ControllerBase
             IsDoubles = req.IsDoubles
         };
         _db.Bookings.Add(normalBooking);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
 
         // Если указаны оппоненты — создаём приглашения
         if (req.InvitedUserIds != null && req.InvitedUserIds.Count > 0)
@@ -445,7 +449,8 @@ public class BookingController : ControllerBase
             BookingStartTime = req.StartTime,
             BookingEndTime = req.EndTime
         });
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return Ok(new { normalBooking.Id, normalBooking.TableId, normalBooking.StartTime, normalBooking.EndTime, normalBooking.GameSystem });
     }
@@ -717,7 +722,7 @@ public class BookingController : ControllerBase
     }
 
     [HttpPatch("{id}/move-table")]
-    public IActionResult MoveBookingTable(int id, [FromBody] MoveTableRequest req)
+    public async Task<IActionResult> MoveBookingTable(int id, [FromBody] MoveTableRequest req)
     {
         var callerId = GetUserId();
         if (callerId == null) return Unauthorized();
@@ -753,8 +758,11 @@ public class BookingController : ControllerBase
                 return BadRequest($"Стол не поддерживает игровую систему «{booking.GameSystem}»");
         }
 
+        // Check that new table is free during the booking's time window atomically to prevent TOCTOU race conditions
+        using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
         // Check that new table is free during the booking's time window
-        var hasConflict = _db.Bookings.Any(b =>
+        var hasConflict = await _db.Bookings.AnyAsync(b =>
             b.TableId == req.NewTableId &&
             b.Id != id &&
             b.StartTime < booking.EndTime &&
@@ -775,12 +783,13 @@ public class BookingController : ControllerBase
             BookingEndTime = booking.EndTime
         });
 
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(new { booking.Id, booking.TableId, TableNumber = newTable.Number });
     }
 
     [HttpPatch("{id}/reschedule")]
-    public IActionResult RescheduleBooking(int id, [FromBody] RescheduleBookingRequest req)
+    public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleBookingRequest req)
     {
         var callerId = GetUserId();
         if (callerId == null) return Unauthorized();
@@ -837,9 +846,12 @@ public class BookingController : ControllerBase
         if (startMinOfDay < openMinutes || endMinOfDay > closeMinutes)
             return BadRequest($"Время бронирования должно быть в рамках рабочего времени клуба ({club.OpenTime}–{club.CloseTime})");
 
+        // Conflict check — exclude current booking atomically to prevent TOCTOU race conditions
+        using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
         // Conflict check — exclude current booking
-        var hasConflict = _db.Bookings
-            .Any(b => b.TableId == booking.TableId &&
+        var hasConflict = await _db.Bookings
+            .AnyAsync(b => b.TableId == booking.TableId &&
                       b.Id != id &&
                       b.StartTime < req.EndTime &&
                       b.EndTime > req.StartTime);
@@ -884,7 +896,8 @@ public class BookingController : ControllerBase
             BookingEndTime = req.EndTime
         });
 
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(new { booking.Id, booking.TableId, booking.StartTime, booking.EndTime });
     }
 
