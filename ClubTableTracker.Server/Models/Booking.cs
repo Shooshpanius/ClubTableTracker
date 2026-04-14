@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 namespace ClubTableTracker.Server.Models;
 
 public class Booking
@@ -11,9 +12,9 @@ public class Booking
     public AppUser User { get; set; } = null!;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
-    public string? GameSystem { get; set; }
+    [MaxLength(100)] public string? GameSystem { get; set; }
     public bool IsDoubles { get; set; }
     public bool IsForOthers { get; set; }
-    public string? OwnerRoster { get; set; }
+    [MaxLength(2000)] public string? OwnerRoster { get; set; }
     public List<BookingParticipant> Participants { get; set; } = new();
 }
