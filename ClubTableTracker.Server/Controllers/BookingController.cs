@@ -55,10 +55,16 @@ public class BookingController : ControllerBase
     }
 
     [HttpGet("my-upcoming")]
-    public IActionResult GetMyUpcoming()
+    public IActionResult GetMyUpcoming([FromQuery] int? clubId = null)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
+
+        if (clubId.HasValue)
+        {
+            var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == clubId && m.Status == "Approved");
+            if (!isMember) return Forbid();
+        }
 
         var now = DateTime.UtcNow;
         var bookings = _db.Bookings
@@ -67,7 +73,9 @@ public class BookingController : ControllerBase
             .Include(b => b.Participants).ThenInclude(p => p.User)
             .Where(b => b.EndTime > now &&
                         (b.UserId == userId || b.Participants.Any(p => p.UserId == userId)) &&
-                        _db.Memberships.Any(m => m.UserId == userId && m.ClubId == b.Table.ClubId && m.Status == "Approved"))
+                        (clubId.HasValue
+                            ? b.Table.ClubId == clubId.Value
+                            : _db.Memberships.Any(m => m.UserId == userId && m.ClubId == b.Table.ClubId && m.Status == "Approved")))
             .OrderBy(b => b.StartTime)
             .ToList()
             .Select(b => new
@@ -97,10 +105,16 @@ public class BookingController : ControllerBase
     }
 
     [HttpGet("upcoming-all")]
-    public IActionResult GetUpcomingAll()
+    public IActionResult GetUpcomingAll([FromQuery] int? clubId = null)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
+
+        if (clubId.HasValue)
+        {
+            var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == clubId && m.Status == "Approved");
+            if (!isMember) return Forbid();
+        }
 
         var approvedClubIds = _db.Memberships
             .Where(m => m.UserId == userId && m.Status == "Approved")
@@ -112,7 +126,8 @@ public class BookingController : ControllerBase
             .Include(b => b.User)
             .Include(b => b.Table).ThenInclude(t => t.Club)
             .Include(b => b.Participants).ThenInclude(p => p.User)
-            .Where(b => b.EndTime > now && approvedClubIds.Contains(b.Table.ClubId))
+            .Where(b => b.EndTime > now &&
+                        (clubId.HasValue ? b.Table.ClubId == clubId.Value : approvedClubIds.Contains(b.Table.ClubId)))
             .OrderBy(b => b.StartTime)
             .ToList()
             .Select(b => new
@@ -142,10 +157,16 @@ public class BookingController : ControllerBase
     }
 
     [HttpGet("activity-log")]
-    public IActionResult GetActivityLog()
+    public IActionResult GetActivityLog([FromQuery] int? clubId = null)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
+
+        if (clubId.HasValue)
+        {
+            var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == clubId && m.Status == "Approved");
+            if (!isMember) return Forbid();
+        }
 
         var approvedClubIds = _db.Memberships
             .Where(m => m.UserId == userId && m.Status == "Approved")
@@ -155,7 +176,8 @@ public class BookingController : ControllerBase
         var since = DateTime.UtcNow.AddMonths(-1);
         var logs = _db.BookingLogs
             .Include(l => l.User)
-            .Where(l => l.Timestamp >= since && approvedClubIds.Contains(l.ClubId))
+            .Where(l => l.Timestamp >= since &&
+                        (clubId.HasValue ? l.ClubId == clubId.Value : approvedClubIds.Contains(l.ClubId)))
             .OrderByDescending(l => l.Timestamp)
             .Select(l => new
             {

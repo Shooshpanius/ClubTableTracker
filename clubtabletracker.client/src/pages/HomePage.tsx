@@ -260,16 +260,18 @@ export default function HomePage() {
   }
 
   const loadUpcoming = async () => {
+    const clubParam = selectedClub ? `?clubId=${selectedClub.id}` : ''
     const [myRes, allRes] = await Promise.all([
-      fetch('/api/booking/my-upcoming', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('/api/booking/upcoming-all', { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`/api/booking/my-upcoming${clubParam}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/booking/upcoming-all${clubParam}`, { headers: { Authorization: `Bearer ${token}` } })
     ])
     if (myRes.ok) setUpcomingMyBookings(await myRes.json())
     if (allRes.ok) setUpcomingAllBookings(await allRes.json())
   }
 
   const loadActivityLog = async () => {
-    const res = await fetch('/api/booking/activity-log', { headers: { Authorization: `Bearer ${token}` } })
+    const clubParam = selectedClub ? `?clubId=${selectedClub.id}` : ''
+    const res = await fetch(`/api/booking/activity-log${clubParam}`, { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) setActivityLog(await res.json())
   }
 
