@@ -92,7 +92,7 @@ export default function HomePage() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState(sessionStorage.getItem('token') || '')
+  const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [clubs, setClubs] = useState<Club[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
@@ -159,14 +159,14 @@ export default function HomePage() {
     })
     if (res.ok) {
       const data = await res.json()
-      sessionStorage.setItem('token', data.token)
+      localStorage.setItem('token', data.token)
       setToken(data.token)
       setUser(data.user)
     }
   }
 
   const logout = () => {
-    sessionStorage.removeItem('token')
+    localStorage.removeItem('token')
     setToken('')
     setUser(null)
     setMemberships([])
