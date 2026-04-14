@@ -93,7 +93,8 @@ public class AuthController : ControllerBase
 
     private string GenerateJwt(AppUser user)
     {
-        var secret = _config["Jwt:Secret"] ?? "default-secret-key-at-least-32-chars!!";
+        var secret = _config["Jwt:Secret"]
+            ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var claims = new[]

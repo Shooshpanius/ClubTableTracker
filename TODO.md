@@ -342,7 +342,7 @@ private bool IsAuthorized()
 
 | # | Уязвимость | Файл / Компонент | Приоритет | Статус |
 |---|---|---|---|---|
-| 1 | Жёстко закодированный JWT-секрет | `AuthController.cs:96`, `Program.cs:25` | 🔴 Критический | ❌ Открыт |
+| 1 | Жёстко закодированный JWT-секрет | `AuthController.cs:96`, `Program.cs:25` | 🔴 Критический | ✅ Исправлен |
 | 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ❌ Открыт |
 | 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ❌ Открыт |
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ❌ Открыт |
