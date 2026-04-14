@@ -35,7 +35,7 @@ const btnStyle: React.CSSProperties = {
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const token = localStorage.getItem('token') || ''
+  const token = sessionStorage.getItem('token') || ''
 
   const [googleName, setGoogleName] = useState('')
   const [displayName, setDisplayName] = useState('')
