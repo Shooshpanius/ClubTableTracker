@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
@@ -7,6 +8,7 @@ namespace ClubTableTracker.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class ClubAdminController : ControllerBase
 {
     private readonly AppDbContext _db;

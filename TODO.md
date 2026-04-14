@@ -101,7 +101,7 @@ localStorage.setItem('clubKey', clubKey)       // Ключ доступа клу
 
 ---
 
-### 4. Отсутствие rate limiting (защиты от перебора)
+### ~~4. Отсутствие rate limiting (защиты от перебора)~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Program.cs`
 
 **Проблема:**  
@@ -345,7 +345,7 @@ private bool IsAuthorized()
 | 1 | Жёстко закодированный JWT-секрет | `AuthController.cs:96`, `Program.cs:25` | 🔴 Критический | ✅ Исправлен |
 | 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ✅ Исправлен |
 | 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ✅ Исправлен |
-| 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ❌ Открыт |
+| 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ✅ Исправлен |
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ❌ Открыт |
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ❌ Открыт |
 | 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ❌ Открыт |
