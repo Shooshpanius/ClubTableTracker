@@ -124,11 +124,11 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
               {!isFree && seg.booking && height >= 24 && (
                 <>
                   <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                    {keyMemberIds?.has(seg.booking.user.id) && <span aria-label="С ключом" role="img">🗝️</span>}{seg.booking.user.name}
+                    {keyMemberIds?.has(seg.booking.user.id) && <span style={{ marginRight: 3 }} aria-label="С ключом" role="img">🗝️</span>}{seg.booking.user.name}
                   </div>
                   {seg.booking.participants.map(p => (
                     <div key={p.id} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                      {p.status === 'Invited' ? '(i) ' : ''}{keyMemberIds?.has(p.id) && <span aria-label="С ключом" role="img">🗝️</span>}{p.name}
+                      {p.status === 'Invited' ? '(i) ' : ''}{keyMemberIds?.has(p.id) && <span style={{ marginRight: 3 }} aria-label="С ключом" role="img">🗝️</span>}{p.name}
                     </div>
                   ))}
                   {seg.booking.gameSystem && height >= 36 && (
