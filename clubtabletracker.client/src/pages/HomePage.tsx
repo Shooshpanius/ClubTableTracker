@@ -465,7 +465,7 @@ export default function HomePage() {
 
   const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
 
-  const keyIcon = (id: string) => memberMap.get(id)?.hasKey ? <span style={{ marginRight: 3 }} title="С ключом">🗝️</span> : null
+  const keyIcon = (id: string) => memberMap.get(id)?.hasKey ? <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span> : null
 
   const availablePlayerSystems = useMemo(
     () => Array.from(new Set(members.flatMap(m => (m.enabledGameSystems || '').split('|').filter(Boolean)))).sort(),
@@ -1193,7 +1193,7 @@ export default function HomePage() {
                               <tbody>
                                 {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
-                                    <td style={{ padding: "6px 8px" }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом">🗝️</span>}{m.registrationName}</td>
+                                    <td style={{ padding: "6px 8px" }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
                                     <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
                                     <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "#666" }}>—</span>}</td>
@@ -1581,7 +1581,7 @@ export default function HomePage() {
                               <tbody>
                                 {filteredMembers.map(m => (
                                   <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
-                                    <td style={{ padding: '8px 12px' }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом">🗝️</span>}{m.registrationName}</td>
+                                    <td style={{ padding: '8px 12px' }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
                                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
                                     <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: '#666' }}>—</span>}</td>

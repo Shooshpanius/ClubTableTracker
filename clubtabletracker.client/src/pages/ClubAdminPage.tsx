@@ -753,7 +753,8 @@ export default function ClubAdminPage() {
                               style={{ ...btnStyle, background: m.hasKey ? '#7b6200' : '#3a3010' }}
                               onClick={() => toggleKey(m.id, m.hasKey)}
                               title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
-                            >{m.hasKey ? '🗝️ Снять' : '🗝️ Ключ'}</button>
+                              aria-label={m.hasKey ? 'Снять статус «С ключом»' : 'Назначить статус «С ключом»'}
+                            ><span aria-hidden="true">{m.hasKey ? '🗝️ Снять' : '🗝️ Ключ'}</span></button>
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
