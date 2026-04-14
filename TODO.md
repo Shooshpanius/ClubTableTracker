@@ -245,7 +245,7 @@ var token = new JwtSecurityToken(
 
 ---
 
-### 8. Отсутствие security-заголовков HTTP в nginx
+### ~~8. Отсутствие security-заголовков HTTP в nginx~~ ✅ Исправлен
 **Файл:** `clubtabletracker.client/nginx.conf`
 
 **Проблема:**  
@@ -349,7 +349,7 @@ private bool IsAuthorized()
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ✅ Исправлен |
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ✅ Исправлен |
 | 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ✅ Исправлен |
-| 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ❌ Открыт |
+| 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ✅ Исправлен |
 | 9 | Нет ограничений длины полей | Модели + контроллеры | 🔵 Низкий | ❌ Открыт |
 | 10 | Длинный JWT без отзыва | `AuthController.cs:108` | 🔵 Низкий | ❌ Открыт |
 | 11 | Non-constant-time сравнение ключа | `AdminController.cs:20–22` | 🔵 Низкий | ❌ Открыт |
