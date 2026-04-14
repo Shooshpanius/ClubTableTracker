@@ -21,6 +21,7 @@ interface Props {
   isSelected?: boolean
   isEventTable?: boolean
   colors?: BookingColors
+  keyMemberIds?: Set<string>
 }
 
 const RECT_HEIGHT = 360
@@ -49,7 +50,7 @@ interface Segment {
   booking?: Booking
 }
 
-export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected, isEventTable, colors }: Props) {
+export default function TableTimeline({ table, bookings, openTime, closeTime, selectedDate, currentUserId, onSlotClick, onBookingClick, isSelected, isEventTable, colors, keyMemberIds }: Props) {
   const c = { ...DEFAULT_BOOKING_COLORS, ...colors }
   const openMin = parseHHMM(openTime)
   const closeMin = parseHHMM(closeTime)
@@ -123,11 +124,11 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
               {!isFree && seg.booking && height >= 24 && (
                 <>
                   <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                    {seg.booking.user.name}
+                    {keyMemberIds?.has(seg.booking.user.id) && <span aria-label="С ключом" role="img">🗝️</span>}{seg.booking.user.name}
                   </div>
                   {seg.booking.participants.map(p => (
                     <div key={p.id} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
-                      {p.status === 'Invited' ? '(i) ' : ''}{p.name}
+                      {p.status === 'Invited' ? '(i) ' : ''}{keyMemberIds?.has(p.id) && <span aria-label="С ключом" role="img">🗝️</span>}{p.name}
                     </div>
                   ))}
                   {seg.booking.gameSystem && height >= 36 && (

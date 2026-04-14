@@ -465,6 +465,8 @@ export default function HomePage() {
 
   const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
 
+  const keyMemberIds = useMemo(() => new Set(members.filter(m => m.hasKey).map(m => m.id)), [members])
+
   const keyIcon = (id: string) => memberMap.get(id)?.hasKey ? <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span> : null
 
   const availablePlayerSystems = useMemo(
@@ -930,6 +932,7 @@ export default function HomePage() {
                                       isSelected={isTableSelected}
                                       isEventTable={eventTableIds.has(table.id)}
                                       colors={bookingColors}
+                                      keyMemberIds={keyMemberIds}
                                     />
                                   </div>
                                   {isTableSelected && user && (
@@ -1307,6 +1310,7 @@ export default function HomePage() {
                                     isSelected={selectedTable?.id === table.id}
                                     isEventTable={eventTableIds.has(table.id)}
                                     colors={bookingColors}
+                                    keyMemberIds={keyMemberIds}
                                   />
                                 </div>
                               ))}
