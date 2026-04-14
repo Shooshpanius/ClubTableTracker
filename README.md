@@ -211,7 +211,7 @@ ClubTableTracker/
 
 ### Требования
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 18+](https://nodejs.org/)
 - Аккаунт Google Cloud (для настройки OAuth)
 
@@ -271,9 +271,10 @@ ClubTableTracker/
    DB_ROOT_PASSWORD=rootstrongpassword
    ```
 
-2. Убедитесь, что директория для данных MariaDB существует на хосте:
+2. Убедитесь, что директории для данных существуют на хосте:
    ```bash
-   mkdir -p /opt/docker/data/mariadb40club
+   mkdir -p /opt/docker/data/_wh40k_club/mariadb40club
+   mkdir -p /opt/docker/data/_wh40k_club/club_uploads
    ```
 
 3. Соберите образы (один раз, или после каждого обновления кода):
@@ -334,6 +335,7 @@ ClubTableTracker/
 | Переменная | Описание |
 |---|---|
 | `VITE_GOOGLE_CLIENT_ID` | Client ID из [Google Cloud Console](https://console.cloud.google.com/). Необходим для входа через Google OAuth. |
+| `YANDEX_METRIKA_ID` | Номер счётчика Яндекс.Метрики (из [metrika.yandex.ru](https://metrika.yandex.ru/)). Оставьте пустым или укажите `0`, чтобы отключить счётчик. |
 
 ### Настройка Google OAuth
 
