@@ -224,8 +224,8 @@ add_header Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe
 
 | # | Проблема | Файл / Компонент | Приоритет | Статус |
 |---|---|---|---|---|
-| 1 | JWT-токен всё ещё в `localStorage` | `HomePage.tsx:95,162`, `SettingsPage.tsx:38` | 🟠 Высокий | ❌ Не исправлен |
-| 2 | Нет `[MaxLength]` на полях `Club`, `ClubEvent`, `GameTable`, `ClubMembership` | Модели сервера | 🟠 Высокий | ❌ Не исправлен |
+| 1 | JWT-токен всё ещё в `localStorage` | `HomePage.tsx:95,162`, `SettingsPage.tsx:38` | 🟠 Высокий | ✅ Исправлен |
+| 2 | Нет `[MaxLength]` на полях `Club`, `ClubEvent`, `GameTable`, `ClubMembership` | Модели сервера | 🟠 Высокий | ✅ Исправлен |
 | 3 | `EnabledGameSystems` без валидации в `UserController` | `UserController.cs:56` | 🟡 Средний | ❌ Не исправлен |
 | 4 | `UpdateBookingColors` без явной проверки длины | `UserController.cs:72` | 🟡 Средний | ❌ Не исправлен |
 | 5 | Нет пагинации на `GetBookings`, `GetUpcomingAll`, `GetActivityLog` | `BookingController.cs` | 🟡 Средний | ❌ Не исправлен |

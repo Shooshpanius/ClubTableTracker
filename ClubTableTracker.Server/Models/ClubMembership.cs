@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 namespace ClubTableTracker.Server.Models;
 
 public class ClubMembership
@@ -12,7 +13,7 @@ public class ClubMembership
     public bool IsModerator { get; set; } = false;
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
     public bool IsManualEntry { get; set; } = false;
-    public string? ManualName { get; set; }
-    public string? ManualEmail { get; set; }
-    public string? ManualEnabledGameSystems { get; set; }
+    [MaxLength(100)]  public string? ManualName               { get; set; }
+    [MaxLength(200)]  public string? ManualEmail              { get; set; }
+    [MaxLength(500)]  public string? ManualEnabledGameSystems { get; set; }
 }
