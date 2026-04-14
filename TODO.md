@@ -213,7 +213,7 @@ private static bool MatchesMagic(IFormFile file, byte[] magic)
 
 ---
 
-### 7. JWT: отключена валидация Issuer и Audience
+### ~~7. JWT: отключена валидация Issuer и Audience~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Program.cs:33–34`
 
 **Проблема:**  
@@ -348,7 +348,7 @@ private bool IsAuthorized()
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ✅ Исправлен |
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ✅ Исправлен |
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ✅ Исправлен |
-| 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ❌ Открыт |
+| 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ✅ Исправлен |
 | 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ❌ Открыт |
 | 9 | Нет ограничений длины полей | Модели + контроллеры | 🔵 Низкий | ❌ Открыт |
 | 10 | Длинный JWT без отзыва | `AuthController.cs:108` | 🔵 Низкий | ❌ Открыт |
