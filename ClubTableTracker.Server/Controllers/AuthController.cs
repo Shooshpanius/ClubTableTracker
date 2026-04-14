@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
+using static ClubTableTracker.Server.Models.JwtConstants;
 
 namespace ClubTableTracker.Server.Controllers;
 
@@ -105,6 +106,8 @@ public class AuthController : ControllerBase
             new Claim(ClaimTypes.Name, user.Name)
         };
         var token = new JwtSecurityToken(
+            issuer: Issuer,
+            audience: Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddDays(30),
             signingCredentials: creds

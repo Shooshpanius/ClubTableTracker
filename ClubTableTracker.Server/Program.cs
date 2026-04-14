@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
+using static ClubTableTracker.Server.Models.JwtConstants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,8 +35,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ValidateIssuer = false,
-            ValidateAudience = false
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = Issuer,
+            ValidAudience = Audience
         };
     });
 
