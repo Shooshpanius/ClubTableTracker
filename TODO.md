@@ -7,7 +7,7 @@
 
 ## 🔴 Критические
 
-### 1. Жёстко закодированный запасной JWT-секрет
+### ~~1. Жёстко закодированный запасной JWT-секрет~~ ✅ Исправлен
 **Файлы:** `ClubTableTracker.Server/Controllers/AuthController.cs:96`, `ClubTableTracker.Server/Program.cs:25`
 
 **Проблема:**  
@@ -78,7 +78,7 @@ if (string.IsNullOrEmpty(builder.Configuration["Google:ClientId"]))
 
 ## 🟠 Высокие
 
-### 3. Чувствительные ключи в `localStorage`
+### ~~3. Чувствительные ключи в `localStorage`~~ ✅ Исправлен
 **Файлы:**  
 - `clubtabletracker.client/src/pages/HomePage.tsx` — JWT-токен пользователя  
 - `clubtabletracker.client/src/pages/AdminPage.tsx` — мастер-ключ администратора  
@@ -344,7 +344,7 @@ private bool IsAuthorized()
 |---|---|---|---|---|
 | 1 | Жёстко закодированный JWT-секрет | `AuthController.cs:96`, `Program.cs:25` | 🔴 Критический | ✅ Исправлен |
 | 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ✅ Исправлен |
-| 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ❌ Открыт |
+| 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ✅ Исправлен |
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ❌ Открыт |
 | 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ❌ Открыт |
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ❌ Открыт |

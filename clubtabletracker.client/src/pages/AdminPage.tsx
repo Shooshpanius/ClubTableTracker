@@ -8,7 +8,7 @@ interface Club {
 }
 
 export default function AdminPage() {
-  const [masterKey, setMasterKey] = useState(localStorage.getItem('masterKey') || '')
+  const [masterKey, setMasterKey] = useState(sessionStorage.getItem('masterKey') || '')
   const [clubs, setClubs] = useState<Club[]>([])
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
@@ -16,7 +16,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
 
   const login = () => {
-    localStorage.setItem('masterKey', masterKey)
+    sessionStorage.setItem('masterKey', masterKey)
     loadClubs(masterKey)
   }
 

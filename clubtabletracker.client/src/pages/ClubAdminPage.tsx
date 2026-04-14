@@ -11,7 +11,7 @@ interface ClubEventData { id: number; title: string; startTime: string; endTime:
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
-  const [clubKey, setClubKey] = useState(localStorage.getItem('clubKey') || '')
+  const [clubKey, setClubKey] = useState(sessionStorage.getItem('clubKey') || '')
   const [club, setClub] = useState<ClubInfo | null>(null)
   const [tables, setTables] = useState<GameTable[]>([])
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
@@ -58,7 +58,7 @@ export default function ClubAdminPage() {
   const [galleryError, setGalleryError] = useState('')
 
   const login = async () => {
-    localStorage.setItem('clubKey', clubKey)
+    sessionStorage.setItem('clubKey', clubKey)
     const res = await fetch('/api/clubadmin/me', { headers: { 'X-Club-Key': clubKey } })
     if (res.ok) {
       const data = await res.json()
