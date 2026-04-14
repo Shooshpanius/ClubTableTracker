@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 namespace ClubTableTracker.Server.Models;
 
 public class BookingParticipant
@@ -16,5 +17,5 @@ public class BookingParticipant
     /// <summary>"Invited" — ожидает ответа, "Accepted" — принял приглашение или присоединился самостоятельно</summary>
     public string Status { get; set; } = "Accepted";
     /// <summary>Ростер игрока — многострочное текстовое описание армии/состава</summary>
-    public string? Roster { get; set; }
+    [MaxLength(2000)] public string? Roster { get; set; }
 }

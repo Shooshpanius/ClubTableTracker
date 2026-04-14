@@ -276,7 +276,7 @@ add_header Content-Security-Policy   "default-src 'self'; script-src 'self' http
 
 ## 🔵 Низкие / Информационные
 
-### 9. Нет ограничений длины на поля Roster, BookingColors, DisplayName, GameSystem
+### ~~9. Нет ограничений длины на поля Roster, BookingColors, DisplayName, GameSystem~~ ✅ Исправлен
 **Файлы:** `ClubTableTracker.Server/Models/AppUser.cs`, `ClubTableTracker.Server/Models/Booking.cs`, `ClubTableTracker.Server/Models/BookingParticipant.cs`
 
 **Проблема:**  
@@ -293,7 +293,7 @@ add_header Content-Security-Policy   "default-src 'self'; script-src 'self' http
 
 ---
 
-### 10. Длинный срок действия JWT без механизма отзыва
+### ~~10. Длинный срок действия JWT без механизма отзыва~~ ✅ Исправлен (частично)
 **Файл:** `ClubTableTracker.Server/Controllers/AuthController.cs:108`
 
 **Проблема:**  
@@ -310,7 +310,7 @@ expires: DateTime.UtcNow.AddDays(30)  // ← слишком долго без re
 
 ---
 
-### 11. Non-constant-time сравнение мастер-ключа
+### ~~11. Non-constant-time сравнение мастер-ключа~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Controllers/AdminController.cs:20–22`
 
 **Проблема:**  
@@ -350,6 +350,6 @@ private bool IsAuthorized()
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ✅ Исправлен |
 | 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ✅ Исправлен |
 | 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ✅ Исправлен |
-| 9 | Нет ограничений длины полей | Модели + контроллеры | 🔵 Низкий | ❌ Открыт |
-| 10 | Длинный JWT без отзыва | `AuthController.cs:108` | 🔵 Низкий | ❌ Открыт |
-| 11 | Non-constant-time сравнение ключа | `AdminController.cs:20–22` | 🔵 Низкий | ❌ Открыт |
+| 9 | Нет ограничений длины полей | Модели + контроллеры | 🔵 Низкий | ✅ Исправлен |
+| 10 | Длинный JWT без отзыва | `AuthController.cs:108` | 🔵 Низкий | ✅ Исправлен (частично) |
+| 11 | Non-constant-time сравнение ключа | `AdminController.cs:20–22` | 🔵 Низкий | ✅ Исправлен |

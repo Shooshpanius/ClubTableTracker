@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Cryptography;
+using System.Text;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
 
@@ -19,9 +21,14 @@ public class AdminController : ControllerBase
         _config = config;
     }
 
-    private bool IsAuthorized() =>
-        Request.Headers.TryGetValue("X-Master-Key", out var key) &&
-        key == _config["MasterKey"];
+    private bool IsAuthorized()
+    {
+        if (!Request.Headers.TryGetValue("X-Master-Key", out var key)) return false;
+        var expected = _config["MasterKey"] ?? "";
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(key.ToString()),
+            Encoding.UTF8.GetBytes(expected));
+    }
 
     [HttpGet("clubs")]
     public IActionResult GetClubs()

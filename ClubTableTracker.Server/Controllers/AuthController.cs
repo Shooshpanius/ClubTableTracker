@@ -101,6 +101,7 @@ public class AuthController : ControllerBase
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var claims = new[]
         {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.Name)
@@ -109,7 +110,7 @@ public class AuthController : ControllerBase
             issuer: Issuer,
             audience: Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(30),
+            expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: creds
         );
         return new JwtSecurityTokenHandler().WriteToken(token);
