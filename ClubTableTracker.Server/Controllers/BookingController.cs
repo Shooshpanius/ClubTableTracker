@@ -222,8 +222,8 @@ public class BookingController : ControllerBase
         using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
         // Check for time conflicts (no overlapping bookings allowed; touching boundaries are OK)
-        var hasConflict = _db.Bookings
-            .Any(b => b.TableId == req.TableId &&
+        var hasConflict = await _db.Bookings
+            .AnyAsync(b => b.TableId == req.TableId &&
                       b.StartTime < req.EndTime &&
                       b.EndTime > req.StartTime);
 
@@ -762,7 +762,7 @@ public class BookingController : ControllerBase
         using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
         // Check that new table is free during the booking's time window
-        var hasConflict = _db.Bookings.Any(b =>
+        var hasConflict = await _db.Bookings.AnyAsync(b =>
             b.TableId == req.NewTableId &&
             b.Id != id &&
             b.StartTime < booking.EndTime &&
@@ -850,8 +850,8 @@ public class BookingController : ControllerBase
         using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
         // Conflict check — exclude current booking
-        var hasConflict = _db.Bookings
-            .Any(b => b.TableId == booking.TableId &&
+        var hasConflict = await _db.Bookings
+            .AnyAsync(b => b.TableId == booking.TableId &&
                       b.Id != id &&
                       b.StartTime < req.EndTime &&
                       b.EndTime > req.StartTime);
