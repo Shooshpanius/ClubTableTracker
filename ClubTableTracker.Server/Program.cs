@@ -22,7 +22,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "default-secret-key-at-least-32-chars!!";
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException(
+        "Jwt:Secret is not configured. Set the JWT_SECRET environment variable.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
