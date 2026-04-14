@@ -137,7 +137,7 @@ builder.Services.AddRateLimiter(options =>
 
 ---
 
-### 5. Состояние гонки (TOCTOU) при бронировании столов
+### ~~5. Состояние гонки (TOCTOU) при бронировании столов~~ ✅ Исправлен
 **Файл:** `ClubTableTracker.Server/Controllers/BookingController.cs:222–227`, а также `RescheduleBooking`
 
 **Проблема:**  
@@ -346,7 +346,7 @@ private bool IsAuthorized()
 | 2 | Пропуск валидации аудитории Google | `AuthController.cs:44–47` | 🔴 Критический | ✅ Исправлен |
 | 3 | Ключи в `localStorage` | Frontend: `HomePage`, `AdminPage`, `ClubAdminPage` | 🟠 Высокий | ✅ Исправлен |
 | 4 | Нет rate limiting | `Program.cs` + все контроллеры | 🟠 Высокий | ✅ Исправлен |
-| 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ❌ Открыт |
+| 5 | TOCTOU при бронировании | `BookingController.cs:222–227` | 🟠 Высокий | ✅ Исправлен |
 | 6 | Загрузка файлов без magic bytes | `ClubAdminController.cs` | 🟡 Средний | ❌ Открыт |
 | 7 | JWT без issuer/audience | `Program.cs:33–34` | 🟡 Средний | ❌ Открыт |
 | 8 | Отсутствие security-заголовков | `nginx.conf` | 🟡 Средний | ❌ Открыт |
