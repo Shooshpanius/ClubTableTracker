@@ -135,7 +135,7 @@ export default function HomePage() {
       fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {
-          setUser({ ...baseUser, displayName: data.displayName || undefined })
+          setUser(u => ({ ...(u ?? baseUser), displayName: data.displayName || undefined }))
           if (data.bookingColors) {
             try {
               const c = { ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) }
@@ -146,7 +146,7 @@ export default function HomePage() {
         })
         .catch(err => {
           console.error('Failed to load user profile:', err)
-          setUser(baseUser)
+          setUser(u => u ?? baseUser)
         })
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))

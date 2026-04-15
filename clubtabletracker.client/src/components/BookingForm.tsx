@@ -5,6 +5,12 @@ import type { ShareSlot } from '../utils/shareBooking'
 const RESERVED_USER_ID = '__RESERVED__'
 const MAX_INVITED_SLOTS = 4
 
+function applyInvitedSlotsLimit(ids: string[], nextIsForOthers: boolean, nextIsDoubles: boolean) {
+  if (nextIsForOthers) return ids
+  const limit = nextIsDoubles ? 3 : 1
+  return ids.map((id, i) => i < limit ? id : '')
+}
+
 interface GameTable { id: number; number: string; supportedGames?: string }
 interface ClubMember { id: string; name: string; registrationName?: string; displayName?: string; enabledGameSystems?: string }
 interface BookingSlot { startTime: string; endTime: string; userId?: string; userName?: string; participants?: { id?: string; name: string }[]; gameSystem?: string; isDoubles?: boolean; isForOthers?: boolean }
@@ -132,12 +138,6 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     : []
 
   const eligibleMembers = getEligibleMembers(gameSystem)
-
-  const applyInvitedSlotsLimit = (ids: string[], nextIsForOthers: boolean, nextIsDoubles: boolean) => {
-    if (nextIsForOthers) return ids
-    const limit = nextIsDoubles ? 3 : 1
-    return ids.map((id, i) => i < limit ? id : '')
-  }
 
   const handleGameSystemChange = (nextSystem: string) => {
     const eligibleIds = new Set(getEligibleMembers(nextSystem).map(m => m.id))
