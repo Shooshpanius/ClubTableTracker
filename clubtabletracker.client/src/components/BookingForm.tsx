@@ -195,7 +195,17 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       body: JSON.stringify({ tableId: table.id, startTime: startDatetime, endTime: endDatetime, gameSystem: gameSystem || null, isDoubles, isForOthers, invitedUserIds: ids.length > 0 ? ids : null })
     })
     setLoading(false)
-    if (res.ok) { setStartTime(''); setEndTime(''); setGameSystem(''); setIsDoubles(false); setIsForOthers(false); setInvitedUserIds(Array(MAX_INVITED_SLOTS).fill('')); onBooked() }
+    if (res.ok) {
+      isDoublesRef.current = false
+      isForOthersRef.current = false
+      setStartTime('')
+      setEndTime('')
+      setGameSystem('')
+      setIsDoubles(false)
+      setIsForOthers(false)
+      setInvitedUserIds(Array(MAX_INVITED_SLOTS).fill(''))
+      onBooked()
+    }
     else { const t = await res.text(); setError(t || 'Booking failed') }
   }
 
