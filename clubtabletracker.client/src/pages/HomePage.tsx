@@ -69,6 +69,18 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+function getAttachmentDisplayName(url: string, fallback: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin)
+    const nameFromQuery = parsed.searchParams.get('name')
+    if (nameFromQuery && nameFromQuery.trim()) return nameFromQuery
+    const fromPath = decodeURIComponent(parsed.pathname.split('/').pop() ?? '')
+    return fromPath || fallback
+  } catch {
+    return fallback
+  }
+}
+
 const MAX_BOOKING_PLAYERS = 2
 
 const LOG_ACTION_LABEL: Record<string, string> = {
@@ -1097,12 +1109,12 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 1</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                                     </div>
                                   )}
                                   {ev.regulationUrl2 && (
                                     <div style={{ marginTop: 2 }}>
-                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 2</a>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                                     </div>
                                   )}
                                   {ev.missionMapUrl && (
@@ -1492,12 +1504,12 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 1</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                                     </div>
                                   )}
                                   {ev.regulationUrl2 && (
                                     <div style={{ marginTop: 2 }}>
-                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 2</a>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                                     </div>
                                   )}
                                   {ev.missionMapUrl && (

@@ -10,6 +10,18 @@ interface GameTable { id: number; clubId: number; number: string; size: string; 
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
+function getAttachmentDisplayName(url: string, fallback: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin)
+    const nameFromQuery = parsed.searchParams.get('name')
+    if (nameFromQuery && nameFromQuery.trim()) return nameFromQuery
+    const fromPath = decodeURIComponent(parsed.pathname.split('/').pop() ?? '')
+    return fromPath || fallback
+  } catch {
+    return fallback
+  }
+}
+
 export default function ClubAdminPage() {
   const [clubKey, setClubKey] = useState(sessionStorage.getItem('clubKey') || '')
   const [club, setClub] = useState<ClubInfo | null>(null)
@@ -1116,7 +1128,7 @@ export default function ClubAdminPage() {
                   {ev.regulationUrl ? (
                     <>
                       <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 1</a>
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
@@ -1141,7 +1153,7 @@ export default function ClubAdminPage() {
                   {ev.regulationUrl2 ? (
                     <>
                       <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 2</a>
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulation2Uploading === ev.id ? 'Загрузка...' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}

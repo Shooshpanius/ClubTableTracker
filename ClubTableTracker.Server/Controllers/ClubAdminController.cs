@@ -76,6 +76,12 @@ public class ClubAdminController : ControllerBase
         };
     }
 
+    private string ResolveStoredFilePath(string fileUrl)
+    {
+        var relativePath = fileUrl.Split('?', 2)[0].Split('#', 2)[0];
+        return Path.Combine(_env.ContentRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+    }
+
     [HttpGet("me")]
     public IActionResult GetMe()
     {
@@ -559,7 +565,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl))
         {
-            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var oldFile = ResolveStoredFilePath(ev.RegulationUrl);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
@@ -568,7 +574,10 @@ public class ClubAdminController : ControllerBase
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream);
 
-        ev.RegulationUrl = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}";
+        var originalFileName = Path.GetFileName(file.FileName);
+        if (string.IsNullOrWhiteSpace(originalFileName))
+            originalFileName = fileName;
+        ev.RegulationUrl = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}?name={Uri.EscapeDataString(originalFileName)}";
         _db.SaveChanges();
         return Ok(new { ev.Id, ev.RegulationUrl });
     }
@@ -584,7 +593,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl))
         {
-            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var oldFile = ResolveStoredFilePath(ev.RegulationUrl);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
             ev.RegulationUrl = null;
             _db.SaveChanges();
@@ -621,7 +630,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl2))
         {
-            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl2.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var oldFile = ResolveStoredFilePath(ev.RegulationUrl2);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
@@ -630,7 +639,10 @@ public class ClubAdminController : ControllerBase
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream);
 
-        ev.RegulationUrl2 = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}";
+        var originalFileName = Path.GetFileName(file.FileName);
+        if (string.IsNullOrWhiteSpace(originalFileName))
+            originalFileName = fileName;
+        ev.RegulationUrl2 = $"/uploads/clubs/{club.Id}/events/{id}/{fileName}?name={Uri.EscapeDataString(originalFileName)}";
         _db.SaveChanges();
         return Ok(new { ev.Id, ev.RegulationUrl2 });
     }
@@ -646,7 +658,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl2))
         {
-            var oldFile = Path.Combine(_env.ContentRootPath, ev.RegulationUrl2.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var oldFile = ResolveStoredFilePath(ev.RegulationUrl2);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
             ev.RegulationUrl2 = null;
             _db.SaveChanges();
