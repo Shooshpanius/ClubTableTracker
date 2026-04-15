@@ -11,6 +11,7 @@ import { DEFAULT_BOOKING_COLORS } from '../constants'
 import type { BookingColors } from '../constants'
 import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
+import { getAttachmentDisplayName } from '../utils/attachmentName'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -1097,12 +1098,12 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 1</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                                     </div>
                                   )}
                                   {ev.regulationUrl2 && (
                                     <div style={{ marginTop: 2 }}>
-                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 Регламент 2</a>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                                     </div>
                                   )}
                                   {ev.missionMapUrl && (
@@ -1492,12 +1493,12 @@ export default function HomePage() {
                                   )}
                                   {ev.regulationUrl && (
                                     <div style={{ marginTop: 4 }}>
-                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 1</a>
+                                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                                     </div>
                                   )}
                                   {ev.regulationUrl2 && (
                                     <div style={{ marginTop: 2 }}>
-                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 Регламент 2</a>
+                                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                                     </div>
                                   )}
                                   {ev.missionMapUrl && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
+import { getAttachmentDisplayName } from '../utils/attachmentName'
 
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
@@ -1116,7 +1117,7 @@ export default function ClubAdminPage() {
                   {ev.regulationUrl ? (
                     <>
                       <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 1</a>
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
@@ -1141,7 +1142,7 @@ export default function ClubAdminPage() {
                   {ev.regulationUrl2 ? (
                     <>
                       <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 Регламент 2</a>
+                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                       <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
                         {regulation2Uploading === ev.id ? 'Загрузка...' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
