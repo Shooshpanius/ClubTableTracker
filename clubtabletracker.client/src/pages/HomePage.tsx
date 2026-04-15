@@ -132,11 +132,10 @@ export default function HomePage() {
         email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
         name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
       }
-      setUser(baseUser)
       fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {
-          setUser(u => u ? { ...u, displayName: data.displayName || undefined } : u)
+          setUser({ ...baseUser, displayName: data.displayName || undefined })
           if (data.bookingColors) {
             try {
               const c = { ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) }
@@ -145,7 +144,10 @@ export default function HomePage() {
             } catch { /* ignore */ }
           }
         })
-        .catch(err => console.error('Failed to load user profile:', err))
+        .catch(err => {
+          console.error('Failed to load user profile:', err)
+          setUser(baseUser)
+        })
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))
     }
@@ -357,10 +359,12 @@ export default function HomePage() {
   const joinBooking = async (booking: Booking) => {
     if (!user) return
     if (isModerator) {
+      setModeratorAddPlayerId('')
       setModeratorBookingModal(booking)
       return
     }
     if (booking.user.id === user.id) {
+      setOwnerInvitePlayerId('')
       setOwnerBookingModal(booking)
       return
     }
@@ -453,16 +457,7 @@ export default function HomePage() {
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
   const shareBtnStyle: React.CSSProperties = { background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
 
-  useEffect(() => { setModeratorAddPlayerId('') }, [moderatorBookingModal])
-  useEffect(() => { setOwnerInvitePlayerId('') }, [ownerBookingModal])
-
-  // При открытии модалки ростера игрока — инициализируем значение ростера
-  useEffect(() => {
-    if (!playerRosterModal) return
-    setPlayerRosterValue(playerRosterModal.roster ?? '')
-  }, [playerRosterModal])
-
-  const isModerator = useMemo(() => user != null && members.some(m => m.id === user.id && m.isModerator), [members, user])
+  const isModerator = user != null && members.some(m => m.id === user.id && m.isModerator)
 
   const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
 
@@ -557,6 +552,7 @@ export default function HomePage() {
   }
 
   const openPlayerRoster = (info: PlayerRosterInfo) => {
+    setPlayerRosterValue(info.roster ?? '')
     setPlayerRosterModal(info)
   }
 

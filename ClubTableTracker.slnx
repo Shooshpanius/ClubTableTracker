@@ -4,7 +4,4 @@
     <Deploy />
   </Project>
   <Project Path="ClubTableTracker.Server/ClubTableTracker.Server.csproj" />
-  <Project Path="MobileAndroid/MobileAndroid.csproj" Id="7c7c8fb0-ed4c-417a-b6a9-206538e4a49a">
-    <Deploy />
-  </Project>
 </Solution>

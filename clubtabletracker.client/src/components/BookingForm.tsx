@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { shareTableSchedule } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 
@@ -123,30 +123,40 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
 
   const games = table.supportedGames ? table.supportedGames.split('|').filter(Boolean) : []
 
-  const eligibleMembers = gameSystem
+  const getEligibleMembers = (system: string) => system
     ? members.filter(m => {
         if (!m.enabledGameSystems) return false
         const systems = m.enabledGameSystems.split('|').filter(Boolean)
-        return systems.includes(gameSystem)
+        return systems.includes(system)
       })
     : []
 
-  useEffect(() => {
+  const eligibleMembers = getEligibleMembers(gameSystem)
+
+  const applyInvitedSlotsLimit = (ids: string[], nextIsForOthers: boolean, nextIsDoubles: boolean) => {
+    if (nextIsForOthers) return ids
+    const limit = nextIsDoubles ? 3 : 1
+    return ids.map((id, i) => i < limit ? id : '')
+  }
+
+  const handleGameSystemChange = (nextSystem: string) => {
+    const eligibleIds = new Set(getEligibleMembers(nextSystem).map(m => m.id))
+    setGameSystem(nextSystem)
     setInvitedUserIds(ids => ids.map(id => {
       if (!id || id === RESERVED_USER_ID) return id
-      return eligibleMembers.some(m => m.id === id) ? id : ''
+      return eligibleIds.has(id) ? id : ''
     }))
-  }, [gameSystem])
+  }
 
-  // При отключении режима "Для других" сбрасываем слоты выше стандартного лимита
-  useEffect(() => {
-    if (!isForOthers) {
-      setInvitedUserIds(ids => {
-        const limit = isDoubles ? 3 : 1
-        return ids.map((id, i) => i < limit ? id : '')
-      })
-    }
-  }, [isForOthers, isDoubles])
+  const handleDoublesChange = (checked: boolean) => {
+    setIsDoubles(checked)
+    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, isForOthers, checked))
+  }
+
+  const handleForOthersChange = (checked: boolean) => {
+    setIsForOthers(checked)
+    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, checked, isDoubles))
+  }
 
   const setInvitedAt = (index: number, value: string) => {
     setInvitedUserIds(ids => ids.map((id, i) => i === index ? value : id))
@@ -236,7 +246,7 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       {(games.length > 0 || tournamentGameSystem) && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <label style={{ color: '#aaa', fontSize: 13 }}>Система:</label>
-          <select style={inputStyle} value={gameSystem} onChange={e => setGameSystem(e.target.value)} disabled={!!tournamentGameSystem} aria-label={tournamentGameSystem ? `Система игры турнира: ${tournamentGameSystem}` : undefined}>
+          <select style={inputStyle} value={gameSystem} onChange={e => handleGameSystemChange(e.target.value)} disabled={!!tournamentGameSystem} aria-label={tournamentGameSystem ? `Система игры турнира: ${tournamentGameSystem}` : undefined}>
             {!tournamentGameSystem && <option value="">— не выбрана —</option>}
             {tournamentGameSystem
               ? <option value={tournamentGameSystem}>{tournamentGameSystem}</option>
@@ -247,14 +257,14 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
       )}
       <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
         <label style={{ color: '#aaa', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-          <input type="checkbox" checked={isDoubles} onChange={e => setIsDoubles(e.target.checked)} style={{ accentColor: '#533483' }} />
+          <input type="checkbox" checked={isDoubles} onChange={e => handleDoublesChange(e.target.checked)} style={{ accentColor: '#533483' }} />
           2x2 (4 игрока)
         </label>
       </div>
       {isModerator && (
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ color: '#ffc107', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <input type="checkbox" checked={isForOthers} onChange={e => setIsForOthers(e.target.checked)} style={{ accentColor: '#ffc107' }} />
+            <input type="checkbox" checked={isForOthers} onChange={e => handleForOthersChange(e.target.checked)} style={{ accentColor: '#ffc107' }} />
             Для других (модератор не участвует)
           </label>
         </div>
