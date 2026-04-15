@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { shareTableSchedule } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 
@@ -123,6 +123,8 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   const [gameSystem, setGameSystem] = useState(tournamentGameSystem || '')
   const [isDoubles, setIsDoubles] = useState(false)
   const [isForOthers, setIsForOthers] = useState(false)
+  const isDoublesRef = useRef(isDoubles)
+  const isForOthersRef = useRef(isForOthers)
   const [invitedUserIds, setInvitedUserIds] = useState<string[]>(Array(MAX_INVITED_SLOTS).fill(''))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -149,13 +151,15 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
   }
 
   const handleDoublesChange = (checked: boolean) => {
+    isDoublesRef.current = checked
     setIsDoubles(checked)
-    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, isForOthers, checked))
+    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, isForOthersRef.current, checked))
   }
 
   const handleForOthersChange = (checked: boolean) => {
+    isForOthersRef.current = checked
     setIsForOthers(checked)
-    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, checked, isDoubles))
+    setInvitedUserIds(ids => applyInvitedSlotsLimit(ids, checked, isDoublesRef.current))
   }
 
   const setInvitedAt = (index: number, value: string) => {

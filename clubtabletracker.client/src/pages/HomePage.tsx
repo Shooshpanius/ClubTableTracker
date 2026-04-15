@@ -120,7 +120,11 @@ export default function HomePage() {
   })
 
   useEffect(() => {
-    fetch('/api/club').then(r => r.json()).then(setClubs).catch(err => console.error('Failed to load clubs:', err))
+    let isCurrent = true
+    fetch('/api/club')
+      .then(r => r.json())
+      .then(data => { if (isCurrent) setClubs(data) })
+      .catch(err => console.error('Failed to load clubs:', err))
     if (token) {
       const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
       const jsonPayload = decodeURIComponent(
@@ -135,6 +139,7 @@ export default function HomePage() {
       fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {
+          if (!isCurrent) return
           setUser(u => ({ ...(u ?? baseUser), displayName: data.displayName || undefined }))
           if (data.bookingColors) {
             try {
@@ -146,10 +151,16 @@ export default function HomePage() {
         })
         .catch(err => {
           console.error('Failed to load user profile:', err)
+          if (!isCurrent) return
           setUser(u => u ?? baseUser)
         })
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(setMemberships).catch(err => console.error('Failed to load memberships:', err))
+        .then(r => r.json())
+        .then(data => { if (isCurrent) setMemberships(data) })
+        .catch(err => console.error('Failed to load memberships:', err))
+    }
+    return () => {
+      isCurrent = false
     }
   }, [token])
 
