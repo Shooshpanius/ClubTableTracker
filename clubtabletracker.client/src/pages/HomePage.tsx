@@ -11,6 +11,7 @@ import { DEFAULT_BOOKING_COLORS } from '../constants'
 import type { BookingColors } from '../constants'
 import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
+import { getAttachmentDisplayName } from '../utils/attachmentName'
 
 function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
@@ -67,18 +68,6 @@ function toDatetimeLocal(date: Date, totalMinutes: number): string {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-}
-
-function getAttachmentDisplayName(url: string, fallback: string): string {
-  try {
-    const parsed = new URL(url, window.location.origin)
-    const nameFromQuery = parsed.searchParams.get('name')
-    if (nameFromQuery && nameFromQuery.trim()) return nameFromQuery
-    const fromPath = decodeURIComponent(parsed.pathname.split('/').pop() ?? '')
-    return fromPath || fallback
-  } catch {
-    return fallback
-  }
 }
 
 const MAX_BOOKING_PLAYERS = 2

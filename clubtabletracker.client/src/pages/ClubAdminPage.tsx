@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
+import { getAttachmentDisplayName } from '../utils/attachmentName'
 
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
@@ -9,18 +10,6 @@ interface Membership { id: number; status: string; isModerator: boolean; hasKey:
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
-
-function getAttachmentDisplayName(url: string, fallback: string): string {
-  try {
-    const parsed = new URL(url, window.location.origin)
-    const nameFromQuery = parsed.searchParams.get('name')
-    if (nameFromQuery && nameFromQuery.trim()) return nameFromQuery
-    const fromPath = decodeURIComponent(parsed.pathname.split('/').pop() ?? '')
-    return fromPath || fallback
-  } catch {
-    return fallback
-  }
-}
 
 export default function ClubAdminPage() {
   const [clubKey, setClubKey] = useState(sessionStorage.getItem('clubKey') || '')

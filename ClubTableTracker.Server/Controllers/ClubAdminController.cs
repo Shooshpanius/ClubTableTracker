@@ -76,7 +76,7 @@ public class ClubAdminController : ControllerBase
         };
     }
 
-    private string ResolveStoredFilePath(string fileUrl)
+    private string GetPhysicalFilePathFromUrl(string fileUrl)
     {
         var relativePath = fileUrl.Split('?', 2)[0].Split('#', 2)[0];
         return Path.Combine(_env.ContentRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
@@ -565,7 +565,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl))
         {
-            var oldFile = ResolveStoredFilePath(ev.RegulationUrl);
+            var oldFile = GetPhysicalFilePathFromUrl(ev.RegulationUrl);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
@@ -593,7 +593,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl))
         {
-            var oldFile = ResolveStoredFilePath(ev.RegulationUrl);
+            var oldFile = GetPhysicalFilePathFromUrl(ev.RegulationUrl);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
             ev.RegulationUrl = null;
             _db.SaveChanges();
@@ -630,7 +630,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl2))
         {
-            var oldFile = ResolveStoredFilePath(ev.RegulationUrl2);
+            var oldFile = GetPhysicalFilePathFromUrl(ev.RegulationUrl2);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
         }
 
@@ -658,7 +658,7 @@ public class ClubAdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(ev.RegulationUrl2))
         {
-            var oldFile = ResolveStoredFilePath(ev.RegulationUrl2);
+            var oldFile = GetPhysicalFilePathFromUrl(ev.RegulationUrl2);
             if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
             ev.RegulationUrl2 = null;
             _db.SaveChanges();
