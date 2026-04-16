@@ -36,7 +36,7 @@ interface Booking extends BookingBase { tableId: number; startTime: string; endT
 interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isManualEntry?: boolean }
-interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterUserId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
+interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
@@ -1100,11 +1100,6 @@ export default function HomePage() {
                                       {ev.participants.map(p => p.name).join(", ")}
                                     </div>
                                   )}
-                                  {ev.gameMasterName && (
-                                    <div style={{ fontSize: 12, color: "#9ad1ff", marginTop: 4 }}>
-                                      🎲 Гейм-мастер: {ev.gameMasterName}
-                                    </div>
-                                  )}
                                   {ev.description && (
                                     <div style={{ fontSize: 12, color: "#bbb", marginTop: 4, whiteSpace: "pre-wrap" }}>{ev.description}</div>
                                   )}
@@ -1498,11 +1493,6 @@ export default function HomePage() {
                                   {ev.participants.length > 0 && (
                                     <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
                                       {ev.participants.map(p => p.name).join(', ')}
-                                    </div>
-                                  )}
-                                  {ev.gameMasterName && (
-                                    <div style={{ fontSize: 12, color: '#9ad1ff', marginTop: 4 }}>
-                                      🎲 Гейм-мастер: {ev.gameMasterName}
                                     </div>
                                   )}
                                   {ev.description && (

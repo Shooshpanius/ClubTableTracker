@@ -33,11 +33,6 @@ public class EventController : ControllerBase
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
-                e.GameMasterUserId,
-                GameMasterName = _db.Users
-                    .Where(u => u.Id == e.GameMasterUserId)
-                    .Select(u => u.DisplayName ?? u.Name)
-                    .FirstOrDefault(),
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
