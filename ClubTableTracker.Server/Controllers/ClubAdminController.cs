@@ -499,7 +499,7 @@ public class ClubAdminController : ControllerBase
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
 
-        if (ev.GameMasterId != null && !_db.EventParticipants.Any(p => p.EventId == ev.Id && p.UserId == ev.GameMasterId))
+        if (ev.GameMasterId != null)
         {
             _db.EventParticipants.Add(new EventParticipant { EventId = ev.Id, UserId = ev.GameMasterId });
             _db.SaveChanges();

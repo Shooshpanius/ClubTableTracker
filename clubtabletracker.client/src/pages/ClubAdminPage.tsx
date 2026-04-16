@@ -282,9 +282,12 @@ export default function ClubAdminPage() {
     if (res.ok) {
       const ev = await res.json()
       const gm = memberships.find(m => m.user.id === ev.gameMasterId)
-      const gmName = gm ? (gm.user.name) : undefined
-      const participant = ev.gameMasterId ? [{ id: ev.gameMasterId, name: gmName ?? ev.gameMasterId }] : []
-      setEvents([...events, { ...ev, gameMasterName: gmName, participants: participant }])
+      const gmName = gm ? gm.user.name : undefined
+      const existingParticipants: { id: string; name: string }[] = Array.isArray(ev.participants) ? ev.participants : []
+      const participants = ev.gameMasterId && !existingParticipants.some((p: { id: string }) => p.id === ev.gameMasterId)
+        ? [...existingParticipants, { id: ev.gameMasterId, name: gmName ?? ev.gameMasterId }]
+        : existingParticipants
+      setEvents([...events, { ...ev, gameMasterName: gmName, participants }])
       setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '', gameMasterId: '' })
       setSelectedEventTables([])
       setShowEventForm(false)
