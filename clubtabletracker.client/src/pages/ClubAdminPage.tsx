@@ -8,7 +8,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -25,7 +25,7 @@ export default function ClubAdminPage() {
   const [closeTime, setCloseTime] = useState('22:00')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [events, setEvents] = useState<ClubEventData[]>([])
-  const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '' })
+  const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '', gameMasterId: '' })
   const [selectedEventTables, setSelectedEventTables] = useState<number[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [editingEventId, setEditingEventId] = useState<number | null>(null)
@@ -271,7 +271,8 @@ export default function ClubAdminPage() {
       eventType: newEvent.eventType,
       gameSystem: newEvent.gameSystem || null,
       tableIds: selectedEventTables.length > 0 ? selectedEventTables.join(',') : null,
-      description: newEvent.description.trim() || null
+      description: newEvent.description.trim() || null,
+      gameMasterId: newEvent.gameMasterId || null
     }
     const res = await fetch('/api/clubadmin/events', {
       method: 'POST',
@@ -280,8 +281,14 @@ export default function ClubAdminPage() {
     })
     if (res.ok) {
       const ev = await res.json()
-      setEvents([...events, { ...ev, participants: [] }])
-      setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '' })
+      const gm = memberships.find(m => m.user.id === ev.gameMasterId)
+      const gmName = gm ? gm.user.name : undefined
+      const existingParticipants: { id: string; name: string }[] = Array.isArray(ev.participants) ? ev.participants : []
+      const participants = ev.gameMasterId && !existingParticipants.some((p: { id: string }) => p.id === ev.gameMasterId)
+        ? [...existingParticipants, { id: ev.gameMasterId, name: gmName ?? ev.gameMasterId }]
+        : existingParticipants
+      setEvents([...events, { ...ev, gameMasterName: gmName, participants }])
+      setNewEvent({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '', gameMasterId: '' })
       setSelectedEventTables([])
       setShowEventForm(false)
     }
@@ -988,6 +995,16 @@ export default function ClubAdminPage() {
                   onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} />
                 <span style={{ color: '#888', fontSize: 11 }}>{newEvent.description.length}/500</span>
               </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Гейм-мастер (необязательно):</label>
+                <select style={inputStyle} value={newEvent.gameMasterId}
+                  onChange={e => setNewEvent({ ...newEvent, gameMasterId: e.target.value })}>
+                  <option value="">— Не назначен —</option>
+                  {memberships.filter(m => m.status === 'Approved' && !m.isManualEntry).map(m => (
+                    <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
+                  ))}
+                </select>
+              </div>
               <div style={{ marginTop: 14 }}>
                 <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.startTime || !newEvent.endTime}>Создать</button>
                 <button style={{ ...btnStyle, background: '#555' }} onClick={() => setShowEventForm(false)}>Отмена</button>
@@ -1016,6 +1033,11 @@ export default function ClubAdminPage() {
                       &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
                       {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
                     </div>
+                    {ev.gameMasterName && (
+                      <div style={{ fontSize: 12, color: '#c0a060', marginTop: 3 }}>
+                        🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button style={{ ...btnStyle, background: '#533483' }} onClick={() => {

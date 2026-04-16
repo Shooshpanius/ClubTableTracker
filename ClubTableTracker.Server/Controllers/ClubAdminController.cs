@@ -421,12 +421,15 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
+            .Include(e => e.GameMaster)
             .Where(e => e.ClubId == club.Id)
             .OrderBy(e => e.StartTime)
             .Select(e => new
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
+                e.GameMasterId,
+                GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
@@ -485,9 +488,24 @@ public class ClubAdminController : ControllerBase
             TableIds = req.TableIds,
             Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim()
         };
+
+        if (!string.IsNullOrWhiteSpace(req.GameMasterId))
+        {
+            var gmUser = _db.Users.Find(req.GameMasterId);
+            if (gmUser != null)
+                ev.GameMasterId = req.GameMasterId;
+        }
+
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
-        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl, ev.RegulationUrl2, ev.MissionMapUrl });
+
+        if (ev.GameMasterId != null)
+        {
+            _db.EventParticipants.Add(new EventParticipant { EventId = ev.Id, UserId = ev.GameMasterId });
+            _db.SaveChanges();
+        }
+
+        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl, ev.RegulationUrl2, ev.MissionMapUrl, ev.GameMasterId });
     }
 
     [HttpDelete("events/{id}")]
@@ -1010,7 +1028,7 @@ public class ClubAdminController : ControllerBase
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
 public record ClubSettingsRequest(string OpenTime, string CloseTime);
-public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds, string? Description);
+public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds, string? Description, string? GameMasterId = null);
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
 public record UpdateEventDescriptionRequest(string? Description);
