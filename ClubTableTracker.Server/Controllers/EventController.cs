@@ -27,12 +27,15 @@ public class EventController : ControllerBase
 
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
+            .Include(e => e.GameMaster)
             .Where(e => e.ClubId == clubId)
             .OrderBy(e => e.StartTime)
             .Select(e => new
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
+                e.GameMasterId,
+                GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();

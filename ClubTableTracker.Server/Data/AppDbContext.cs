@@ -83,6 +83,12 @@ public class AppDbContext : DbContext
             .HasOne(e => e.Club)
             .WithMany()
             .HasForeignKey(e => e.ClubId);
+        modelBuilder.Entity<ClubEvent>()
+            .HasOne(e => e.GameMaster)
+            .WithMany()
+            .HasForeignKey(e => e.GameMasterId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<EventParticipant>().HasKey(p => p.Id);
         modelBuilder.Entity<EventParticipant>()
