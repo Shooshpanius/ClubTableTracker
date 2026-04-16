@@ -17,5 +17,6 @@ public class ClubEvent
     [MaxLength(500)]  public string? RegulationUrl  { get; set; }
     [MaxLength(500)]  public string? RegulationUrl2 { get; set; }
     [MaxLength(500)]  public string? MissionMapUrl  { get; set; }
+    public string? GameMasterUserId { get; set; }
     public List<EventParticipant> Participants { get; set; } = new();
 }
