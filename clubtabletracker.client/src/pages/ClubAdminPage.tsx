@@ -8,7 +8,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterUserId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -263,7 +263,6 @@ export default function ClubAdminPage() {
   }
 
   const createEvent = async () => {
-    const token = localStorage.getItem('token')
     const body = {
       title: newEvent.title,
       startTime: newEvent.startTime.length === 16 ? newEvent.startTime + ':00' : newEvent.startTime,
@@ -276,11 +275,7 @@ export default function ClubAdminPage() {
     }
     const res = await fetch('/api/clubadmin/events', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Club-Key': clubKey,
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
       body: JSON.stringify(body)
     })
     if (res.ok) {

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
 
@@ -428,11 +427,6 @@ public class ClubAdminController : ControllerBase
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
-                e.GameMasterUserId,
-                GameMasterName = _db.Users
-                    .Where(u => u.Id == e.GameMasterUserId)
-                    .Select(u => u.DisplayName ?? u.Name)
-                    .FirstOrDefault(),
                 Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
             })
             .ToList();
@@ -489,31 +483,11 @@ public class ClubAdminController : ControllerBase
             EventType = req.EventType,
             GameSystem = req.GameSystem,
             TableIds = req.TableIds,
-            Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim(),
-            GameMasterUserId = GetEventCreatorGameMasterId(club.Id)
+            Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim()
         };
         _db.ClubEvents.Add(ev);
         _db.SaveChanges();
-        var gameMasterName = ev.GameMasterUserId == null
-            ? null
-            : _db.Users.Where(u => u.Id == ev.GameMasterUserId).Select(u => u.DisplayName ?? u.Name).FirstOrDefault();
-        return Ok(new
-        {
-            ev.Id,
-            ev.Title,
-            ev.StartTime,
-            ev.EndTime,
-            ev.MaxParticipants,
-            ev.EventType,
-            ev.GameSystem,
-            ev.TableIds,
-            ev.Description,
-            ev.RegulationUrl,
-            ev.RegulationUrl2,
-            ev.MissionMapUrl,
-            ev.GameMasterUserId,
-            GameMasterName = gameMasterName
-        });
+        return Ok(new { ev.Id, ev.Title, ev.StartTime, ev.EndTime, ev.MaxParticipants, ev.EventType, ev.GameSystem, ev.TableIds, ev.Description, ev.RegulationUrl, ev.RegulationUrl2, ev.MissionMapUrl });
     }
 
     [HttpDelete("events/{id}")]
@@ -1031,20 +1005,6 @@ public class ClubAdminController : ControllerBase
         _db.ClubDecorations.Remove(deco);
         _db.SaveChanges();
         return NoContent();
-    }
-
-    private string? GetEventCreatorGameMasterId(int clubId)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userId)) return null;
-
-        var isAdmin = _db.Memberships.Any(m =>
-            m.UserId == userId &&
-            m.ClubId == clubId &&
-            m.Status == "Approved" &&
-            (m.IsModerator || m.HasKey));
-
-        return isAdmin ? userId : null;
     }
 }
 

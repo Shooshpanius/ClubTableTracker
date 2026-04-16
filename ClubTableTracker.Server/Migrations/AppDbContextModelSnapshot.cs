@@ -282,10 +282,6 @@ namespace ClubTableTracker.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("GameMasterUserId")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("int");
 
