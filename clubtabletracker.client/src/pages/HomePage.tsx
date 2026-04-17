@@ -1723,7 +1723,7 @@ export default function HomePage() {
                   {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span>
                   <button
                     style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
-                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: true })}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking, isAdminEdit: true })}
                   >R</button>
                 </span>
                 {!isModeratorOwner && !isPastBooking && (
@@ -1741,7 +1741,7 @@ export default function HomePage() {
                     {keyIcon(p.id)}{p.name}
                     <button
                       style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
-                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: true, isAdminEdit: true })}
+                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking, isAdminEdit: true })}
                     >R</button>
                   </span>
                   {!(user != null && p.id === user.id) && !isPastBooking && (
@@ -1943,7 +1943,7 @@ export default function HomePage() {
                   {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span>
                   <button
                     style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
-                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: false })}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking, isAdminEdit: false })}
                   >R</button>
                 </span>
               </div>
@@ -1953,7 +1953,7 @@ export default function HomePage() {
                     {keyIcon(p.id)}{p.name}
                     <button
                       style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
-                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}
+                      onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking && user?.id === p.id, isAdminEdit: false })}
                     >R</button>
                   </span>
                 </div>
@@ -2065,7 +2065,7 @@ export default function HomePage() {
                 <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
                 <button
                   style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
-                  onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false })}
+                  onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking && user?.id === b.user.id, isAdminEdit: false })}
                 >R</button>
               </div>
               {acceptedParticipants.map(p => (
@@ -2073,7 +2073,7 @@ export default function HomePage() {
                   <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(p.id)}{p.name}</span>
                   <button
                     style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
-                    onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false })}
+                    onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking && user?.id === p.id, isAdminEdit: false })}
                   >R</button>
                 </div>
               ))}
