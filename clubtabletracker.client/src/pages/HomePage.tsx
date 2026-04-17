@@ -80,6 +80,8 @@ function formatDate(date: Date): string {
 
 const MAX_BOOKING_PLAYERS = 2
 
+const PAST_DATE_HINT = '📅 Просмотр прошедших игр'
+
 const LOG_ACTION_LABEL: Record<string, string> = {
   Booked: 'зарезервировал',
   Joined: 'присоединился к',
@@ -866,7 +868,7 @@ export default function HomePage() {
                             Занято
                           </span>
                           {user && !isSelectedDatePast && <span style={{ color: "#aaa" }}>Нажмите на свободный слот для бронирования</span>}
-                          {isSelectedDatePast && <span style={{ color: "#888", fontStyle: "italic" }}>📅 Просмотр прошедших игр</span>}
+                          {isSelectedDatePast && <span style={{ color: "#888", fontStyle: "italic" }}>{PAST_DATE_HINT}</span>}
                         </div>
 
                         {/* Table accordions */}
@@ -1359,7 +1361,7 @@ export default function HomePage() {
                               Занято
                             </span>
                             {user && !isSelectedDatePast && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
-                            {isSelectedDatePast && <span style={{ color: '#888', fontStyle: 'italic' }}>📅 Просмотр прошедших игр</span>}
+                            {isSelectedDatePast && <span style={{ color: '#888', fontStyle: 'italic' }}>{PAST_DATE_HINT}</span>}
                           </div>
                           {selectedTable && user && !isSelectedDatePast && (
                             <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 20, whiteSpace: 'normal' }}>
