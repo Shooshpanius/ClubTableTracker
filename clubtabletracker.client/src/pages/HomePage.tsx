@@ -2134,8 +2134,12 @@ export default function HomePage() {
                   placeholder="Ростер не задан. Введите список армии, состав и т.п."
                   value={playerRosterValue}
                   onChange={e => setPlayerRosterValue(e.target.value)}
+                  maxLength={6000}
                   style={{ flex: 1, width: '100%', background: '#0a1628', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '10px 12px', fontSize: 13, resize: 'none', boxSizing: 'border-box', fontFamily: 'monospace', lineHeight: 1.5 }}
                 />
+                <div style={{ textAlign: 'right', fontSize: 11, color: playerRosterValue.length > 5800 ? '#e94560' : '#666', marginTop: 3, flexShrink: 0 }}>
+                  {playerRosterValue.length} / 6000
+                </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexShrink: 0 }}>
                   <button
                     onClick={saveCurrentPlayerRoster}
