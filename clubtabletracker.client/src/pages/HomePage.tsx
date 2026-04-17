@@ -473,6 +473,7 @@ export default function HomePage() {
   const [playerRosterModal, setPlayerRosterModal] = useState<PlayerRosterInfo | null>(null)
   const [playerRosterValue, setPlayerRosterValue] = useState('')
   const [playerRosterSaving, setPlayerRosterSaving] = useState(false)
+  const [playerRosterLoading, setPlayerRosterLoading] = useState(false)
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
@@ -572,9 +573,25 @@ export default function HomePage() {
     }
   }
 
-  const openPlayerRoster = (info: PlayerRosterInfo) => {
-    setPlayerRosterValue(info.roster ?? '')
+  const openPlayerRoster = async (info: PlayerRosterInfo) => {
+    setPlayerRosterValue('')
+    setPlayerRosterLoading(true)
     setPlayerRosterModal(info)
+    const url = info.isOwnerPlayer
+      ? `/api/booking/${info.booking.id}/roster`
+      : `/api/booking/${info.booking.id}/roster?participantId=${info.participantId}`
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        const data = await res.json()
+        setPlayerRosterValue(data.roster ?? '')
+      } else {
+        alert('Не удалось загрузить ростер')
+        setPlayerRosterModal(null)
+      }
+    } finally {
+      setPlayerRosterLoading(false)
+    }
   }
 
   const saveCurrentPlayerRoster = async () => {
@@ -2109,7 +2126,7 @@ export default function HomePage() {
 
     {/* Модалка: просмотр и редактирование ростера одного игрока */}
     {playerRosterModal && (() => {
-      const { booking: b, playerName, isOwnerPlayer, roster, canEdit, isAdminEdit } = playerRosterModal
+      const { booking: b, playerName, isOwnerPlayer, canEdit, isAdminEdit } = playerRosterModal
       const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
       const borderColor = isAdminEdit ? '#e94560' : '#27ae60'
       return (
@@ -2127,7 +2144,9 @@ export default function HomePage() {
             <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa', flexShrink: 0 }}>
               {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
             </p>
-            {canEdit ? (
+            {playerRosterLoading ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 14 }}>Загрузка...</div>
+            ) : canEdit ? (
               <>
                 <textarea
                   rows={8}
@@ -2158,8 +2177,8 @@ export default function HomePage() {
               </>
             ) : (
               <>
-                {roster
-                  ? <pre style={{ flex: 1, color: '#ccc', fontSize: 13, background: '#0a1628', padding: '12px 14px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowY: 'auto', fontFamily: 'monospace', lineHeight: 1.5 }}>{roster}</pre>
+                {playerRosterValue
+                  ? <pre style={{ flex: 1, color: '#ccc', fontSize: 13, background: '#0a1628', padding: '12px 14px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowY: 'auto', fontFamily: 'monospace', lineHeight: 1.5 }}>{playerRosterValue}</pre>
                   : <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 14 }}>Ростер не задан</div>
                 }
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
