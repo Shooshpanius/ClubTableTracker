@@ -45,6 +45,14 @@ function parseHHMM(t: string): number {
   return h * 60 + (m || 0)
 }
 
+function isBookingPast(startTime: string): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(startTime)
+  d.setHours(0, 0, 0, 0)
+  return d < today
+}
+
 function getLocalMinutes(date: Date): number {
   return date.getHours() * 60 + date.getMinutes()
 }
@@ -71,6 +79,8 @@ function formatDate(date: Date): string {
 }
 
 const MAX_BOOKING_PLAYERS = 2
+
+const PAST_DATE_HINT = '📅 Просмотр прошедших игр'
 
 const LOG_ACTION_LABEL: Record<string, string> = {
   Booked: 'зарезервировал',
@@ -709,6 +719,12 @@ export default function HomePage() {
     return d
   }, [clubEvents, user])
 
+  const isSelectedDatePast = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return selectedDate < today
+  }, [selectedDate])
+
   return (
     <>
     <div style={{ padding: isMobile ? 16 : 40 }}>
@@ -851,7 +867,8 @@ export default function HomePage() {
                             <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: "inline-block", borderRadius: 2, border: "1px solid #555" }} />
                             Занято
                           </span>
-                          {user && <span style={{ color: "#aaa" }}>Нажмите на свободный слот для бронирования</span>}
+                          {user && !isSelectedDatePast && <span style={{ color: "#aaa" }}>Нажмите на свободный слот для бронирования</span>}
+                          {isSelectedDatePast && <span style={{ color: "#888", fontStyle: "italic" }}>{PAST_DATE_HINT}</span>}
                         </div>
 
                         {/* Table accordions */}
@@ -935,7 +952,7 @@ export default function HomePage() {
                                       closeTime={club.closeTime}
                                       selectedDate={selectedDate}
                                       currentUserId={user?.id}
-                                      onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
+                                      onSlotClick={user && !isSelectedDatePast && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
                                       onBookingClick={user ? joinBooking : undefined}
                                       isSelected={isTableSelected}
                                       isEventTable={eventTableIds.has(table.id)}
@@ -943,7 +960,7 @@ export default function HomePage() {
                                       keyMemberIds={keyMemberIds}
                                     />
                                   </div>
-                                  {isTableSelected && user && (
+                                  {isTableSelected && user && !isSelectedDatePast && (
                                     <div style={{ ...cardStyle, border: "1px solid #e94560", marginTop: 16 }}>
                                       <BookingForm
                                         key={`${table.id}-${bookingStart}-${bookingEnd}`}
@@ -1318,7 +1335,7 @@ export default function HomePage() {
                                     closeTime={club.closeTime}
                                     selectedDate={selectedDate}
                                     currentUserId={user?.id}
-                                    onSlotClick={user && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
+                                    onSlotClick={user && !isSelectedDatePast && (!eventTableIds.has(table.id) || userEventTableIds.has(table.id)) ? handleSlotClick : undefined}
                                     onBookingClick={user ? joinBooking : undefined}
                                     isSelected={selectedTable?.id === table.id}
                                     isEventTable={eventTableIds.has(table.id)}
@@ -1343,9 +1360,10 @@ export default function HomePage() {
                               <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
                               Занято
                             </span>
-                            {user && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
+                            {user && !isSelectedDatePast && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
+                            {isSelectedDatePast && <span style={{ color: '#888', fontStyle: 'italic' }}>{PAST_DATE_HINT}</span>}
                           </div>
-                          {selectedTable && user && (
+                          {selectedTable && user && !isSelectedDatePast && (
                             <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 20, whiteSpace: 'normal' }}>
                               <BookingForm
                                 key={`${selectedTable.id}-${bookingStart}-${bookingEnd}`}
@@ -1671,6 +1689,7 @@ export default function HomePage() {
       const isModeratorParticipant = user != null && b.participants.some(p => p.id === user.id)
       const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
       const canJoin = !isModeratorOwner && !isModeratorParticipant && (acceptedParticipants.length + 1) < maxPlayers
+      const isPastBooking = isBookingPast(b.startTime)
       const handleModeratorJoin = async () => {
         setModeratorBookingModal(null)
         const res = await fetch(`/api/booking/${b.id}/join`, {
@@ -1707,7 +1726,7 @@ export default function HomePage() {
                     onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: true, isAdminEdit: true })}
                   >R</button>
                 </span>
-                {!isModeratorOwner && (
+                {!isModeratorOwner && !isPastBooking && (
                   <button
                     style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
                     onClick={() => kickPlayerFromBooking(b, b.user.id)}
@@ -1725,7 +1744,7 @@ export default function HomePage() {
                       onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: true, isAdminEdit: true })}
                     >R</button>
                   </span>
-                  {!(user != null && p.id === user.id) && (
+                  {!(user != null && p.id === user.id) && !isPastBooking && (
                     <button
                       style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
                       onClick={() => kickPlayerFromBooking(b, p.id, p.participantId)}
@@ -1735,7 +1754,7 @@ export default function HomePage() {
                   )}
                 </div>
               ))}
-              {invitedParticipants.length > 0 && (
+              {invitedParticipants.length > 0 && !isPastBooking && (
                 <>
                   <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
                   {invitedParticipants.map(p => (
@@ -1767,7 +1786,7 @@ export default function HomePage() {
                 }
                 return true
               })
-              if (acceptedCount >= maxPlayers) return null
+              if (isPastBooking || acceptedCount >= maxPlayers) return null
               return (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Добавить игрока:</div>
@@ -1794,7 +1813,7 @@ export default function HomePage() {
                 </div>
               )
             })()}
-            {(() => {
+            {!isPastBooking && (() => {
               const bStart = new Date(b.startTime)
               const bEnd = new Date(b.endTime)
               const availableTables = tables.filter(t => {
@@ -1834,7 +1853,7 @@ export default function HomePage() {
             })()}
             {/* Ростеры игроков — открываются отдельным модальным окном */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {canJoin && (
+              {canJoin && !isPastBooking && (
                 <button
                   onClick={handleModeratorJoin}
                   style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1842,7 +1861,7 @@ export default function HomePage() {
                   Присоединиться
                 </button>
               )}
-              {isModeratorParticipant && !isModeratorOwner && (
+              {isModeratorParticipant && !isModeratorOwner && !isPastBooking && (
                 <button
                   onClick={async () => { setModeratorBookingModal(null); await leaveBooking(b) }}
                   style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1850,7 +1869,7 @@ export default function HomePage() {
                   Выйти из игры
                 </button>
               )}
-              {isModeratorOwner && (
+              {isModeratorOwner && !isPastBooking && (
                 <button
                   onClick={async () => { setModeratorBookingModal(null); await cancelBooking(b) }}
                   style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1859,12 +1878,14 @@ export default function HomePage() {
                 </button>
               )}
 
-              <button
-                onClick={() => openRescheduleModal(b)}
-                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                🕐 Изменить время
-              </button>
+              {!isPastBooking && (
+                <button
+                  onClick={() => openRescheduleModal(b)}
+                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  🕐 Изменить время
+                </button>
+              )}
               <button
                 onClick={() => setModeratorBookingModal(null)}
                 style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -1901,6 +1922,7 @@ export default function HomePage() {
         return true
       })
       const canInviteMore = takenSlots < maxPlayers
+      const isPastBooking = isBookingPast(b.startTime)
       return (
         <div
           onClick={() => setOwnerBookingModal(null)}
@@ -1950,7 +1972,7 @@ export default function HomePage() {
                 <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
               )}
             </div>
-            {canInviteMore && (
+            {canInviteMore && !isPastBooking && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Пригласить игрока:</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1977,19 +1999,22 @@ export default function HomePage() {
             )}
             {/* Ростеры — открываются отдельным модальным окном */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                onClick={async () => { setOwnerBookingModal(null); await cancelBooking(b) }}
-                style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                Покинуть / Отменить
-              </button>
-
-              <button
-                onClick={() => openRescheduleModal(b)}
-                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
-              >
-                🕐 Изменить время
-              </button>
+              {!isPastBooking && (
+                <button
+                  onClick={async () => { setOwnerBookingModal(null); await cancelBooking(b) }}
+                  style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  Покинуть / Отменить
+                </button>
+              )}
+              {!isPastBooking && (
+                <button
+                  onClick={() => openRescheduleModal(b)}
+                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                >
+                  🕐 Изменить время
+                </button>
+              )}
               <button
                 onClick={() => handleShareBooking(b)}
                 style={shareBtnStyle}
@@ -2020,6 +2045,7 @@ export default function HomePage() {
       const canJoin = user != null && !isOwner && !isParticipant && (acceptedCount + 1) < maxPlayers
       const myParticipant = user != null ? b.participants.find(p => p.id === user.id) : undefined
       const isParticipantAccepted = myParticipant && myParticipant.status !== 'Invited'
+      const isPastBooking = isBookingPast(b.startTime)
       return (
         <div
           onClick={() => setGameInfoModal(null)}
@@ -2053,7 +2079,7 @@ export default function HomePage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {canJoin && (
+              {canJoin && !isPastBooking && (
                 <button
                   onClick={() => doJoinBooking(b)}
                   style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
@@ -2061,7 +2087,7 @@ export default function HomePage() {
                   Присоединиться
                 </button>
               )}
-              {isParticipantAccepted && !isOwner && (
+              {isParticipantAccepted && !isOwner && !isPastBooking && (
                 <button
                   onClick={async () => { setGameInfoModal(null); await leaveBooking(b) }}
                   style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
