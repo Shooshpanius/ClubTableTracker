@@ -86,7 +86,7 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate, 
                 cellDate.setHours(0, 0, 0, 0)
                 const isPast = cellDate < today
                 const isBeyondMax = cellDate > effectiveMaxDate
-                const isDisabled = isPast || isBeyondMax
+                const isDisabled = isBeyondMax
                 const isCampaignDate = maxCampaignDate != null && cellDate > maxDate && !isBeyondMax
                 const dateKey = `${viewYear}-${viewMonth}-${dayNum}`
                 const isSelected = selectedDate.getFullYear() === viewYear && selectedDate.getMonth() === viewMonth && selectedDate.getDate() === dayNum
@@ -96,18 +96,18 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate, 
                   <td
                     key={di}
                     onClick={() => !isDisabled && onSelectDate(new Date(viewYear, viewMonth, dayNum))}
-                    title={isBeyondMax ? `Бронирование доступно не более чем на ${MAX_BOOKING_DAYS_AHEAD} дней вперёд` : isCampaignDate ? 'Дата кампании' : undefined}
+                    title={isBeyondMax ? `Бронирование доступно не более чем на ${MAX_BOOKING_DAYS_AHEAD} дней вперёд` : isPast ? 'Только просмотр (прошедшая дата)' : isCampaignDate ? 'Дата кампании' : undefined}
                     style={{
                       padding: '4px 2px', textAlign: 'center',
                       cursor: isDisabled ? 'default' : 'pointer',
                       borderRadius: 4, fontSize: 13,
                       background: isSelected ? '#e94560' : hasBookings ? '#ffc107' : 'transparent',
-                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : isCampaignDate ? '#ffc107' : '#eee',
+                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : isPast ? '#666' : isCampaignDate ? '#ffc107' : '#eee',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
                       outline: isToday && !isSelected ? '2px solid #4caf50' : isCampaignDate && !isSelected ? '1px solid #ffc107' : 'none',
                       outlineOffset: '-2px',
-                      opacity: isDisabled ? 0.4 : 1,
-                      textDecoration: isPast ? 'line-through' : 'none'
+                      opacity: isDisabled ? 0.4 : isPast ? 0.6 : 1,
+                      textDecoration: 'none'
                     }}
                   >
                     {dayNum}
