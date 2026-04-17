@@ -15,6 +15,6 @@ public class Booking
     [MaxLength(100)] public string? GameSystem { get; set; }
     public bool IsDoubles { get; set; }
     public bool IsForOthers { get; set; }
-    [MaxLength(2000)] public string? OwnerRoster { get; set; }
+    [MaxLength(6000)] public string? OwnerRoster { get; set; }
     public List<BookingParticipant> Participants { get; set; } = new();
 }
