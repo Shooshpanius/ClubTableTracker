@@ -1144,6 +1144,32 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>Игрок задаёт свой ростер в резерве (владелец или участник)</summary>
+    /// <summary>Возвращает ростер владельца бронирования или участника</summary>
+    [HttpGet("{id}/roster")]
+    public IActionResult GetRoster(int id, [FromQuery] int? participantId = null)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var booking = _db.Bookings
+            .Include(b => b.Table)
+            .Include(b => b.Participants)
+            .FirstOrDefault(b => b.Id == id);
+        if (booking == null) return NotFound();
+
+        var isMember = _db.Memberships.Any(m =>
+            m.UserId == userId && m.ClubId == booking.Table.ClubId && m.Status == "Approved");
+        if (!isMember) return Forbid();
+
+        if (participantId == null)
+            return Ok(new { roster = booking.OwnerRoster });
+
+        var participant = booking.Participants.FirstOrDefault(p => p.Id == participantId);
+        if (participant == null) return NotFound("Participant not found");
+
+        return Ok(new { roster = participant.Roster });
+    }
+
     [HttpPut("{id}/roster")]
     public IActionResult SetMyRoster(int id, [FromBody] SetRosterRequest req)
     {
