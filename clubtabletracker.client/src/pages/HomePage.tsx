@@ -2132,11 +2132,11 @@ export default function HomePage() {
       return (
         <div
           onClick={() => setPlayerRosterModal(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1050, paddingTop: '2vh', paddingBottom: '2vh', boxSizing: 'border-box' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1050, paddingTop: '2vh', paddingBottom: 'max(2vh, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 520, width: '92%', height: '96vh', maxHeight: '96vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
+            style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 520, width: '92%', height: '96dvh', maxHeight: '96dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
           >
             <h3 style={{ margin: '0 0 2px 0', fontSize: 16, color: borderColor, flexShrink: 0 }}>
               {isOwnerPlayer ? '👑' : '🎮'} {playerName}
