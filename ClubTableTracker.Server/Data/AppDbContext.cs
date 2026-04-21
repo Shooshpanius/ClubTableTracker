@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
     public DbSet<ClubDecoration> ClubDecorations => Set<ClubDecoration>();
     public DbSet<ClubPhoto> ClubPhotos => Set<ClubPhoto>();
+    public DbSet<CampaignMap> CampaignMaps => Set<CampaignMap>();
+    public DbSet<CampaignMapBlock> CampaignMapBlocks => Set<CampaignMapBlock>();
+    public DbSet<CampaignMapBlockFaction> CampaignMapBlockFactions => Set<CampaignMapBlockFaction>();
+    public DbSet<CampaignMapLink> CampaignMapLinks => Set<CampaignMapLink>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -112,5 +116,46 @@ public class AppDbContext : DbContext
             .HasOne(p => p.Club)
             .WithMany()
             .HasForeignKey(p => p.ClubId);
+
+        modelBuilder.Entity<CampaignMap>().HasKey(m => m.Id);
+        modelBuilder.Entity<CampaignMap>()
+            .HasOne(m => m.Event)
+            .WithMany()
+            .HasForeignKey(m => m.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<CampaignMap>()
+            .HasIndex(m => m.EventId)
+            .IsUnique();
+
+        modelBuilder.Entity<CampaignMapBlock>().HasKey(b => b.Id);
+        modelBuilder.Entity<CampaignMapBlock>()
+            .HasOne(b => b.Map)
+            .WithMany(m => m.Blocks)
+            .HasForeignKey(b => b.MapId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CampaignMapBlockFaction>().HasKey(f => f.Id);
+        modelBuilder.Entity<CampaignMapBlockFaction>()
+            .HasOne(f => f.Block)
+            .WithMany(b => b.Factions)
+            .HasForeignKey(f => f.BlockId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CampaignMapLink>().HasKey(l => l.Id);
+        modelBuilder.Entity<CampaignMapLink>()
+            .HasOne(l => l.Map)
+            .WithMany(m => m.Links)
+            .HasForeignKey(l => l.MapId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<CampaignMapLink>()
+            .HasOne(l => l.FromBlock)
+            .WithMany()
+            .HasForeignKey(l => l.FromBlockId)
+            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<CampaignMapLink>()
+            .HasOne(l => l.ToBlock)
+            .WithMany()
+            .HasForeignKey(l => l.ToBlockId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
