@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import ClubMapEditor from '../components/ClubMapEditor'
+import CampaignMapEditor from '../components/CampaignMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
 
@@ -57,6 +58,7 @@ export default function ClubAdminPage() {
   const [galleryPhotos, setGalleryPhotos] = useState<{ id: number; url: string; orderIndex: number }[]>([])
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [galleryError, setGalleryError] = useState('')
+  const [campaignMapEditorEvent, setCampaignMapEditorEvent] = useState<ClubEventData | null>(null)
 
   const login = async () => {
     sessionStorage.setItem('clubKey', clubKey)
@@ -583,6 +585,7 @@ export default function ClubAdminPage() {
   }
 
   return (
+    <>
     <div style={{ padding: 40 }}>
       <h1 style={{ color: '#e94560' }}>🎲 {club.name} — Club Admin</h1>
       <div style={tabBarStyle}>
@@ -1059,6 +1062,9 @@ export default function ClubAdminPage() {
                       {editingDescEventId === ev.id ? '✕' : '📝 Описание'}
                     </button>
                     <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
+                    {ev.eventType === 'Campaign' && (
+                      <button style={{ ...btnStyle, background: '#7b3fa0' }} onClick={() => setCampaignMapEditorEvent(ev)}>🗺️ Карта кампании</button>
+                    )}
                   </div>
                 </div>
 
@@ -1216,5 +1222,14 @@ export default function ClubAdminPage() {
         </>
       )}
     </div>
+
+    {campaignMapEditorEvent && (
+      <CampaignMapEditor
+        eventId={campaignMapEditorEvent.id}
+        eventTitle={campaignMapEditorEvent.title}
+        onClose={() => setCampaignMapEditorEvent(null)}
+      />
+    )}
+    </>
   )
 }

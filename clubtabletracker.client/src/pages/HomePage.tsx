@@ -5,6 +5,7 @@ import BookingForm from '../components/BookingForm'
 import TableTimeline, { TABLE_HEADER_HEIGHT } from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import ClubMap from '../components/ClubMap'
+import CampaignMapView from '../components/CampaignMapView'
 import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import { DEFAULT_BOOKING_COLORS } from '../constants'
@@ -457,6 +458,7 @@ export default function HomePage() {
   const [upcomingTab, setUpcomingTab] = useState<'my' | 'all'>('my')
   const [clubEvents, setClubEvents] = useState<ClubEventItem[]>([])
   const [missionMapModal, setMissionMapModal] = useState<string | null>(null)
+  const [campaignMapModal, setCampaignMapModal] = useState<ClubEventItem | null>(null)
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [clubGallery, setClubGallery] = useState<{ id: number; url: string }[]>([])
   const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('tables')
@@ -1160,11 +1162,16 @@ export default function HomePage() {
                                     </div>
                                   )}
                                 </div>
-                                {user && (
-                                  isRegistered
-                                    ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                                    : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
-                                )}
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                                  {ev.eventType === "Campaign" && (
+                                    <button style={{ ...btnStyle, background: "#7b3fa0", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
+                                  )}
+                                  {user && (
+                                    isRegistered
+                                      ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                                      : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
+                                  )}
+                                </div>
                               </div>
                             )
                           })
@@ -1561,11 +1568,16 @@ export default function HomePage() {
                                     </div>
                                   )}
                                 </div>
-                                {user && (
-                                  isRegistered
-                                    ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                                    : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                                  {ev.eventType === 'Campaign' && (
+                                    <button style={{ ...btnStyle, background: '#7b3fa0', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
+                                  )}
+                                  {user && (
+                                    isRegistered
+                                      ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                                      : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                                  )}
+                                </div>
                               </div>
                             )
                           })
@@ -2209,6 +2221,15 @@ export default function HomePage() {
           style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 0 40px rgba(0,0,0,0.8)', cursor: 'default' }}
         />
       </div>
+    )}
+
+    {/* Модалка: карта кампании */}
+    {campaignMapModal && (
+      <CampaignMapView
+        eventId={campaignMapModal.id}
+        eventTitle={campaignMapModal.title}
+        onClose={() => setCampaignMapModal(null)}
+      />
     )}
 
     {/* Модалка: изменение времени игры */}
