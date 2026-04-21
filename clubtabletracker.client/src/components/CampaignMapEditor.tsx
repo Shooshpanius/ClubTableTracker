@@ -22,8 +22,8 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
-function blockHeight(n: number) {
-  return BLOCK_HEADER_H + Math.max(1, n) * BLOCK_CELL
+function blockHeight(maxInfluence: number) {
+  return BLOCK_HEADER_H + Math.max(1, maxInfluence) * BLOCK_CELL
 }
 
 const inputStyle: React.CSSProperties = {

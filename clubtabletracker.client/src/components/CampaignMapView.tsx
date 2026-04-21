@@ -22,12 +22,12 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
-function blockHeight(n: number) {
-  return BLOCK_HEADER_H + n * BLOCK_CELL
+function blockHeight(maxInfluence: number) {
+  return BLOCK_HEADER_H + maxInfluence * BLOCK_CELL
 }
 
-function blockCenter(block: CampaignMapBlockData, n: number) {
-  return { x: block.posX + BLOCK_W / 2, y: block.posY + blockHeight(n) / 2 }
+function blockCenter(block: CampaignMapBlockData, maxInfluence: number) {
+  return { x: block.posX + BLOCK_W / 2, y: block.posY + blockHeight(maxInfluence) / 2 }
 }
 
 export default function CampaignMapView({ eventId, eventTitle, onClose }: Props) {
