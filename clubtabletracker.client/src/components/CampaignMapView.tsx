@@ -22,12 +22,12 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
-function blockHeight(factionCount: number) {
-  return BLOCK_HEADER_H + factionCount * BLOCK_CELL
+function blockHeight(maxInfluence: number) {
+  return BLOCK_HEADER_H + maxInfluence * BLOCK_CELL
 }
 
-function blockCenter(block: CampaignMapBlockData, factionCount: number) {
-  return { x: block.posX + BLOCK_W / 2, y: block.posY + blockHeight(factionCount) / 2 }
+function blockCenter(block: CampaignMapBlockData, maxInfluence: number) {
+  return { x: block.posX + BLOCK_W / 2, y: block.posY + blockHeight(maxInfluence) / 2 }
 }
 
 export default function CampaignMapView({ eventId, eventTitle, onClose }: Props) {
@@ -120,8 +120,8 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                 const from = mapData.blocks.find(b => b.id === link.fromBlockId)
                 const to = mapData.blocks.find(b => b.id === link.toBlockId)
                 if (!from || !to) return null
-                const fc = blockCenter(from, factions.length)
-                const tc = blockCenter(to, factions.length)
+                const fc = blockCenter(from, N)
+                const tc = blockCenter(to, N)
                 return (
                   <g key={link.id}>
                     <line x1={fc.x} y1={fc.y} x2={tc.x} y2={tc.y}
@@ -132,7 +132,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
             </svg>
 
             {mapData.blocks.map(block => {
-              const bh = blockHeight(factions.length)
+              const bh = blockHeight(N)
               return (
                 <div
                   key={block.id}
@@ -156,21 +156,24 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                   }} title={block.title}>
                     {block.title || '—'}
                   </div>
-                  {/* Grid */}
-                  {factions.map((_, fi) => {
-                    const fdata = block.factions.find(f => f.factionIndex === fi)
-                    const influence = fdata?.influence ?? 0
-                    const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                  {/* Grid — N rows top-to-bottom, factions as columns; bottom rows fill first (bottom-to-top) */}
+                  {Array.from({ length: N }).map((_, rowIdx) => {
+                    const level = N - rowIdx
                     return (
-                      <div key={fi} style={{ display: 'flex', height: BLOCK_CELL }}>
-                        {Array.from({ length: N }).map((__, j) => (
-                          <div key={j} style={{
-                            flex: 1, height: BLOCK_CELL,
-                            background: influence >= j + 1 ? color : 'rgba(255,255,255,0.05)',
-                            borderRight: j < N - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                            borderBottom: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
-                          }} />
-                        ))}
+                      <div key={rowIdx} style={{ display: 'flex', height: BLOCK_CELL }}>
+                        {factions.map((__, fi) => {
+                          const fdata = block.factions.find(f => f.factionIndex === fi)
+                          const influence = fdata?.influence ?? 0
+                          const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                          return (
+                            <div key={fi} style={{
+                              flex: 1, height: BLOCK_CELL,
+                              background: influence >= level ? color : 'rgba(255,255,255,0.05)',
+                              borderRight: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                              borderBottom: rowIdx < N - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
+                            }} />
+                          )
+                        })}
                       </div>
                     )
                   })}
