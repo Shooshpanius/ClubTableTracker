@@ -2,11 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const CANVAS_W = 1400
 const CANVAS_H = 800
-const BLOCK_CELL = 20
+const SEG_W = 20
+const SEG_H = 30
+const SEG_GAP_V = 2
+const SEG_GAP_H = 3
 const BLOCK_HEADER_H = 24
 
 function blockWidth(factionsCount: number) {
-  return Math.max(1, factionsCount) * BLOCK_CELL
+  const m = Math.max(1, factionsCount)
+  return m * SEG_W + (m - 1) * SEG_GAP_H
 }
 
 interface CampaignMapBlockFaction { id: number; factionIndex: number; influence: number }
@@ -26,7 +30,8 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
 function blockHeight(maxInfluence: number) {
-  return BLOCK_HEADER_H + Math.max(1, maxInfluence) * BLOCK_CELL
+  const n = Math.max(1, maxInfluence)
+  return BLOCK_HEADER_H + n * SEG_H + (n - 1) * SEG_GAP_V
 }
 
 const inputStyle: React.CSSProperties = {
@@ -418,26 +423,29 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                     }} title={block.title}>
                       {block.title || '—'}
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: SEG_GAP_V }}>
                     {Array.from({ length: N }).map((_, rowIdx) => {
                       const level = N - rowIdx
                       return (
-                        <div key={rowIdx} style={{ display: 'flex', height: BLOCK_CELL }}>
+                        <div key={rowIdx} style={{ display: 'flex', gap: SEG_GAP_H }}>
                           {factions.map((__, fi) => {
                             const fdata = block.factions.find(f => f.factionIndex === fi)
                             const influence = fdata?.influence ?? 0
                             const color = FACTION_COLORS[fi % FACTION_COLORS.length]
                             return (
                               <div key={fi} style={{
-                                width: BLOCK_CELL, height: BLOCK_CELL,
+                                width: SEG_W, height: SEG_H,
                                 background: influence >= level ? color : 'rgba(255,255,255,0.04)',
-                                borderRight: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                                borderBottom: rowIdx < N - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none'
+                                border: '2px solid #888888',
+                                borderRadius: 4,
+                                boxSizing: 'border-box'
                               }} />
                             )
                           })}
                         </div>
                       )
                     })}
+                    </div>
                   </div>
                 )
               })}
