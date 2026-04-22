@@ -2,9 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const CANVAS_W = 1200
 const CANVAS_H = 700
-const BLOCK_W = 160
 const BLOCK_CELL = 20
 const BLOCK_HEADER_H = 24
+
+function blockWidth(factionsCount: number) {
+  return Math.max(1, factionsCount) * BLOCK_CELL
+}
 
 interface CampaignMapBlockFaction { id: number; factionIndex: number; influence: number }
 interface CampaignMapBlockData {
@@ -23,11 +26,11 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
 function blockHeight(maxInfluence: number) {
-  return BLOCK_HEADER_H + maxInfluence * BLOCK_CELL
+  return BLOCK_HEADER_H + Math.max(1, maxInfluence) * BLOCK_CELL
 }
 
-function blockCenter(block: CampaignMapBlockData, maxInfluence: number) {
-  return { x: block.posX + BLOCK_W / 2, y: block.posY + blockHeight(maxInfluence) / 2 }
+function blockCenter(block: CampaignMapBlockData, maxInfluence: number, factionsCount: number) {
+  return { x: block.posX + blockWidth(factionsCount) / 2, y: block.posY + blockHeight(maxInfluence) / 2 }
 }
 
 export default function CampaignMapView({ eventId, eventTitle, onClose }: Props) {
@@ -199,8 +202,8 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                 const from = mapData.blocks.find(b => b.id === link.fromBlockId)
                 const to = mapData.blocks.find(b => b.id === link.toBlockId)
                 if (!from || !to) return null
-                const fc = blockCenter(from, N)
-                const tc = blockCenter(to, N)
+                const fc = blockCenter(from, N, factions.length)
+                const tc = blockCenter(to, N, factions.length)
                 return (
                   <g key={link.id}>
                     <line x1={fc.x} y1={fc.y} x2={tc.x} y2={tc.y}
@@ -211,15 +214,16 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
             </svg>
 
             {mapData.blocks.map(block => {
+              const bw = blockWidth(factions.length)
               const bh = blockHeight(N)
               return (
                 <div
                   key={block.id}
-                  onMouseEnter={() => setTooltip({ block, x: block.posX + BLOCK_W + 8, y: block.posY })}
+                  onMouseEnter={() => setTooltip({ block, x: block.posX + bw + 8, y: block.posY })}
                   onMouseLeave={() => setTooltip(null)}
                   style={{
                     position: 'absolute', left: block.posX, top: block.posY,
-                    width: BLOCK_W, height: bh,
+                    width: bw, height: bh,
                     border: '2px solid #533483', borderRadius: 4,
                     background: '#0a0a1a', overflow: 'hidden',
                     boxSizing: 'border-box'
@@ -235,7 +239,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                   }} title={block.title}>
                     {block.title || '—'}
                   </div>
-                  {/* Grid — N rows top-to-bottom, factions as columns; bottom rows fill first (bottom-to-top) */}
+                  {/* Grid — N rows top-to-bottom (level N..1), M columns (factions); fills bottom-to-top */}
                   {Array.from({ length: N }).map((_, rowIdx) => {
                     const level = N - rowIdx
                     return (
@@ -246,7 +250,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                           const color = FACTION_COLORS[fi % FACTION_COLORS.length]
                           return (
                             <div key={fi} style={{
-                              flex: 1, height: BLOCK_CELL,
+                              width: BLOCK_CELL, height: BLOCK_CELL,
                               background: influence >= level ? color : 'rgba(255,255,255,0.05)',
                               borderRight: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
                               borderBottom: rowIdx < N - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
