@@ -41,6 +41,19 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Refs to access latest pan/scale inside passive-false touch handlers without stale closures
+  const panRef = useRef({ x: 0, y: 0 })
+  const scaleRef = useRef(1)
+  useEffect(() => { panRef.current = pan }, [pan])
+  useEffect(() => { scaleRef.current = scale }, [scale])
+
+  // Touch gesture state
+  const touchRef = useRef<{
+    type: 'pan'; startTX: number; startTY: number; startPX: number; startPY: number
+  } | {
+    type: 'pinch'; startDist: number; startScale: number
+  } | null>(null)
+
   const token = localStorage.getItem('token') || ''
 
   useEffect(() => {
@@ -82,6 +95,72 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
 
   const onMouseUp = useCallback(() => { setPanning(false); panStart.current = null }, [])
 
+  // Touch event listeners (passive:false so we can call preventDefault and suppress native scroll)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault()
+      if (e.touches.length === 1) {
+        const t = e.touches[0]
+        touchRef.current = {
+          type: 'pan',
+          startTX: t.clientX, startTY: t.clientY,
+          startPX: panRef.current.x, startPY: panRef.current.y
+        }
+      } else if (e.touches.length >= 2) {
+        const t1 = e.touches[0], t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY
+        touchRef.current = {
+          type: 'pinch',
+          startDist: Math.sqrt(dx * dx + dy * dy),
+          startScale: scaleRef.current
+        }
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      const ts = touchRef.current
+      if (!ts) return
+      if (ts.type === 'pan' && e.touches.length === 1) {
+        const t = e.touches[0]
+        setPan({ x: ts.startPX + t.clientX - ts.startTX, y: ts.startPY + t.clientY - ts.startTY })
+      } else if (ts.type === 'pinch' && e.touches.length >= 2) {
+        const t1 = e.touches[0], t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX, dy = t2.clientY - t1.clientY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        setScale(Math.max(0.3, Math.min(3, ts.startScale * dist / ts.startDist)))
+      }
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        touchRef.current = null
+      } else if (e.touches.length === 1) {
+        // Transition from pinch back to single-touch pan
+        const t = e.touches[0]
+        touchRef.current = {
+          type: 'pan',
+          startTX: t.clientX, startTY: t.clientY,
+          startPX: panRef.current.x, startPY: panRef.current.y
+        }
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: false })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, []) // runs once; reads pan/scale via refs
+
   const overlayStyle: React.CSSProperties = {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
     zIndex: 2000, display: 'flex', flexDirection: 'column'
@@ -92,7 +171,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
       {/* Header */}
       <div style={{ background: '#16213e', borderBottom: '1px solid #0f3460', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         <span style={{ color: '#eee', fontWeight: 'bold', fontSize: 16 }}>🗺️ Карта кампании: {eventTitle}</span>
-        <span style={{ color: '#aaa', fontSize: 12, marginLeft: 'auto' }}>Колесо мыши — зум · Перетаскивание — прокрутка</span>
+        <span style={{ color: '#aaa', fontSize: 12, marginLeft: 'auto' }}>Колесо / два пальца — зум · Перетаскивание — прокрутка</span>
         <button onClick={onClose} style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontWeight: 'bold', fontSize: 14 }}>✕ Закрыть</button>
       </div>
 
@@ -104,7 +183,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
-        style={{ flex: 1, overflow: 'hidden', cursor: panning ? 'grabbing' : 'grab', userSelect: 'none', position: 'relative' }}
+        style={{ flex: 1, overflow: 'hidden', cursor: panning ? 'grabbing' : 'grab', userSelect: 'none', position: 'relative', touchAction: 'none' }}
       >
         {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#aaa', fontSize: 18 }}>Загрузка...</div>}
         {error && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#e94560', fontSize: 16 }}>{error}</div>}
