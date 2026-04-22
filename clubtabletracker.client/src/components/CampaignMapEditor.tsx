@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 const CANVAS_W = 1400
 const CANVAS_H = 800
-const SEG_W = 20
+const SEG_W = 35
 const SEG_H = 30
 const SEG_GAP_V = 2
 const SEG_GAP_H = 3
