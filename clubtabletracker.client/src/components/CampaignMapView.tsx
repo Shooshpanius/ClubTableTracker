@@ -6,7 +6,7 @@ const SEG_W = 35
 const SEG_H = 30
 const SEG_GAP_V = 2
 const SEG_GAP_H = 3
-const BLOCK_HEADER_H = 24
+const BLOCK_HEADER_H = 50
 
 function blockWidth(factionsCount: number) {
   const m = Math.max(1, factionsCount)
@@ -31,7 +31,7 @@ const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bc
 
 function blockHeight(maxInfluence: number) {
   const n = Math.max(1, maxInfluence)
-  return BLOCK_HEADER_H + n * SEG_H + (n - 1) * SEG_GAP_V
+  return 5 + BLOCK_HEADER_H + n * SEG_H + (n - 1) * SEG_GAP_V
 }
 
 function blockCenter(block: CampaignMapBlockData, maxInfluence: number, factionsCount: number) {
@@ -240,7 +240,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 'bold', color: '#eee',
                     padding: '0 4px', textAlign: 'center', overflow: 'hidden',
-                    whiteSpace: 'nowrap', textOverflow: 'ellipsis', borderBottom: '1px solid #533483'
+                    whiteSpace: 'normal', wordBreak: 'break-word', borderBottom: '1px solid #533483'
                   }} title={block.title}>
                     {block.title || '—'}
                   </div>
