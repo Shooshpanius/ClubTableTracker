@@ -5,8 +5,8 @@ const CANVAS_H = 700
 const BLOCK_CELL = 20
 const BLOCK_HEADER_H = 24
 
-function blockWidth(maxInfluence: number) {
-  return Math.max(1, maxInfluence) * BLOCK_CELL
+function blockWidth(factionsCount: number) {
+  return Math.max(1, factionsCount) * BLOCK_CELL
 }
 
 interface CampaignMapBlockFaction { id: number; factionIndex: number; influence: number }
@@ -25,12 +25,12 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
-function blockHeight(factionsCount: number) {
-  return BLOCK_HEADER_H + Math.max(1, factionsCount) * BLOCK_CELL
+function blockHeight(maxInfluence: number) {
+  return BLOCK_HEADER_H + Math.max(1, maxInfluence) * BLOCK_CELL
 }
 
 function blockCenter(block: CampaignMapBlockData, maxInfluence: number, factionsCount: number) {
-  return { x: block.posX + blockWidth(maxInfluence) / 2, y: block.posY + blockHeight(factionsCount) / 2 }
+  return { x: block.posX + blockWidth(factionsCount) / 2, y: block.posY + blockHeight(maxInfluence) / 2 }
 }
 
 export default function CampaignMapView({ eventId, eventTitle, onClose }: Props) {
@@ -214,8 +214,8 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
             </svg>
 
             {mapData.blocks.map(block => {
-              const bw = blockWidth(N)
-              const bh = blockHeight(factions.length)
+              const bw = blockWidth(factions.length)
+              const bh = blockHeight(N)
               return (
                 <div
                   key={block.id}
@@ -239,21 +239,24 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                   }} title={block.title}>
                     {block.title || '—'}
                   </div>
-                  {/* Grid — M rows (factions top-to-bottom), N columns (influence levels left-to-right) */}
-                  {factions.map((__, fi) => {
-                    const fdata = block.factions.find(f => f.factionIndex === fi)
-                    const influence = fdata?.influence ?? 0
-                    const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                  {/* Grid — N rows top-to-bottom (level N..1), M columns (factions); fills bottom-to-top */}
+                  {Array.from({ length: N }).map((_, rowIdx) => {
+                    const level = N - rowIdx
                     return (
-                      <div key={fi} style={{ display: 'flex', height: BLOCK_CELL }}>
-                        {Array.from({ length: N }).map((_, j) => (
-                          <div key={j} style={{
-                            width: BLOCK_CELL, height: BLOCK_CELL,
-                            background: influence >= j + 1 ? color : 'rgba(255,255,255,0.05)',
-                            borderRight: j < N - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                            borderBottom: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
-                          }} />
-                        ))}
+                      <div key={rowIdx} style={{ display: 'flex', height: BLOCK_CELL }}>
+                        {factions.map((__, fi) => {
+                          const fdata = block.factions.find(f => f.factionIndex === fi)
+                          const influence = fdata?.influence ?? 0
+                          const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                          return (
+                            <div key={fi} style={{
+                              width: BLOCK_CELL, height: BLOCK_CELL,
+                              background: influence >= level ? color : 'rgba(255,255,255,0.05)',
+                              borderRight: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                              borderBottom: rowIdx < N - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'
+                            }} />
+                          )
+                        })}
                       </div>
                     )
                   })}

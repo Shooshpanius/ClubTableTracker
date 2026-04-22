@@ -5,8 +5,8 @@ const CANVAS_H = 800
 const BLOCK_CELL = 20
 const BLOCK_HEADER_H = 24
 
-function blockWidth(maxInfluence: number) {
-  return Math.max(1, maxInfluence) * BLOCK_CELL
+function blockWidth(factionsCount: number) {
+  return Math.max(1, factionsCount) * BLOCK_CELL
 }
 
 interface CampaignMapBlockFaction { id: number; factionIndex: number; influence: number }
@@ -25,8 +25,8 @@ interface Props { eventId: number; eventTitle: string; onClose: () => void }
 
 const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bcd4','#f44336','#8bc34a']
 
-function blockHeight(factionsCount: number) {
-  return BLOCK_HEADER_H + Math.max(1, factionsCount) * BLOCK_CELL
+function blockHeight(maxInfluence: number) {
+  return BLOCK_HEADER_H + Math.max(1, maxInfluence) * BLOCK_CELL
 }
 
 const inputStyle: React.CSSProperties = {
@@ -129,7 +129,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
     if (!mapData) return
     const res = await fetch(`/api/campaign-map/${eventId}/blocks`, {
       method: 'POST', headers: authHeader,
-      body: JSON.stringify({ title: 'Новая территория', posX: CANVAS_W / 2 - blockWidth(N) / 2, posY: CANVAS_H / 2 - blockHeight(factions.length) / 2 })
+      body: JSON.stringify({ title: 'Новая территория', posX: CANVAS_W / 2 - blockWidth(factions.length) / 2, posY: CANVAS_H / 2 - blockHeight(N) / 2 })
     })
     if (res.ok) { const b = await res.json(); setMapData(prev => prev ? { ...prev, blocks: [...prev.blocks, b] } : prev) }
   }
@@ -147,10 +147,10 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(CANVAS_W - blockWidth(N), e.clientX - rect.left - dragging.ox))
+    const x = Math.max(0, Math.min(CANVAS_W - blockWidth(factions.length), e.clientX - rect.left - dragging.ox))
     const y = Math.max(0, Math.min(CANVAS_H - 80, e.clientY - rect.top - dragging.oy))
     setLocalPos(prev => ({ ...prev, [dragging.id]: { x, y } }))
-  }, [dragging, N])
+  }, [dragging, factions.length])
 
   const onMouseUp = useCallback(async () => {
     if (!dragging) return
@@ -369,8 +369,8 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                   if (!from || !to) return null
                   const fp = getBlockPos(from)
                   const tp = getBlockPos(to)
-                  const fc = { x: fp.x + blockWidth(N) / 2, y: fp.y + blockHeight(factions.length) / 2 }
-                  const tc = { x: tp.x + blockWidth(N) / 2, y: tp.y + blockHeight(factions.length) / 2 }
+                  const fc = { x: fp.x + blockWidth(factions.length) / 2, y: fp.y + blockHeight(N) / 2 }
+                  const tc = { x: tp.x + blockWidth(factions.length) / 2, y: tp.y + blockHeight(N) / 2 }
                   const isHovered = hoveredLinkId === link.id
                   return (
                     <line key={link.id}
@@ -390,7 +390,8 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
               {/* Blocks */}
               {mapData.blocks.map(block => {
                 const pos = getBlockPos(block)
-                const bh = blockHeight(factions.length)
+                const bh = blockHeight(N)
+                const bw = blockWidth(factions.length)
                 const isSource = linkSource === block.id
                 const isSelected = editingBlock?.id === block.id
                 return (
@@ -399,7 +400,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                     onClick={e => onBlockClick(e, block)}
                     style={{
                       position: 'absolute', left: pos.x, top: pos.y,
-                      width: blockWidth(N), height: bh,
+                      width: bw, height: bh,
                       border: `2px solid ${isSource ? '#ffc107' : isSelected ? '#e94560' : '#533483'}`,
                       borderRadius: 4, background: '#0a0a1a', overflow: 'hidden',
                       cursor: mode === 'connect' ? 'pointer' : 'grab',
@@ -417,20 +418,23 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                     }} title={block.title}>
                       {block.title || '—'}
                     </div>
-                    {factions.map((__, fi) => {
-                      const fdata = block.factions.find(f => f.factionIndex === fi)
-                      const influence = fdata?.influence ?? 0
-                      const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                    {Array.from({ length: N }).map((_, rowIdx) => {
+                      const level = N - rowIdx
                       return (
-                        <div key={fi} style={{ display: 'flex', height: BLOCK_CELL }}>
-                          {Array.from({ length: N }).map((_, j) => (
-                            <div key={j} style={{
-                              width: BLOCK_CELL, height: BLOCK_CELL,
-                              background: influence >= j + 1 ? color : 'rgba(255,255,255,0.04)',
-                              borderRight: j < N - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                              borderBottom: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none'
-                            }} />
-                          ))}
+                        <div key={rowIdx} style={{ display: 'flex', height: BLOCK_CELL }}>
+                          {factions.map((__, fi) => {
+                            const fdata = block.factions.find(f => f.factionIndex === fi)
+                            const influence = fdata?.influence ?? 0
+                            const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                            return (
+                              <div key={fi} style={{
+                                width: BLOCK_CELL, height: BLOCK_CELL,
+                                background: influence >= level ? color : 'rgba(255,255,255,0.04)',
+                                borderRight: fi < factions.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                                borderBottom: rowIdx < N - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none'
+                              }} />
+                            )
+                          })}
                         </div>
                       )
                     })}
