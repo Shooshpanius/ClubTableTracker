@@ -62,11 +62,6 @@ export default function SettingsPage() {
   const [savedBio, setSavedBio] = useState(false)
   const [errorBio, setErrorBio] = useState('')
 
-  const [cityInput, setCityInput] = useState('')
-  const [savingCity, setSavingCity] = useState(false)
-  const [savedCity, setSavedCity] = useState(false)
-  const [errorCity, setErrorCity] = useState('')
-
   useEffect(() => {
     if (!token) {
       navigate('/')
@@ -84,7 +79,6 @@ export default function SettingsPage() {
           : []
         setEnabledGameSystems(gs)
         setBioInput(data.bio || '')
-        setCityInput(data.city || '')
         if (data.bookingColors) {
           try {
             setBookingColors({ ...DEFAULT_BOOKING_COLORS, ...JSON.parse(data.bookingColors) })
@@ -141,30 +135,6 @@ export default function SettingsPage() {
       setErrorBio('Ошибка при сохранении')
     } finally {
       setSavingBio(false)
-    }
-  }
-
-  const handleSaveCity = async () => {
-    setSavingCity(true)
-    setSavedCity(false)
-    setErrorCity('')
-    try {
-      const res = await fetch('/api/user/city', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ city: cityInput }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setCityInput(data.city || '')
-        setSavedCity(true)
-      } else {
-        setErrorCity('Ошибка при сохранении')
-      }
-    } catch {
-      setErrorCity('Ошибка при сохранении')
-    } finally {
-      setSavingCity(false)
     }
   }
 
@@ -305,39 +275,6 @@ export default function SettingsPage() {
           </button>
           {savedBio && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
           {errorBio && <span style={{ color: '#e94560', fontSize: 14 }}>{errorBio}</span>}
-        </div>
-      </div>
-
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>Город</h2>
-
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Ваш город
-          </label>
-          <input
-            style={inputStyle}
-            type="text"
-            placeholder="Например: Москва"
-            value={cityInput}
-            maxLength={100}
-            onChange={e => { setCityInput(e.target.value); setSavedCity(false) }}
-          />
-          <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
-            Будет отображаться в таблице игроков клуба. Максимум 100 символов.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: savingCity ? 0.7 : 1 }}
-            onClick={handleSaveCity}
-            disabled={savingCity}
-          >
-            {savingCity ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          {savedCity && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {errorCity && <span style={{ color: '#e94560', fontSize: 14 }}>{errorCity}</span>}
         </div>
       </div>
 

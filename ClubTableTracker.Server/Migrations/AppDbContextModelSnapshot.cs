@@ -30,10 +30,6 @@ namespace ClubTableTracker.Server.Migrations
                     b.Property<string>("Bio")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
                     b.Property<string>("BookingColors")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
