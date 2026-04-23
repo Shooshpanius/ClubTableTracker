@@ -13,16 +13,7 @@ import type { BookingColors } from '../constants'
 import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
-
-function useIsMobile(breakpoint = 768): boolean {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint)
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= breakpoint)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [breakpoint])
-  return isMobile
-}
+import useIsMobile from '../utils/useIsMobile'
 
 
 interface User { id: string; email: string; name: string; displayName?: string }
