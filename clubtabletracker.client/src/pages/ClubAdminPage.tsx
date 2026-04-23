@@ -7,7 +7,7 @@ import { getAttachmentDisplayName } from '../utils/attachmentName'
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
-interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
+interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -698,6 +698,7 @@ export default function ClubAdminPage() {
                   <tr style={{ background: '#0f3460' }}>
                     <th style={thStyle}>Имя</th>
                     <th style={thStyle}>Email</th>
+                    <th style={thStyle}>Город</th>
                     <th style={thStyle}>Дата заявки</th>
                     <th style={thStyle}>Статус</th>
                     <th style={thStyle}>Модератор</th>
@@ -714,6 +715,7 @@ export default function ClubAdminPage() {
                         {m.isManualEntry && <span style={{ marginLeft: 6, background: '#1a3a2a', color: '#4caf50', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 600 }}>вручную</span>}
                       </td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.email}</td>
+                      <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.city || <span style={{ color: '#555' }}>—</span>}</td>
                       <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
                       <td style={{ ...tdStyle, color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</td>
                       <td style={tdStyle}>
@@ -773,7 +775,7 @@ export default function ClubAdminPage() {
                     </tr>
                     {editingManualMemberId === m.id && m.isManualEntry && (
                       <tr>
-                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                             <input style={inputStyle} placeholder="Имя игрока *" value={editingManualName}
                               onChange={e => { setEditingManualName(e.target.value); setEditingManualError('') }} />
@@ -788,7 +790,7 @@ export default function ClubAdminPage() {
                     )}
                     {expandedGsMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                             <button
                               style={{ ...btnStyle, background: '#1a5a3c', fontSize: 12, padding: '4px 12px' }}

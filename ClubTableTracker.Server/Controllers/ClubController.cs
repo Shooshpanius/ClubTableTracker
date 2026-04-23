@@ -114,6 +114,7 @@ public class ClubController : ControllerBase
                 RegistrationName = m.IsManualEntry ? (m.ManualName ?? "") : m.User!.Name,
                 DisplayName = m.IsManualEntry ? null : m.User!.DisplayName,
                 Bio = m.IsManualEntry ? null : m.User!.Bio,
+                City = m.IsManualEntry ? null : m.User!.City,
                 JoinedAt = m.AppliedAt,
                 m.IsModerator,
                 m.HasKey,
