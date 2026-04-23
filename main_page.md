@@ -72,7 +72,7 @@ import useIsMobile from '../utils/useIsMobile'
 
 ## Шаг 2а — Создать каркас ClubPage.tsx (импорты, интерфейсы, утилиты, константы)
 
-**Статус:** [ ] не выполнено  
+**Статус:** [x] выполнено  
 **Зависит от:** Шаг 1 выполнен (useIsMobile уже в utils/useIsMobile.ts)
 
 ### Задача
