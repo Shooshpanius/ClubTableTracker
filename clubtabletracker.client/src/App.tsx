@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage'
 import AdminPage from './pages/AdminPage'
 import ClubAdminPage from './pages/ClubAdminPage'
 import SettingsPage from './pages/SettingsPage'
+import ClubPage from './pages/ClubPage'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/clubAdmin" element={<ClubAdminPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/club/:clubId" element={<ClubPage />} />
       </Routes>
     </div>
   )
