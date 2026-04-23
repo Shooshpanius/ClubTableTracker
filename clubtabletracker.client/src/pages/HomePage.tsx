@@ -772,8 +772,18 @@ export default function HomePage() {
         </div>
       )}
 
-      <h2>Клубы</h2>
-      {clubs.map(club => {
+      {(() => {
+        const _memberClubIds = new Set(memberships.map(m => m.club.id))
+        const _memberClubs = clubs.filter(c => _memberClubIds.has(c.id))
+        const _otherClubs = clubs.filter(c => !_memberClubIds.has(c.id))
+        const _sectionDivider = (label: string, key: string) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 12px 0' }}>
+            <div style={{ flex: 1, height: 1, background: '#0f3460' }} />
+            <span style={{ color: '#888', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: 1 }}>{label}</span>
+            <div style={{ flex: 1, height: 1, background: '#0f3460' }} />
+          </div>
+        )
+        const _renderClub = (club: Club) => {
         const membership = memberships.find(m => m.club.id === club.id)
         const isApproved = membership?.status === 'Approved'
         const isPending = membership?.status === 'Pending'
@@ -1705,7 +1715,16 @@ export default function HomePage() {
             )}
           </div>
         )
-      })}
+        }
+        return (
+          <>
+            {_memberClubs.length > 0 && _sectionDivider('Мои клубы', 'section-member')}
+            {_memberClubs.map(_renderClub)}
+            {_otherClubs.length > 0 && _sectionDivider('Другие клубы', 'section-other')}
+            {_otherClubs.map(_renderClub)}
+          </>
+        )
+      })()}
     </div>
 
     {/* Модалка: управление резервом (модератор) */}
