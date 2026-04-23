@@ -193,7 +193,6 @@ export default function HomePage() {
                   <div style={{ color: '#eee', fontSize: 11 }}>
                     {new Date(ev.startTime).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} {ev.title}
                   </div>
-                  <div style={{ color: '#888', fontSize: 11 }}>{ev.eventType}</div>
                 </div>
               ))
             }
