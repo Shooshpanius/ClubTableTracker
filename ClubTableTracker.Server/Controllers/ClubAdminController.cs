@@ -213,7 +213,8 @@ public class ClubAdminController : ControllerBase
                 UserDisplayName = m.User != null ? m.User.DisplayName : null,
                 UserName = m.User != null ? m.User.Name : null,
                 UserEmail = m.User != null ? m.User.Email : null,
-                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null
+                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null,
+                UserCity = m.User != null ? m.User.City : null
             })
             .ToList()
             .Select(m => new
@@ -229,7 +230,8 @@ public class ClubAdminController : ControllerBase
                     Id = m.UserId ?? "",
                     Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.UserDisplayName ?? m.UserName ?? ""),
                     Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.UserEmail ?? ""),
-                    EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.UserEnabledGameSystems
+                    EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.UserEnabledGameSystems,
+                    City = m.IsManualEntry ? null : m.UserCity
                 }
             });
         return Ok(rows);

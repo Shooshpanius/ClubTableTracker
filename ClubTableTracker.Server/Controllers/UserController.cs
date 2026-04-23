@@ -25,7 +25,7 @@ public class UserController : ControllerBase
         var user = _db.Users.Find(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors, user.Bio });
+        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors, user.Bio, user.City });
     }
 
     [HttpPut("display-name")]
@@ -91,9 +91,26 @@ public class UserController : ControllerBase
 
         return Ok(new { user.Bio });
     }
+
+    [HttpPut("city")]
+    public IActionResult UpdateCity([FromBody] UpdateCityRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = _db.Users.Find(userId);
+        if (user == null) return NotFound();
+
+        var trimmed = req.City?.Trim();
+        user.City = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        _db.SaveChanges();
+
+        return Ok(new { user.City });
+    }
 }
 
 public record UpdateDisplayNameRequest(string? DisplayName);
 public record UpdateGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateBookingColorsRequest(string? BookingColors);
 public record UpdateBioRequest(string? Bio);
+public record UpdateCityRequest(string? City);
