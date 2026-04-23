@@ -70,33 +70,26 @@ import useIsMobile from '../utils/useIsMobile'
 
 ---
 
-## Шаг 2 — Создать ClubPage.tsx
+## Шаг 2а — Создать каркас ClubPage.tsx (импорты, интерфейсы, утилиты, константы)
 
 **Статус:** [ ] не выполнено  
 **Зависит от:** Шаг 1 выполнен (useIsMobile уже в utils/useIsMobile.ts)
 
 ### Задача
 
-Создать новую страницу `clubtabletracker.client/src/pages/ClubPage.tsx`.  
-Она получает `clubId` из URL-параметра, загружает данные клуба и рендерит весь контент, который сейчас находится в аккордеоне `HomePage.tsx`.
+Создать новый файл `clubtabletracker.client/src/pages/ClubPage.tsx` с заготовкой компонента:
+импортами, интерфейсами, вспомогательными функциями и константами.  
+Функция компонента пока возвращает `null` — тело заполняется в следующих шагах.
 
-### Точные ссылки на исходный код
-
-Из `HomePage.tsx` нужно перенести:
+### Что скопировать из HomePage.tsx
 
 | Что | Строки в HomePage.tsx |
 |---|---|
 | Интерфейсы (User, Club, Membership, GameTable, BookingParticipant, BookingBase, Booking, UpcomingBooking, ActivityLogEntry, ClubMember, ClubEventItem, PlayerRosterInfo, ClubDecoration) | 28–42 |
 | Вспомогательные функции (parseHHMM, isBookingPast, getLocalMinutes, isSameLocalDay, toDatetimeLocal, formatDate) | 44–80 |
 | Константы (MAX_BOOKING_PLAYERS, PAST_DATE_HINT, LOG_ACTION_LABEL, LOG_ACTION_COLOR) | 82–101 |
-| Весь state, кроме clubs/memberships/token/user | 110–482 |
-| Функции: selectClub, registerEvent, unregisterEvent, onBookingCreated, loadUpcoming, loadActivityLog, loadGallery, leaveBooking, cancelBooking, annulBooking, acceptInvite, declineInvite, joinBooking, doJoinBooking, handleSlotClick, handleTableHeaderClick, handleShareBooking, kickPlayerFromBooking, moveBookingTable, fmtHHMM, saveMyRoster, savePlayerRoster, openPlayerRoster, saveCurrentPlayerRoster, openRescheduleModal, rescheduleBooking, addPlayerToBooking, invitePlayerToBooking | 223–691 |
-| Константа RECT_HEIGHT | 693 |
-| useMemo: eventTableIds/userEventTableIds/eventTableGameSystems, maxCampaignDate, isSelectedDatePast | 696–745 |
-| JSX аккордеон-тела (MOBILE + DESKTOP) | 826–1703 |
-| Все модальные окна | 1711–2344 |
 
-### Структура ClubPage.tsx
+### Структура создаваемого файла
 
 ```tsx
 import { useState, useEffect, useMemo } from 'react'
@@ -112,18 +105,56 @@ import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
 import useIsMobile from '../utils/useIsMobile'
-import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 
 // === ИНТЕРФЕЙСЫ: скопировать из HomePage.tsx строки 28–42 ===
-// ... (User, Club, Membership, GameTable, BookingParticipant, BookingBase, Booking,
-//      UpcomingBooking, ActivityLogEntry, ClubMember, ClubEventItem, PlayerRosterInfo, ClubDecoration)
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ: скопировать из HomePage.tsx строки 44–80 ===
-// ... (parseHHMM, isBookingPast, getLocalMinutes, isSameLocalDay, toDatetimeLocal, formatDate)
 
 // === КОНСТАНТЫ: скопировать из HomePage.tsx строки 82–101 ===
-// ... (MAX_BOOKING_PLAYERS, PAST_DATE_HINT, LOG_ACTION_LABEL, LOG_ACTION_COLOR)
 
+export default function ClubPage() {
+  return null
+}
+```
+
+### Инструкции для агента
+
+1. Прочитать `HomePage.tsx` строки 1–101.
+2. Создать файл `clubtabletracker.client/src/pages/ClubPage.tsx` согласно структуре выше.
+3. Скопировать интерфейсы (строки 28–42), вспомогательные функции (строки 44–80), константы (строки 82–101).
+4. Запустить `npm run lint`. Исправить все ошибки (особенно — неиспользуемые импорты, их убрать если не нужны на этом шаге).
+5. Закоммитить и запушить.
+
+---
+
+## Шаг 2б — Добавить state и useEffect загрузки данных в ClubPage.tsx
+
+**Статус:** [ ] не выполнено  
+**Зависит от:** Шаг 2а выполнен
+
+### Задача
+
+Заменить заглушку `return null` на полноценное тело компонента: добавить все state-переменные
+и `useEffect` для загрузки данных клуба по `clubId`.
+
+### Что скопировать из HomePage.tsx
+
+| Что | Строки в HomePage.tsx |
+|---|---|
+| State-переменные (кроме clubs, memberships, selectedClub; token читать только из localStorage без сеттера) | 106–482 |
+
+Конкретно скопировать state: `user`, `tables`, `bookings`, `members`, `playerSystemsModal`,
+`moderatorBookingModal`, `ownerBookingModal`, `selectedTable`, `bookingStart`, `bookingEnd`,
+`bookingColors`, `selectedDate`, `expandedTableId`, `upcomingMyBookings`, `upcomingAllBookings`,
+`activityLog`, `upcomingTab`, `clubEvents`, `missionMapModal`, `campaignMapModal`, `decorations`,
+`clubGallery`, `mobileTab`, `desktopTab`, `moderatorAddPlayerId`, `ownerInvitePlayerId`,
+`rescheduleModal`, `galleryPhotoModal`, `playersSystemFilter`, `rescheduleStartTime`,
+`rescheduleEndTime`, `rescheduleError`, `gameInfoModal`, `playerRosterModal`, `playerRosterValue`,
+`playerRosterSaving`, `playerRosterLoading`, `cardStyle`, `btnStyle`, `warnStyle`, `shareBtnStyle`
+
+### Структура тела компонента (заменяет `return null`)
+
+```tsx
 export default function ClubPage() {
   const { clubId } = useParams<{ clubId: string }>()
   const navigate = useNavigate()
@@ -133,16 +164,8 @@ export default function ClubPage() {
   // Клуб
   const [club, setClub] = useState<Club | null>(null)
 
-  // === ВЕСЬ ОСТАЛЬНОЙ STATE: скопировать из HomePage.tsx строки 106–109, 111–482 ===
-  // Не копировать: clubs, memberships, selectedClub, token (setToken не нужен)
-  // Скопировать: user, tables, bookings, members, playerSystemsModal,
-  //   moderatorBookingModal, ownerBookingModal, selectedTable, bookingStart, bookingEnd,
-  //   bookingColors, selectedDate, expandedTableId, upcomingMyBookings, upcomingAllBookings,
-  //   activityLog, upcomingTab, clubEvents, missionMapModal, campaignMapModal, decorations,
-  //   clubGallery, mobileTab, desktopTab, moderatorAddPlayerId, ownerInvitePlayerId,
-  //   rescheduleModal, galleryPhotoModal, playersSystemFilter, rescheduleStartTime,
-  //   rescheduleEndTime, rescheduleError, gameInfoModal, playerRosterModal, playerRosterValue,
-  //   playerRosterSaving, playerRosterLoading, cardStyle, btnStyle, warnStyle, shareBtnStyle
+  // === ВЕСЬ ОСТАЛЬНОЙ STATE из HomePage.tsx строки 106–482 ===
+  // (скопировать сюда)
 
   // === useEffect: загрузка данных по clubId ===
   useEffect(() => {
@@ -150,7 +173,6 @@ export default function ClubPage() {
     const numId = parseInt(clubId ?? '')
     if (isNaN(numId)) return
 
-    // 1. Загружаем список клубов, находим нужный
     fetch('/api/club')
       .then(r => r.json())
       .then((data: Club[]) => {
@@ -158,7 +180,6 @@ export default function ClubPage() {
         const found = data.find(c => c.id === numId) ?? null
         setClub(found)
         if (!found) return
-        // 2. Загружаем данные клуба параллельно
         const authHeaders: Record<string, string> = token
           ? { Authorization: `Bearer ${token}` }
           : {}
@@ -179,7 +200,6 @@ export default function ClubPage() {
       })
       .catch(err => console.error('Failed to load club:', err))
 
-    // 3. Декодируем токен и загружаем профиль пользователя
     if (token) {
       try {
         const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -212,20 +232,86 @@ export default function ClubPage() {
     return () => { isCurrent = false }
   }, [clubId, token])
 
-  // === ФУНКЦИИ: скопировать из HomePage.tsx строки 248–691 ===
-  // ВАЖНО: во всех функциях заменить:
-  //   selectedClub  →  club
-  //   selectedClub?.id  →  parseInt(clubId ?? '')
-  //   selectedClub.id  →  parseInt(clubId ?? '')
-  // Убрать функцию selectClub (она не нужна — клуб уже загружен через useEffect)
+  return null  // будет заменено в Шаге 2в
+}
+```
 
-  // === useMemo: скопировать из HomePage.tsx строки 484–745 ===
-  // isModerator, memberMap, keyMemberIds, keyIcon, availablePlayerSystems, filteredMembers,
-  // eventTableIds/userEventTableIds/eventTableGameSystems, maxCampaignDate, isSelectedDatePast
+### Инструкции для агента
 
-  const RECT_HEIGHT = 360
+1. Прочитать `ClubPage.tsx` (создан на Шаге 2а).
+2. Прочитать `HomePage.tsx` строки 104–482.
+3. Заменить `return null` на полноценное тело компонента согласно структуре выше.
+4. Скопировать все state-переменные из строк 106–482 (кроме clubs, memberships, selectedClub).
+5. Запустить `npm run lint`. Исправить все ошибки.
+6. Закоммитить и запушить.
 
-  // === JSX ===
+---
+
+## Шаг 2в — Добавить функции и useMemo в ClubPage.tsx
+
+**Статус:** [ ] не выполнено  
+**Зависит от:** Шаг 2б выполнен
+
+### Задача
+
+Добавить в тело компонента `ClubPage` все функции и useMemo-хуки, перенесённые из `HomePage.tsx`.
+Во всех функциях выполнить замены согласно таблице ниже.
+
+### Что скопировать из HomePage.tsx
+
+| Что | Строки в HomePage.tsx |
+|---|---|
+| Функции: registerEvent, unregisterEvent, onBookingCreated, loadUpcoming, loadActivityLog, loadGallery, leaveBooking, cancelBooking, annulBooking, acceptInvite, declineInvite, joinBooking, doJoinBooking, handleSlotClick, handleTableHeaderClick, handleShareBooking, kickPlayerFromBooking, moveBookingTable, fmtHHMM, saveMyRoster, savePlayerRoster, openPlayerRoster, saveCurrentPlayerRoster, openRescheduleModal, rescheduleBooking, addPlayerToBooking, invitePlayerToBooking | 248–691 |
+| Константа RECT_HEIGHT | 693 |
+| useMemo: isModerator, memberMap, keyMemberIds, keyIcon, availablePlayerSystems, filteredMembers, eventTableIds/userEventTableIds/eventTableGameSystems, maxCampaignDate, isSelectedDatePast | 484–745 |
+
+### Замены при копировании
+
+| Было (HomePage.tsx) | Стало (ClubPage.tsx) |
+|---|---|
+| `selectedClub` | `club` |
+| `selectedClub?.id` | `parseInt(clubId ?? '')` |
+| `selectedClub.id` | `parseInt(clubId ?? '')` |
+| `selectedClub?.logoUrl` | `club?.logoUrl` |
+| `const selectedClubData = selectedClub` | `const selectedClubData = club` |
+| `loadGallery(selectedClub.id)` | `loadGallery(parseInt(clubId ?? ''))` |
+
+Функцию `selectClub` **не копировать** — клуб уже загружен через `useEffect`.
+
+### Инструкции для агента
+
+1. Прочитать `ClubPage.tsx` (создан на Шаге 2б).
+2. Прочитать `HomePage.tsx` строки 248–745.
+3. Добавить в тело компонента (перед `return null`) все функции и useMemo, выполнив замены.
+4. Убрать `selectClub`.
+5. Запустить `npm run lint`. Исправить все ошибки.
+6. Закоммитить и запушить.
+
+---
+
+## Шаг 2г — Добавить JSX тела аккордеона в ClubPage.tsx
+
+**Статус:** [ ] не выполнено  
+**Зависит от:** Шаг 2в выполнен
+
+### Задача
+
+Заменить `return null` на полноценный JSX: кнопку «Назад», заголовок клуба
+и тело аккордеона (мобильный + десктопный варианты).
+
+### Что скопировать из HomePage.tsx
+
+| Что | Строки в HomePage.tsx |
+|---|---|
+| JSX тела аккордеона (MOBILE + DESKTOP) | 827–1703 |
+
+### Инструкции для агента
+
+1. Прочитать `ClubPage.tsx` (создан на Шаге 2в).
+2. Прочитать `HomePage.tsx` строки 827–1703.
+3. Заменить `return null` на JSX по следующему шаблону:
+
+```tsx
   if (!club) {
     return (
       <div style={{ padding: 40, color: '#aaa' }}>
@@ -240,7 +326,6 @@ export default function ClubPage() {
     )
   }
 
-  // Вычисляем параметры расписания клуба (были внутри .map() в HomePage)
   const clubOpenMin = parseHHMM(club.openTime)
   const clubCloseMin = parseHHMM(club.closeTime)
   const clubTotalHours = Math.ceil((clubCloseMin - clubOpenMin) / 60)
@@ -265,50 +350,62 @@ export default function ClubPage() {
           <h2 style={{ color: '#e94560', margin: 0 }}>{club.name}</h2>
         </div>
 
-        {/* === ТЕЛО АККОРДЕОНА ===
-            Скопировать из HomePage.tsx строки 827–1703
-            (содержимое <div style={{ borderTop: '1px solid #0f3460' }}> ... </div>)
-            Заменить внешний div: убрать borderTop, т.к. мы теперь на отдельной странице.
-            Переменные clubOpenMin, clubCloseMin, clubTotalHours, clubOpenHour
-            теперь определены выше, не внутри map-callback.
-            
-            ВНИМАНИЕ: в мобильном табе "gallery":
-              было: loadGallery(selectedClub.id)
-              стало: loadGallery(parseInt(clubId ?? ''))
-              
+        {/* === ТЕЛО АККОРДЕОНА: скопировать из HomePage.tsx строки 827–1703 ===
+            Убрать внешний div с borderTop (страница отдельная, он не нужен).
+            В мобильном табе "gallery": loadGallery(selectedClub.id) → loadGallery(parseInt(clubId ?? ''))
             В десктопном табе — аналогично.
         */}
       </div>
 
-      {/* === МОДАЛЬНЫЕ ОКНА ===
-          Скопировать из HomePage.tsx строки 1711–2344
-          В модалке reschedule:
-            было: const selectedClubData = selectedClub
-            стало: const selectedClubData = club
-      */}
+      {/* Модальные окна будут добавлены в Шаге 2д */}
     </>
   )
-}
 ```
 
-### Инструкции для агента
-
-1. Прочитать `HomePage.tsx` целиком (2347 строк).
-2. Создать файл `clubtabletracker.client/src/pages/ClubPage.tsx` согласно структуре выше.
-3. Скопировать указанные блоки кода, выполнив замены:
-   - `selectedClub` → `club`
-   - `selectedClub?.id` → `parseInt(clubId ?? '')`
-   - Убрать функцию `selectClub`
-4. Запустить `npm run lint`. Исправить все ошибки.
-5. Убедиться что нет неиспользуемых импортов.
+4. Выполнить замены `selectedClub` → `club`, `selectedClub?.id` / `selectedClub.id` → `parseInt(clubId ?? '')`.
+5. Запустить `npm run lint`. Исправить все ошибки.
 6. Закоммитить и запушить.
 
 ---
 
+## Шаг 2д — Добавить модальные окна и завершить ClubPage.tsx
+
+**Статус:** [ ] не выполнено  
+**Зависит от:** Шаг 2г выполнен
+
+### Задача
+
+Вставить все модальные окна внутрь `<>...</>` в `return` компонента (после закрывающего `</div>`)
+и убедиться что файл компилируется и проходит lint без ошибок.
+
+### Что скопировать из HomePage.tsx
+
+| Что | Строки в HomePage.tsx |
+|---|---|
+| Все модальные окна | 1711–2344 |
+
+### Замены при копировании
+
+| Было (HomePage.tsx) | Стало (ClubPage.tsx) |
+|---|---|
+| `const selectedClubData = selectedClub` | `const selectedClubData = club` |
+| `selectedClub` | `club` |
+| `selectedClub?.id` / `selectedClub.id` | `parseInt(clubId ?? '')` |
+
+### Инструкции для агента
+
+1. Прочитать `ClubPage.tsx` (создан на Шаге 2г).
+2. Прочитать `HomePage.tsx` строки 1711–2344.
+3. Вставить все модальные окна внутрь `<>...</>` после блока `<div style={{ padding: ... }}>...</div>`.
+4. Убедиться что все теги закрыты и JSX валиден.
+5. Запустить `npm run lint`. Исправить **все** ошибки (особенно — неиспользуемые импорты).
+6. Убедиться что импорт `LAST_PR_NUMBER, LAST_PR_DATE` из `'../version'` не используется в ClubPage — если не используется, убрать.
+7. Закоммитить и запушить.
+
 ## Шаг 3 — Добавить маршрут /club/:clubId в App.tsx
 
 **Статус:** [ ] не выполнено  
-**Зависит от:** Шаг 2 выполнен
+**Зависит от:** Шаг 2д выполнен
 
 ### Файл
 
@@ -361,7 +458,7 @@ import ClubPage from './pages/ClubPage'
 ## Шаг 4 — Переделать HomePage.tsx: убрать аккордеон, добавить карточки
 
 **Статус:** [ ] не выполнено  
-**Зависит от:** Шаги 1, 2, 3 выполнены (ClubPage уже существует, маршрут зарегистрирован)
+**Зависит от:** Шаги 1, 2а–2д, 3 выполнены (ClubPage уже существует, маршрут зарегистрирован)
 
 ### Что удалить из HomePage.tsx
 
