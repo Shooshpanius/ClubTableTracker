@@ -11,6 +11,7 @@ public class AppUser
     public string? EnabledGameSystems { get; set; }
     [MaxLength(500)] public string? BookingColors { get; set; }
     public string? Bio { get; set; }
+    [MaxLength(50)] public string? City { get; set; }
     public string GoogleId { get; set; } = string.Empty;
     public List<ClubMembership> Memberships { get; set; } = new();
     public List<Booking> Bookings { get; set; } = new();
