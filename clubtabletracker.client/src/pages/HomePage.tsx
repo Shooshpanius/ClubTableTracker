@@ -160,10 +160,11 @@ export default function HomePage() {
           {/* Левая колонка: логотип (~1/3) */}
           <div style={{
             width: '30%', flexShrink: 0,
-            background: '#0f1e3d', overflow: 'hidden'
+            background: '#0f1e3d', overflow: 'hidden',
+            position: 'relative', minHeight: 110
           }}>
             {club.logoUrl
-              ? <img src={club.logoUrl} alt="Лого" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ? <img src={club.logoUrl} alt="Лого" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
               : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><span style={{ fontSize: 32 }}>🎲</span></div>
             }
           </div>
