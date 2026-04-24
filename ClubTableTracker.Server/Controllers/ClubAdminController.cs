@@ -210,10 +210,12 @@ public class ClubAdminController : ControllerBase
                 m.ManualName,
                 m.ManualEmail,
                 m.ManualEnabledGameSystems,
+                m.ManualCity,
                 UserDisplayName = m.User != null ? m.User.DisplayName : null,
                 UserName = m.User != null ? m.User.Name : null,
                 UserEmail = m.User != null ? m.User.Email : null,
-                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null
+                UserEnabledGameSystems = m.User != null ? m.User.EnabledGameSystems : null,
+                UserCity = m.User != null ? m.User.City : null
             })
             .ToList()
             .Select(m => new
@@ -229,7 +231,8 @@ public class ClubAdminController : ControllerBase
                     Id = m.UserId ?? "",
                     Name = m.IsManualEntry ? (m.ManualName ?? "") : (m.UserDisplayName ?? m.UserName ?? ""),
                     Email = m.IsManualEntry ? (m.ManualEmail ?? "") : (m.UserEmail ?? ""),
-                    EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.UserEnabledGameSystems
+                    EnabledGameSystems = m.IsManualEntry ? m.ManualEnabledGameSystems : m.UserEnabledGameSystems,
+                    City = m.IsManualEntry ? m.ManualCity : m.UserCity
                 }
             });
         return Ok(rows);
@@ -833,6 +836,28 @@ public class ClubAdminController : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("memberships/{id}/city")]
+    public IActionResult UpdateMemberCity(int id, [FromBody] UpdateMemberCityRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.Include(m => m.User).FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
+        if (membership == null) return NotFound();
+        var city = string.IsNullOrWhiteSpace(req.City) ? null : req.City.Trim();
+        if (city != null && city.Length > 50) return BadRequest("Город не может превышать 50 символов");
+        if (membership.IsManualEntry)
+        {
+            membership.ManualCity = city;
+        }
+        else
+        {
+            if (membership.User == null) return BadRequest("Пользователь не найден");
+            membership.User.City = city;
+        }
+        _db.SaveChanges();
+        return Ok(new { city });
+    }
+
     [HttpPut("memberships/{id}/game-systems")]
     public IActionResult UpdateMemberGameSystems(int id, [FromBody] UpdateMemberGameSystemsRequest req)
     {
@@ -1035,5 +1060,6 @@ public record UpdateEventDescriptionRequest(string? Description);
 public record SetModeratorRequest(bool IsModerator);
 public record SetKeyRequest(bool HasKey);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
+public record UpdateMemberCityRequest(string? City);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
 public record ManualMemberRequest(string Name, string? Email);

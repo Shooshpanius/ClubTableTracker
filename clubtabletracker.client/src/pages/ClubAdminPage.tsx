@@ -7,7 +7,7 @@ import { getAttachmentDisplayName } from '../utils/attachmentName'
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
-interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string } }
+interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -45,6 +45,10 @@ export default function ClubAdminPage() {
   const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
   const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
   const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
+  const [expandedCityMemberId, setExpandedCityMemberId] = useState<number | null>(null)
+  const [editingCityValue, setEditingCityValue] = useState('')
+  const [savingCityMemberId, setSavingCityMemberId] = useState<number | null>(null)
+  const [cityError, setCityError] = useState('')
   const [showAddManualForm, setShowAddManualForm] = useState(false)
   const [manualName, setManualName] = useState('')
   const [manualEmail, setManualEmail] = useState('')
@@ -198,6 +202,36 @@ export default function ClubAdminPage() {
       setMemberships(memberships.map(m => m.id === memberId ? { ...m, user: { ...m.user, enabledGameSystems: data.enabledGameSystems } } : m))
     }
     setSavingGsMemberId(null)
+  }
+
+  const toggleCityEditor = (m: Membership) => {
+    if (expandedCityMemberId === m.id) {
+      setExpandedCityMemberId(null)
+      setCityError('')
+    } else {
+      setExpandedCityMemberId(m.id)
+      setEditingCityValue(m.user.city || '')
+      setCityError('')
+    }
+  }
+
+  const saveMemberCity = async (memberId: number) => {
+    setSavingCityMemberId(memberId)
+    setCityError('')
+    const res = await fetch(`/api/clubadmin/memberships/${memberId}/city`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      body: JSON.stringify({ city: editingCityValue.trim() || null })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setMemberships(memberships.map(m => m.id === memberId ? { ...m, user: { ...m.user, city: data.city ?? undefined } } : m))
+      setExpandedCityMemberId(null)
+    } else {
+      const text = await res.text()
+      setCityError(text || 'Ошибка при сохранении города')
+    }
+    setSavingCityMemberId(null)
   }
 
   const addManualMember = async () => {
@@ -761,6 +795,11 @@ export default function ClubAdminPage() {
                               title="Редактировать игровые системы"
                             >🎲 Системы</button>
                             <button
+                              style={{ ...btnStyle, background: expandedCityMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
+                              onClick={() => toggleCityEditor(m)}
+                              title="Редактировать город"
+                            >🏙️ Город</button>
+                            <button
                               style={{ ...btnStyle, background: m.hasKey ? '#7b6200' : '#3a3010' }}
                               onClick={() => toggleKey(m.id, m.hasKey)}
                               title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
@@ -830,6 +869,31 @@ export default function ClubAdminPage() {
                           >
                             {savingGsMemberId === m.id ? 'Сохраняем...' : 'Сохранить'}
                           </button>
+                        </td>
+                      </tr>
+                    )}
+                    {expandedCityMemberId === m.id && m.status === 'Approved' && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ color: '#aaa', fontSize: 13 }}>Город:</span>
+                            <input
+                              style={{ ...inputStyle, marginBottom: 0 }}
+                              placeholder="Город (необязательно)"
+                              maxLength={50}
+                              value={editingCityValue}
+                              onChange={e => { setEditingCityValue(e.target.value); setCityError('') }}
+                            />
+                            <button
+                              style={{ ...btnStyle, background: '#e94560', opacity: savingCityMemberId === m.id ? 0.7 : 1 }}
+                              onClick={() => saveMemberCity(m.id)}
+                              disabled={savingCityMemberId === m.id}
+                            >
+                              {savingCityMemberId === m.id ? 'Сохраняем...' : 'Сохранить'}
+                            </button>
+                            <button style={{ ...btnStyle, background: '#555' }} onClick={() => { setExpandedCityMemberId(null); setCityError('') }}>Отмена</button>
+                          </div>
+                          {cityError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{cityError}</p>}
                         </td>
                       </tr>
                     )}
