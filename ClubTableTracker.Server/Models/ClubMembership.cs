@@ -17,4 +17,5 @@ public class ClubMembership
     [MaxLength(100)]  public string? ManualName               { get; set; }
     [MaxLength(200)]  public string? ManualEmail              { get; set; }
     [MaxLength(500)]  public string? ManualEnabledGameSystems { get; set; }
+    [MaxLength(50)]   public string? ManualCity               { get; set; }
 }
