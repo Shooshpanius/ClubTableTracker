@@ -11,6 +11,7 @@ import { shareTextOnly } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
 import useIsMobile from '../utils/useIsMobile'
+import { isTokenExpired } from '../utils/auth'
 
 // === ИНТЕРФЕЙСЫ: скопировать из HomePage.tsx строки 28–42 ===
 
@@ -109,7 +110,14 @@ export default function ClubPage() {
   const navigate = useNavigate()
    
   const isMobile = useIsMobile()
-  const [token] = useState(localStorage.getItem('token') || '')
+  const [token] = useState(() => {
+    const stored = localStorage.getItem('token') || ''
+    if (stored && isTokenExpired(stored)) {
+      localStorage.removeItem('token')
+      return ''
+    }
+    return stored
+  })
 
   // Клуб
    
@@ -251,9 +259,16 @@ export default function ClubPage() {
           name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
         }
         fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.json())
+          .then(r => {
+            if (r.status === 401) {
+              localStorage.removeItem('token')
+              if (isCurrent) navigate('/')
+              return null
+            }
+            return r.json()
+          })
           .then(data => {
-            if (!isCurrent) return
+            if (!data || !isCurrent) return
             setUser(u => ({ ...(u ?? baseUser), displayName: data.displayName || undefined }))
             if (data.bookingColors) {
               try {
@@ -268,7 +283,7 @@ export default function ClubPage() {
     }
 
     return () => { isCurrent = false }
-  }, [clubId, token])
+  }, [clubId, token, navigate])
 
   // === ФУНКЦИИ ===
 
