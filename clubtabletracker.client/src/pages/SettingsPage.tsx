@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, DEFAULT_BOOKING_COLORS, BOOKING_COLORS_LABELS } from '../constants'
 import type { BookingColors } from '../constants'
+import { isTokenExpired } from '../utils/auth'
 
 const cardStyle: React.CSSProperties = {
   background: '#16213e',
@@ -68,7 +69,8 @@ export default function SettingsPage() {
   const [errorCity, setErrorCity] = useState('')
 
   useEffect(() => {
-    if (!token) {
+    if (!token || isTokenExpired(token)) {
+      localStorage.removeItem('token')
       navigate('/')
       return
     }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { isGoogleConfigured } from '../googleConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import useIsMobile from '../utils/useIsMobile'
+import { isTokenExpired } from '../utils/auth'
 
 interface User { id: string; email: string; name: string; displayName?: string }
 interface Club {
@@ -16,7 +17,14 @@ export default function HomePage() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState(localStorage.getItem('token') || '')
+  const [token, setToken] = useState(() => {
+    const stored = localStorage.getItem('token') || ''
+    if (stored && isTokenExpired(stored)) {
+      localStorage.removeItem('token')
+      return ''
+    }
+    return stored
+  })
   const [clubs, setClubs] = useState<Club[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [clubEventsMap, setClubEventsMap] = useState<Record<number, ClubEventItem[]>>({})
@@ -52,9 +60,16 @@ export default function HomePage() {
         name: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
       }
       fetch('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
+        .then(r => {
+          if (r.status === 401) {
+            localStorage.removeItem('token')
+            if (isCurrent) { setToken(''); setUser(null); setMemberships([]) }
+            return null
+          }
+          return r.json()
+        })
         .then(data => {
-          if (!isCurrent) return
+          if (!data || !isCurrent) return
           setUser(u => ({ ...(u ?? baseUser), displayName: data.displayName || undefined }))
         })
         .catch(err => {
@@ -63,8 +78,15 @@ export default function HomePage() {
           setUser(u => u ?? baseUser)
         })
       fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(data => { if (isCurrent) setMemberships(data) })
+        .then(r => {
+          if (r.status === 401) {
+            localStorage.removeItem('token')
+            if (isCurrent) { setToken(''); setUser(null); setMemberships([]) }
+            return null
+          }
+          return r.json()
+        })
+        .then(data => { if (data && isCurrent) setMemberships(data) })
         .catch(err => console.error('Failed to load memberships:', err))
     }
     return () => {
