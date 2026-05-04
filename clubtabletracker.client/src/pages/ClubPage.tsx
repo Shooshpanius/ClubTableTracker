@@ -1323,7 +1323,7 @@ export default function ClubPage() {
                     {clubChats.map(chat => (
                       <div key={chat.id} style={{ background: "#0f1b2d", border: "1px solid #0f3460", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <span style={{ fontWeight: "bold", fontSize: 14 }}>🌐 {chat.name}</span>
+                          <span style={{ fontWeight: "bold", fontSize: 14 }}>{chat.isPublic ? '🌐' : '🔒'} {chat.name}</span>
                           <div style={{ color: "#888", fontSize: 12, marginTop: 2 }}>{chat.memberCount} участн.</div>
                         </div>
                         <button
@@ -1755,7 +1755,7 @@ export default function ClubPage() {
                     {clubChats.map(chat => (
                       <div key={chat.id} style={{ background: '#0f1b2d', border: '1px solid #0f3460', borderRadius: 8, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <span style={{ fontWeight: 'bold', fontSize: 14 }}>🌐 {chat.name}</span>
+                          <span style={{ fontWeight: 'bold', fontSize: 14 }}>{chat.isPublic ? '🌐' : '🔒'} {chat.name}</span>
                           <span style={{ color: '#888', fontSize: 13, marginLeft: 12 }}>{chat.memberCount} участн.</span>
                         </div>
                         <button
