@@ -8,6 +8,7 @@ interface ChatSummary {
   clubId?: number
   name: string
   lastMessage?: { text: string; sentAt: string }
+  unreadCount: number
 }
 
 interface Message {
@@ -83,17 +84,32 @@ export default function MessengerPage() {
     }
   }, [token])
 
+  const markAsRead = useCallback((chatId: number) => {
+    fetch(`/api/messenger/chats/${chatId}/read`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(() => {
+      setChats(prev => prev.map(c => c.id === chatId ? { ...c, unreadCount: 0 } : c))
+    }).catch(() => {})
+  }, [token])
+
   useEffect(() => {
     if (activeChatId == null) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadMessages(activeChatId)
     if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(() => {
-      loadMessages(activeChatId)
-      loadChats()
+    pollRef.current = setInterval(async () => {
+      await loadMessages(activeChatId)
+      await loadChats()
+      // Сбрасываем счётчик только если накопились непрочитанные
+      setChats(prev => {
+        const chat = prev.find(c => c.id === activeChatId)
+        if (chat && chat.unreadCount > 0) markAsRead(activeChatId)
+        return prev
+      })
     }, 5000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [activeChatId, loadMessages, loadChats])
+  }, [activeChatId, loadMessages, loadChats, markAsRead])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -102,6 +118,7 @@ export default function MessengerPage() {
   const selectChat = (chatId: number) => {
     setActiveChatId(chatId)
     setMessages([])
+    markAsRead(chatId)
   }
 
   const sendMessage = async () => {
@@ -222,7 +239,14 @@ export default function MessengerPage() {
               style={c.id === activeChatId ? s.chatItemActive : s.chatItem}
               onClick={() => selectChat(c.id)}
             >
-              <div style={s.chatName}>{c.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={s.chatName}>{c.name}</div>
+                {c.unreadCount > 0 && (
+                  <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, marginLeft: '6px' }}>
+                    {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                  </span>
+                )}
+              </div>
               {c.lastMessage && (
                 <div style={s.chatPreview}>
                   {c.lastMessage.text.length > 40 ? c.lastMessage.text.slice(0, 40) + '…' : c.lastMessage.text}

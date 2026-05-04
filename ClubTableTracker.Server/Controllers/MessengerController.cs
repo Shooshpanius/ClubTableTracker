@@ -31,6 +31,21 @@ public class MessengerController : ControllerBase
             .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.SentAt) ?? c.CreatedAt)
             .ToList();
 
+        // Получаем счётчики непрочитанных одним запросом для всех чатов
+        var chatIds = chats.Select(c => c.Id).ToList();
+        var lastReadByChat = chats
+            .Select(c => new { c.Id, LastReadAt = c.Members.FirstOrDefault(m => m.UserId == userId)?.LastReadAt })
+            .ToDictionary(x => x.Id, x => x.LastReadAt);
+
+        var unreadCounts = _db.ChatMessages
+            .Where(m => chatIds.Contains(m.ChatId) && m.SenderId != userId)
+            .GroupBy(m => m.ChatId)
+            .Select(g => new { ChatId = g.Key, Messages = g.Select(m => new { m.SentAt }).ToList() })
+            .ToList()
+            .ToDictionary(
+                g => g.ChatId,
+                g => g.Messages.Count(m => lastReadByChat.TryGetValue(g.ChatId, out var lr) && (lr == null || m.SentAt > lr)));
+
         var result = chats.Select(c =>
         {
             var lastMsg = c.Messages.FirstOrDefault();
@@ -53,11 +68,26 @@ public class MessengerController : ControllerBase
                 c.ClubId,
                 Name = displayName,
                 LastMessage = lastMsg == null ? null : new { lastMsg.Text, lastMsg.SentAt },
-                UnreadCount = 0
+                UnreadCount = unreadCounts.GetValueOrDefault(c.Id, 0)
             };
         });
 
         return Ok(result);
+    }
+
+    // POST /api/messenger/chats/{chatId}/read — пометить чат как прочитанный
+    [HttpPost("chats/{chatId}/read")]
+    public IActionResult MarkAsRead(int chatId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var member = _db.ChatMembers.FirstOrDefault(m => m.ChatId == chatId && m.UserId == userId);
+        if (member == null) return Forbid();
+
+        member.LastReadAt = DateTime.UtcNow;
+        _db.SaveChanges();
+        return NoContent();
     }
 
     // POST /api/messenger/chats/direct — начать или получить личный чат с другим пользователем

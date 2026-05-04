@@ -7,4 +7,5 @@ public class ChatMember
     public Chat Chat { get; set; } = null!;
     public string UserId { get; set; } = string.Empty;
     public AppUser User { get; set; } = null!;
+    public DateTime? LastReadAt { get; set; }
 }
