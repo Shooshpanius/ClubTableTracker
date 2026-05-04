@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -90,6 +91,16 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Database migration failed. The application will start, but database-dependent features may not work.");
     }
 }
+
+// Поддержка работы за nginx-прокси: читаем X-Forwarded-For и X-Forwarded-Proto.
+// Back-end доступен только через внутреннюю Docker-сеть, поэтому доверяем всем проксируемым заголовкам.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 app.Use(async (context, next) =>
 {
