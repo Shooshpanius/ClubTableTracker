@@ -7,6 +7,7 @@ public class Chat
     public int Id { get; set; }
     [MaxLength(100)] public string? Name { get; set; }
     public bool IsGroup { get; set; } = false;
+    public bool IsPublic { get; set; } = false;
     public int? ClubId { get; set; }
     public Club? Club { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

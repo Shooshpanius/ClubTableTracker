@@ -1062,7 +1062,7 @@ public class ClubAdminController : ControllerBase
             .Include(c => c.Members).ThenInclude(m => m.User)
             .Where(c => c.ClubId == club.Id && c.IsGroup)
             .Select(c => new {
-                c.Id, c.Name, c.CreatedAt,
+                c.Id, c.Name, c.IsPublic, c.CreatedAt,
                 Members = c.Members.Select(m => new { m.UserId, Name = m.User.DisplayName ?? m.User.Name })
             })
             .ToList();
@@ -1079,11 +1079,11 @@ public class ClubAdminController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Name))
             return BadRequest("Название чата обязательно");
 
-        var chat = new Chat { Name = req.Name.Trim(), IsGroup = true, ClubId = club.Id };
+        var chat = new Chat { Name = req.Name.Trim(), IsGroup = true, IsPublic = req.IsPublic, ClubId = club.Id };
         _db.Chats.Add(chat);
         _db.SaveChanges();
 
-        return Ok(new { chat.Id, chat.Name });
+        return Ok(new { chat.Id, chat.Name, chat.IsPublic });
     }
 
     [HttpDelete("chats/{chatId}")]
@@ -1150,5 +1150,5 @@ public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateMemberCityRequest(string? City);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
 public record ManualMemberRequest(string Name, string? Email);
-public record CreateGroupChatRequest(string Name);
+public record CreateGroupChatRequest(string Name, bool IsPublic = false);
 public record AddChatMemberRequest(string UserId);

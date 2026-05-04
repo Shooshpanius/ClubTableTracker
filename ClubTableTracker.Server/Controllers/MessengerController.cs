@@ -24,20 +24,37 @@ public class MessengerController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var chats = _db.Chats
+        // Идентификаторы клубов, в которых состоит пользователь
+        var myClubIds = _db.Memberships
+            .Where(m => m.UserId == userId && m.Status == "Approved" && !m.IsManualEntry)
+            .Select(m => m.ClubId)
+            .ToList();
+
+        // Чаты, в которых пользователь явный участник (личные, приватные и уже присоединённые публичные)
+        var memberChats = _db.Chats
             .Include(c => c.Members).ThenInclude(m => m.User)
             .Include(c => c.Messages.OrderByDescending(msg => msg.SentAt).Take(1))
             .Where(c => c.Members.Any(m => m.UserId == userId))
+            .ToList();
+
+        // Публичные групповые чаты клубов пользователя, в которых он ещё не участник
+        var joinedChatIds = memberChats.Select(c => c.Id).ToHashSet();
+        var publicGroupChats = _db.Chats
+            .Include(c => c.Members).ThenInclude(m => m.User)
+            .Include(c => c.Messages.OrderByDescending(msg => msg.SentAt).Take(1))
+            .Where(c => c.IsGroup && c.IsPublic && c.ClubId != null && myClubIds.Contains(c.ClubId!.Value) && !joinedChatIds.Contains(c.Id))
+            .ToList();
+
+        var chats = memberChats.Concat(publicGroupChats)
             .OrderByDescending(c => c.Messages.Max(m => (DateTime?)m.SentAt) ?? c.CreatedAt)
             .ToList();
 
-        // Получаем счётчики непрочитанных одним запросом для всех чатов
         var chatIds = chats.Select(c => c.Id).ToList();
         var lastReadByChat = chats
             .Select(c => new { c.Id, LastReadAt = c.Members.FirstOrDefault(m => m.UserId == userId)?.LastReadAt })
             .ToDictionary(x => x.Id, x => x.LastReadAt);
 
-        // Загружаем chatId + sentAt в память, затем группируем на клиенте
+        // Загружаем chatId + sentAt в память, затем группируем
         var rawUnread = _db.ChatMessages
             .Where(m => chatIds.Contains(m.ChatId) && m.SenderId != userId)
             .Select(m => new { m.ChatId, m.SentAt })
@@ -50,6 +67,7 @@ public class MessengerController : ControllerBase
                 g =>
                 {
                     lastReadByChat.TryGetValue(g.Key, out var lastReadAt);
+                    // Если lastReadAt == null (пользователь ещё не открывал чат), все сообщения считаются непрочитанными
                     return g.Count(m => lastReadAt == null || m.SentAt > lastReadAt);
                 });
 
@@ -72,6 +90,7 @@ public class MessengerController : ControllerBase
             {
                 c.Id,
                 c.IsGroup,
+                c.IsPublic,
                 c.ClubId,
                 Name = displayName,
                 LastMessage = lastMsg == null ? null : new { lastMsg.Text, lastMsg.SentAt },
@@ -89,8 +108,24 @@ public class MessengerController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
+        var chat = _db.Chats.Find(chatId);
+        if (chat == null) return NotFound();
+
         var member = _db.ChatMembers.FirstOrDefault(m => m.ChatId == chatId && m.UserId == userId);
-        if (member == null) return Forbid();
+        if (member == null)
+        {
+            // Публичный групповой чат: автоматически добавляем пользователя как участника
+            if (chat.IsGroup && chat.IsPublic && chat.ClubId != null)
+            {
+                var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == chat.ClubId && m.Status == "Approved" && !m.IsManualEntry);
+                if (!isMember) return Forbid();
+                member = new ChatMember { ChatId = chatId, UserId = userId, LastReadAt = DateTime.UtcNow };
+                _db.ChatMembers.Add(member);
+                _db.SaveChanges();
+                return NoContent();
+            }
+            return Forbid();
+        }
 
         member.LastReadAt = DateTime.UtcNow;
         _db.SaveChanges();
@@ -150,8 +185,26 @@ public class MessengerController : ControllerBase
         if (skip < 0) return BadRequest("skip не может быть отрицательным");
         if (take <= 0 || take > 100) return BadRequest("take должен быть от 1 до 100");
 
+        var chat = _db.Chats.Find(chatId);
+        if (chat == null) return NotFound();
+
         var isMember = _db.ChatMembers.Any(m => m.ChatId == chatId && m.UserId == userId);
-        if (!isMember) return Forbid();
+
+        if (!isMember)
+        {
+            // Публичный групповой чат: разрешить доступ членам клуба и автоматически добавить в участники
+            if (chat.IsGroup && chat.IsPublic && chat.ClubId != null)
+            {
+                var isClubMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == chat.ClubId && m.Status == "Approved" && !m.IsManualEntry);
+                if (!isClubMember) return Forbid();
+                _db.ChatMembers.Add(new ChatMember { ChatId = chatId, UserId = userId, LastReadAt = DateTime.UtcNow });
+                _db.SaveChanges();
+            }
+            else
+            {
+                return Forbid();
+            }
+        }
 
         var messages = _db.ChatMessages
             .Include(m => m.Sender)
@@ -184,8 +237,26 @@ public class MessengerController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Text) || req.Text.Length > 4000)
             return BadRequest("Текст сообщения обязателен и не должен превышать 4000 символов");
 
+        var chat = _db.Chats.Find(chatId);
+        if (chat == null) return NotFound();
+
         var isMember = _db.ChatMembers.Any(m => m.ChatId == chatId && m.UserId == userId);
-        if (!isMember) return Forbid();
+
+        if (!isMember)
+        {
+            // Публичный групповой чат: разрешить отправку членам клуба и автоматически добавить в участники
+            if (chat.IsGroup && chat.IsPublic && chat.ClubId != null)
+            {
+                var isClubMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == chat.ClubId && m.Status == "Approved" && !m.IsManualEntry);
+                if (!isClubMember) return Forbid();
+                _db.ChatMembers.Add(new ChatMember { ChatId = chatId, UserId = userId });
+                _db.SaveChanges();
+            }
+            else
+            {
+                return Forbid();
+            }
+        }
 
         var message = new ChatMessage
         {
@@ -207,7 +278,55 @@ public class MessengerController : ControllerBase
             Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name }
         });
     }
+
+    // POST /api/messenger/chats/group — создать групповой чат
+    [HttpPost("chats/group")]
+    public IActionResult CreateGroupChat([FromBody] MessengerGroupChatRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(req.Name) || req.Name.Length > 100)
+            return BadRequest("Название чата обязательно и не должно превышать 100 символов");
+
+        if (req.ClubId <= 0)
+            return BadRequest("Необходимо указать клуб");
+
+        var isClubMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == req.ClubId && m.Status == "Approved" && !m.IsManualEntry);
+        if (!isClubMember) return Forbid();
+
+        var chat = new Chat
+        {
+            Name = req.Name.Trim(),
+            IsGroup = true,
+            IsPublic = req.IsPublic,
+            ClubId = req.ClubId,
+        };
+        _db.Chats.Add(chat);
+        _db.SaveChanges();
+
+        // Создателя добавляем как участника
+        var members = new List<ChatMember> { new() { ChatId = chat.Id, UserId = userId } };
+
+        // Для приватного чата сразу добавляем переданный список участников
+        if (!req.IsPublic && req.MemberIds != null)
+        {
+            foreach (var memberId in req.MemberIds.Distinct())
+            {
+                if (memberId == userId) continue;
+                var otherIsClubMember = _db.Memberships.Any(m => m.UserId == memberId && m.ClubId == req.ClubId && m.Status == "Approved" && !m.IsManualEntry);
+                if (otherIsClubMember)
+                    members.Add(new ChatMember { ChatId = chat.Id, UserId = memberId });
+            }
+        }
+
+        _db.ChatMembers.AddRange(members);
+        _db.SaveChanges();
+
+        return Ok(new { chat.Id, chat.IsGroup, chat.IsPublic, chat.ClubId, chat.Name });
+    }
 }
 
 public record DirectChatRequest(string OtherUserId);
 public record SendMessageRequest(string Text);
+public record MessengerGroupChatRequest(string Name, int ClubId, bool IsPublic, List<string>? MemberIds);
