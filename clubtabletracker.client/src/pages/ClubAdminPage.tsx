@@ -1311,11 +1311,11 @@ export default function ClubAdminPage() {
               />
               <div style={{ display: 'flex', gap: 12 }}>
                 <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-                  <input type="radio" checked={!newChatIsPublic} onChange={() => setNewChatIsPublic(false)} />
+                  <input type="radio" name="chatVisibility" checked={!newChatIsPublic} onChange={() => setNewChatIsPublic(false)} />
                   <span>🔒 Приватный</span>
                 </label>
                 <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
-                  <input type="radio" checked={newChatIsPublic} onChange={() => setNewChatIsPublic(true)} />
+                  <input type="radio" name="chatVisibility" checked={newChatIsPublic} onChange={() => setNewChatIsPublic(true)} />
                   <span>🌐 Публичный</span>
                 </label>
               </div>
