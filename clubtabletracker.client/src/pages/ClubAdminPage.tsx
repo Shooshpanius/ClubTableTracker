@@ -63,8 +63,9 @@ export default function ClubAdminPage() {
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [galleryError, setGalleryError] = useState('')
   const [campaignMapEditorEvent, setCampaignMapEditorEvent] = useState<ClubEventData | null>(null)
-  const [groupChats, setGroupChats] = useState<{ id: number; name: string; createdAt: string; members: { userId: string; name: string }[] }[]>([])
+  const [groupChats, setGroupChats] = useState<{ id: number; name: string; isPublic: boolean; createdAt: string; members: { userId: string; name: string }[] }[]>([])
   const [newChatName, setNewChatName] = useState('')
+  const [newChatIsPublic, setNewChatIsPublic] = useState(false)
   const [chatError, setChatError] = useState('')
   const [addMemberChatId, setAddMemberChatId] = useState<number | null>(null)
   const [addMemberUserId, setAddMemberUserId] = useState('')
@@ -1300,7 +1301,7 @@ export default function ClubAdminPage() {
         <>
           <div style={cardStyle}>
             <h3 style={{ marginTop: 0 }}>Создать групповой чат</h3>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <input
                 style={inputStyle}
                 placeholder="Название чата"
@@ -1308,6 +1309,16 @@ export default function ClubAdminPage() {
                 onChange={e => setNewChatName(e.target.value)}
                 maxLength={100}
               />
+              <div style={{ display: 'flex', gap: 12 }}>
+                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                  <input type="radio" checked={!newChatIsPublic} onChange={() => setNewChatIsPublic(false)} />
+                  <span>🔒 Приватный</span>
+                </label>
+                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                  <input type="radio" checked={newChatIsPublic} onChange={() => setNewChatIsPublic(true)} />
+                  <span>🌐 Публичный</span>
+                </label>
+              </div>
               <button
                 style={btnStyle}
                 onClick={async () => {
@@ -1316,10 +1327,11 @@ export default function ClubAdminPage() {
                   const res = await fetch('/api/clubadmin/chats', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
-                    body: JSON.stringify({ name: newChatName.trim() })
+                    body: JSON.stringify({ name: newChatName.trim(), isPublic: newChatIsPublic })
                   })
                   if (res.ok) {
                     setNewChatName('')
+                    setNewChatIsPublic(false)
                     const chatsRes = await fetch('/api/clubadmin/chats', { headers: { 'X-Club-Key': clubKey } })
                     if (chatsRes.ok) setGroupChats(await chatsRes.json())
                   } else {
@@ -1338,7 +1350,12 @@ export default function ClubAdminPage() {
             return (
               <div key={chat.id} style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <h4 style={{ margin: 0 }}>{chat.name}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h4 style={{ margin: 0 }}>{chat.name}</h4>
+                    <span style={{ fontSize: 12, background: chat.isPublic ? '#1a4a2a' : '#2a2a4a', color: chat.isPublic ? '#4caf50' : '#9b8fcc', borderRadius: 10, padding: '2px 8px' }}>
+                      {chat.isPublic ? '🌐 Публичный' : '🔒 Приватный'}
+                    </span>
+                  </div>
                   <button
                     style={{ ...btnStyle, background: '#e94560' }}
                     onClick={async () => {

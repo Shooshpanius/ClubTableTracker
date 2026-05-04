@@ -178,9 +178,11 @@ export default function ClubPage() {
    
   const [clubGallery, setClubGallery] = useState<{ id: number; url: string }[]>([])
    
-  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('tables')
+  const [clubChats, setClubChats] = useState<{ id: number; name: string; isPublic: boolean; memberCount: number }[]>([])
    
-  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map' | 'gallery'>('booking')
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('tables')
+   
+  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('booking')
    
   const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
    
@@ -351,6 +353,11 @@ export default function ClubPage() {
   const loadGallery = async (gid: number) => {
     const res = await fetch(`/api/club/${gid}/gallery`, { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) setClubGallery(await res.json())
+  }
+
+  const loadClubChats = async (cid: number) => {
+    const res = await fetch(`/api/club/${cid}/chats`, { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) setClubChats(await res.json())
   }
 
    
@@ -831,9 +838,9 @@ export default function ClubPage() {
           /* ===== MOBILE accordion body ===== */
           <div>
             {/* Mobile tab bar */}
-            <div style={{ display: "flex", borderBottom: "2px solid #0f3460" }}>
-              {(["tables", "games", "events", "log", "players", "map", "gallery"] as const).map((tab, i) => {
-                const labels = ["Столы", "Игры", "События", "📋", "👥", "🗺️", "🖼️"]
+            <div style={{ display: "flex", borderBottom: "2px solid #0f3460", flexWrap: "wrap" }}>
+              {(["tables", "games", "events", "log", "players", "map", "gallery", "chats"] as const).map((tab, i) => {
+                const labels = ["Столы", "Игры", "События", "📋", "👥", "🗺️", "🖼️", "💬"]
                 return (
                   <button
                     key={tab}
@@ -842,7 +849,7 @@ export default function ClubPage() {
                       background: mobileTab === tab ? "#e94560" : "#0f3460",
                       color: "#fff",
                       border: "none",
-                      borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "gallery" ? "0 4px 0 0" : 0,
+                      borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "chats" ? "0 4px 0 0" : 0,
                       padding: "9px 4px",
                       cursor: "pointer",
                       fontSize: 13,
@@ -853,6 +860,7 @@ export default function ClubPage() {
                       if (tab === "games") await loadUpcoming()
                       else if (tab === "log") await loadActivityLog()
                       else if (tab === "gallery") await loadGallery(parseInt(clubId ?? ''))
+                      else if (tab === "chats") await loadClubChats(parseInt(clubId ?? ''))
                     }}>
                     {labels[i]}
                   </button>
@@ -1304,6 +1312,35 @@ export default function ClubPage() {
               </div>
             )}
 
+            {/* Tab: Чаты (mobile) */}
+            {mobileTab === "chats" && (
+              <div>
+                <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Чаты клуба</h3>
+                {clubChats.length === 0 ? (
+                  <p style={{ color: "#aaa", margin: 0 }}>Нет публичных чатов.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {clubChats.map(chat => (
+                      <div key={chat.id} style={{ background: "#0f1b2d", border: "1px solid #0f3460", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontWeight: "bold", fontSize: 14 }}>🌐 {chat.name}</span>
+                          <div style={{ color: "#888", fontSize: 12, marginTop: 2 }}>{chat.memberCount} участн.</div>
+                        </div>
+                        <button
+                          style={{ background: "#4a9eff", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}
+                          onClick={() => navigate("/messages")}
+                        >Открыть</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  style={{ marginTop: 16, background: "#1a6e3c", border: "none", color: "#fff", borderRadius: 6, padding: "8px 16px", cursor: "pointer", fontSize: 14 }}
+                  onClick={() => navigate("/messages")}
+                >💬 Перейти в мессенджер</button>
+              </div>
+            )}
+
             </div>
           </div>
         ) : (
@@ -1319,6 +1356,7 @@ export default function ClubPage() {
                 ['players', '👥 Игроки клуба'],
                 ['map', '🗺️ Схема клуба'],
                 ['gallery', '🖼️ Галерея'],
+                ['chats', '💬 Чаты клуба'],
               ] as [string, string][]).map(([tab, label]) => (
                 <button
                   key={tab}
@@ -1327,6 +1365,7 @@ export default function ClubPage() {
                     if (tab === 'upcoming') await loadUpcoming()
                     else if (tab === 'log') await loadActivityLog()
                     else if (tab === 'gallery') await loadGallery(parseInt(clubId ?? ''))
+                    else if (tab === 'chats') await loadClubChats(parseInt(clubId ?? ''))
                     setDesktopTab(tab as typeof desktopTab)
                   }}>
                   {label}
@@ -1702,6 +1741,35 @@ export default function ClubPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Tab: Чаты */}
+            {desktopTab === 'chats' && (
+              <div>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Чаты клуба</h3>
+                {clubChats.length === 0 ? (
+                  <p style={{ color: '#aaa', margin: 0 }}>Нет публичных чатов.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                    {clubChats.map(chat => (
+                      <div key={chat.id} style={{ background: '#0f1b2d', border: '1px solid #0f3460', borderRadius: 8, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontWeight: 'bold', fontSize: 14 }}>🌐 {chat.name}</span>
+                          <span style={{ color: '#888', fontSize: 13, marginLeft: 12 }}>{chat.memberCount} участн.</span>
+                        </div>
+                        <button
+                          style={{ background: '#4a9eff', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
+                          onClick={() => navigate('/messages')}
+                        >Открыть в мессенджере</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  style={{ background: '#1a6e3c', border: 'none', color: '#fff', borderRadius: 6, padding: '8px 18px', cursor: 'pointer', fontSize: 14 }}
+                  onClick={() => navigate('/messages')}
+                >💬 Перейти в мессенджер</button>
               </div>
             )}
           </div>
