@@ -136,6 +136,9 @@ public class MessengerController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
+        if (skip < 0) return BadRequest("skip не может быть отрицательным");
+        if (take <= 0 || take > 100) return BadRequest("take должен быть от 1 до 100");
+
         var isMember = _db.ChatMembers.Any(m => m.ChatId == chatId && m.UserId == userId);
         if (!isMember) return Forbid();
 

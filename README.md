@@ -510,7 +510,7 @@ ClubTableTracker/
 |---|---|---|
 | `GET` | `/api/messenger/chats` | Список чатов текущего пользователя (с последним сообщением и счётчиком непрочитанных) |
 | `POST` | `/api/messenger/chats/direct` | Начать или получить существующий личный чат (`{ otherUserId }`) |
-| `GET` | `/api/messenger/chats/{chatId}/messages` | Сообщения чата (пагинация: `?skip=0&take=50`) |
+| `GET` | `/api/messenger/chats/{chatId}/messages` | Сообщения чата (пагинация: `?skip=0&take=50`, max take=100) |
 | `POST` | `/api/messenger/chats/{chatId}/messages` | Отправить сообщение (`{ text }`) |
 | `POST` | `/api/messenger/chats/{chatId}/read` | Пометить чат как прочитанный (обновляет `LastReadAt`) |
 
