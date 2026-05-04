@@ -28,6 +28,7 @@ export default function HomePage() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [clubEventsMap, setClubEventsMap] = useState<Record<number, ClubEventItem[]>>({})
+  const [totalUnread, setTotalUnread] = useState(0)
 
   useEffect(() => {
     let isCurrent = true
@@ -92,6 +93,22 @@ export default function HomePage() {
     return () => {
       isCurrent = false
     }
+  }, [token])
+
+  // Polling непрочитанных сообщений
+  useEffect(() => {
+    if (!token || isTokenExpired(token)) return
+    const fetchUnread = () => {
+      fetch('/api/messenger/chats', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then((chats: { unreadCount: number }[]) => {
+          setTotalUnread(chats.reduce((sum, c) => sum + (c.unreadCount || 0), 0))
+        })
+        .catch(() => {})
+    }
+    fetchUnread()
+    const id = setInterval(fetchUnread, 15000)
+    return () => clearInterval(id)
   }, [token])
 
   const handleGoogleLogin = async (credentialResponse: { credential?: string }) => {
@@ -275,6 +292,13 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexWrap: 'wrap' }}>
               <span style={{ color: '#aaa', fontSize: isMobile ? 13 : 14 }}>👤 {user.displayName || user.name}</span>
               <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => navigate('/settings')}>⚙️</button>
+              <button style={{ ...btnStyle, background: '#1a6e3c', position: 'relative' }} onClick={() => navigate('/messages')}>
+                💬{totalUnread > 0 && (
+                  <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#e94560', color: '#fff', borderRadius: '10px', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold', lineHeight: '1.4' }}>
+                    {totalUnread > 99 ? '99+' : totalUnread}
+                  </span>
+                )}
+              </button>
               <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Выйти</button>
             </div>
           ) : (

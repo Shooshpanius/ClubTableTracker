@@ -22,6 +22,9 @@ public class AppDbContext : DbContext
     public DbSet<CampaignMapBlock> CampaignMapBlocks => Set<CampaignMapBlock>();
     public DbSet<CampaignMapBlockFaction> CampaignMapBlockFactions => Set<CampaignMapBlockFaction>();
     public DbSet<CampaignMapLink> CampaignMapLinks => Set<CampaignMapLink>();
+    public DbSet<Chat> Chats => Set<Chat>();
+    public DbSet<ChatMember> ChatMembers => Set<ChatMember>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,5 +160,40 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(l => l.ToBlockId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Chat>().HasKey(c => c.Id);
+        modelBuilder.Entity<Chat>()
+            .HasOne(c => c.Club)
+            .WithMany()
+            .HasForeignKey(c => c.ClubId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ChatMember>().HasKey(m => m.Id);
+        modelBuilder.Entity<ChatMember>()
+            .HasOne(m => m.Chat)
+            .WithMany(c => c.Members)
+            .HasForeignKey(m => m.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMember>()
+            .HasOne(m => m.User)
+            .WithMany()
+            .HasForeignKey(m => m.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMember>()
+            .HasIndex(m => new { m.ChatId, m.UserId })
+            .IsUnique();
+
+        modelBuilder.Entity<ChatMessage>().HasKey(m => m.Id);
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(m => m.Chat)
+            .WithMany(c => c.Messages)
+            .HasForeignKey(m => m.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
