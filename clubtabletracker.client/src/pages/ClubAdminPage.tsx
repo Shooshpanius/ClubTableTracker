@@ -19,7 +19,7 @@ export default function ClubAdminPage() {
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events' | 'gallery'>('map')
+  const [tab, setTab] = useState<'map' | 'members' | 'settings' | 'events' | 'gallery' | 'chats'>('map')
   const [editingTable, setEditingTable] = useState<Partial<GameTable> | null>(null)
   const [selectedGames, setSelectedGames] = useState<string[]>([])
   const [openTime, setOpenTime] = useState('10:00')
@@ -63,6 +63,11 @@ export default function ClubAdminPage() {
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [galleryError, setGalleryError] = useState('')
   const [campaignMapEditorEvent, setCampaignMapEditorEvent] = useState<ClubEventData | null>(null)
+  const [groupChats, setGroupChats] = useState<{ id: number; name: string; createdAt: string; members: { userId: string; name: string }[] }[]>([])
+  const [newChatName, setNewChatName] = useState('')
+  const [chatError, setChatError] = useState('')
+  const [addMemberChatId, setAddMemberChatId] = useState<number | null>(null)
+  const [addMemberUserId, setAddMemberUserId] = useState('')
 
   const login = async () => {
     sessionStorage.setItem('clubKey', clubKey)
@@ -80,18 +85,20 @@ export default function ClubAdminPage() {
   }
 
   const loadData = async (key: string) => {
-    const [tablesRes, membRes, eventsRes, decorationsRes, galleryRes] = await Promise.all([
+    const [tablesRes, membRes, eventsRes, decorationsRes, galleryRes, chatsRes] = await Promise.all([
       fetch('/api/clubadmin/tables', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } }),
       fetch('/api/clubadmin/decorations', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/gallery', { headers: { 'X-Club-Key': key } })
+      fetch('/api/clubadmin/gallery', { headers: { 'X-Club-Key': key } }),
+      fetch('/api/clubadmin/chats', { headers: { 'X-Club-Key': key } })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (membRes.ok) setMemberships(await membRes.json())
     if (eventsRes.ok) setEvents(await eventsRes.json())
     if (decorationsRes.ok) setDecorations(await decorationsRes.json())
     if (galleryRes.ok) setGalleryPhotos(await galleryRes.json())
+    if (chatsRes.ok) setGroupChats(await chatsRes.json())
   }
 
   useEffect(() => {
@@ -633,6 +640,9 @@ export default function ClubAdminPage() {
         <button style={tabStyle(tab === 'settings')} onClick={() => setTab('settings')}>Настройки</button>
         <button style={tabStyle(tab === 'gallery')} onClick={() => setTab('gallery')}>
           Галерея{galleryPhotos.length > 0 && <span style={{ marginLeft: 6, background: '#1a6e3c', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{galleryPhotos.length}</span>}
+        </button>
+        <button style={tabStyle(tab === 'chats')} onClick={() => setTab('chats')}>
+          Чаты{groupChats.length > 0 && <span style={{ marginLeft: 6, background: '#0f3460', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{groupChats.length}</span>}
         </button>
       </div>
 
@@ -1278,6 +1288,127 @@ export default function ClubAdminPage() {
                         disabled={missionMapUploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
                     </label>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </>
+      )}
+
+      {tab === 'chats' && (
+        <>
+          <div style={cardStyle}>
+            <h3 style={{ marginTop: 0 }}>Создать групповой чат</h3>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input
+                style={inputStyle}
+                placeholder="Название чата"
+                value={newChatName}
+                onChange={e => setNewChatName(e.target.value)}
+                maxLength={100}
+              />
+              <button
+                style={btnStyle}
+                onClick={async () => {
+                  setChatError('')
+                  if (!newChatName.trim()) { setChatError('Введите название'); return }
+                  const res = await fetch('/api/clubadmin/chats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+                    body: JSON.stringify({ name: newChatName.trim() })
+                  })
+                  if (res.ok) {
+                    setNewChatName('')
+                    const chatsRes = await fetch('/api/clubadmin/chats', { headers: { 'X-Club-Key': clubKey } })
+                    if (chatsRes.ok) setGroupChats(await chatsRes.json())
+                  } else {
+                    setChatError(await res.text())
+                  }
+                }}
+              >Создать</button>
+            </div>
+            {chatError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{chatError}</p>}
+          </div>
+
+          {groupChats.length === 0 && <p style={{ color: '#555' }}>Нет групповых чатов</p>}
+
+          {groupChats.map(chat => {
+            const approvedMembers = memberships.filter(m => m.status === 'Approved' && !m.user.id.startsWith('manual:'))
+            return (
+              <div key={chat.id} style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h4 style={{ margin: 0 }}>{chat.name}</h4>
+                  <button
+                    style={{ ...btnStyle, background: '#e94560' }}
+                    onClick={async () => {
+                      if (!confirm(`Удалить чат «${chat.name}»?`)) return
+                      const res = await fetch(`/api/clubadmin/chats/${chat.id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                      if (res.ok) setGroupChats(groupChats.filter(c => c.id !== chat.id))
+                    }}
+                  >Удалить</button>
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13 }}>Участники ({chat.members.length}):</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {chat.members.map(m => (
+                      <span key={m.userId} style={{ background: '#0f3460', borderRadius: 12, padding: '3px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {m.name}
+                        <button
+                          style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', padding: 0, fontSize: 13 }}
+                          title="Удалить из чата"
+                          onClick={async () => {
+                            const res = await fetch(`/api/clubadmin/chats/${chat.id}/members/${m.userId}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                            if (res.ok) {
+                              setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, members: c.members.filter(x => x.userId !== m.userId) } : c))
+                            }
+                          }}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {addMemberChatId === chat.id ? (
+                    <>
+                      <select
+                        style={{ ...inputStyle, marginBottom: 0 }}
+                        value={addMemberUserId}
+                        onChange={e => setAddMemberUserId(e.target.value)}
+                      >
+                        <option value="">— выбрать участника —</option>
+                        {approvedMembers
+                          .filter(m => !chat.members.some(cm => cm.userId === m.user.id))
+                          .map(m => (
+                            <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
+                          ))
+                        }
+                      </select>
+                      <button
+                        style={btnStyle}
+                        onClick={async () => {
+                          if (!addMemberUserId) return
+                          const res = await fetch(`/api/clubadmin/chats/${chat.id}/members`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+                            body: JSON.stringify({ userId: addMemberUserId })
+                          })
+                          if (res.ok) {
+                            const member = approvedMembers.find(m => m.user.id === addMemberUserId)
+                            if (member) {
+                              setGroupChats(groupChats.map(c => c.id === chat.id
+                                ? { ...c, members: [...c.members, { userId: member.user.id, name: member.user.name }] }
+                                : c))
+                            }
+                            setAddMemberChatId(null)
+                            setAddMemberUserId('')
+                          }
+                        }}
+                      >Добавить</button>
+                      <button style={{ ...btnStyle, background: '#555' }} onClick={() => { setAddMemberChatId(null); setAddMemberUserId('') }}>Отмена</button>
+                    </>
+                  ) : (
+                    <button style={btnStyle} onClick={() => { setAddMemberChatId(chat.id); setAddMemberUserId('') }}>+ Добавить участника</button>
                   )}
                 </div>
               </div>

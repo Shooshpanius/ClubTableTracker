@@ -275,6 +275,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexWrap: 'wrap' }}>
               <span style={{ color: '#aaa', fontSize: isMobile ? 13 : 14 }}>👤 {user.displayName || user.name}</span>
               <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => navigate('/settings')}>⚙️</button>
+              <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => navigate('/messages')}>💬</button>
               <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Выйти</button>
             </div>
           ) : (

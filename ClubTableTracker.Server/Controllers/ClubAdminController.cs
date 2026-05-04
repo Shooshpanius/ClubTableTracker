@@ -1049,6 +1049,93 @@ public class ClubAdminController : ControllerBase
         _db.SaveChanges();
         return NoContent();
     }
+
+    // Управление групповыми чатами (только для клубных администраторов)
+
+    [HttpGet("chats")]
+    public IActionResult GetGroupChats()
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chats = _db.Chats
+            .Include(c => c.Members).ThenInclude(m => m.User)
+            .Where(c => c.ClubId == club.Id && c.IsGroup)
+            .Select(c => new {
+                c.Id, c.Name, c.CreatedAt,
+                Members = c.Members.Select(m => new { m.UserId, Name = m.User.DisplayName ?? m.User.Name })
+            })
+            .ToList();
+
+        return Ok(chats);
+    }
+
+    [HttpPost("chats")]
+    public IActionResult CreateGroupChat([FromBody] CreateGroupChatRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest("Название чата обязательно");
+
+        var chat = new Chat { Name = req.Name.Trim(), IsGroup = true, ClubId = club.Id };
+        _db.Chats.Add(chat);
+        _db.SaveChanges();
+
+        return Ok(new { chat.Id, chat.Name });
+    }
+
+    [HttpDelete("chats/{chatId}")]
+    public IActionResult DeleteGroupChat(int chatId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chat = _db.Chats.FirstOrDefault(c => c.Id == chatId && c.ClubId == club.Id && c.IsGroup);
+        if (chat == null) return NotFound();
+
+        _db.Chats.Remove(chat);
+        _db.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpPost("chats/{chatId}/members")]
+    public IActionResult AddChatMember(int chatId, [FromBody] AddChatMemberRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chat = _db.Chats.FirstOrDefault(c => c.Id == chatId && c.ClubId == club.Id && c.IsGroup);
+        if (chat == null) return NotFound();
+
+        var isMember = _db.Memberships.Any(m => m.UserId == req.UserId && m.ClubId == club.Id && m.Status == "Approved");
+        if (!isMember) return BadRequest("Пользователь не является участником клуба");
+
+        var already = _db.ChatMembers.Any(m => m.ChatId == chatId && m.UserId == req.UserId);
+        if (already) return BadRequest("Пользователь уже в чате");
+
+        _db.ChatMembers.Add(new ChatMember { ChatId = chatId, UserId = req.UserId });
+        _db.SaveChanges();
+        return Ok();
+    }
+
+    [HttpDelete("chats/{chatId}/members/{userId}")]
+    public IActionResult RemoveChatMember(int chatId, string userId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chat = _db.Chats.FirstOrDefault(c => c.Id == chatId && c.ClubId == club.Id && c.IsGroup);
+        if (chat == null) return NotFound();
+
+        var member = _db.ChatMembers.FirstOrDefault(m => m.ChatId == chatId && m.UserId == userId);
+        if (member == null) return NotFound();
+
+        _db.ChatMembers.Remove(member);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
@@ -1063,3 +1150,5 @@ public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateMemberCityRequest(string? City);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);
 public record ManualMemberRequest(string Name, string? Email);
+public record CreateGroupChatRequest(string Name);
+public record AddChatMemberRequest(string UserId);

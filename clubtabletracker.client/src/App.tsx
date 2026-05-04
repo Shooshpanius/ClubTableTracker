@@ -4,6 +4,7 @@ import AdminPage from './pages/AdminPage'
 import ClubAdminPage from './pages/ClubAdminPage'
 import SettingsPage from './pages/SettingsPage'
 import ClubPage from './pages/ClubPage'
+import MessengerPage from './pages/MessengerPage'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/clubAdmin" element={<ClubAdminPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/club/:clubId" element={<ClubPage />} />
+        <Route path="/messages" element={<MessengerPage />} />
       </Routes>
     </div>
   )
