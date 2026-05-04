@@ -67,7 +67,7 @@ public class MessengerController : ControllerBase
                 g =>
                 {
                     lastReadByChat.TryGetValue(g.Key, out var lastReadAt);
-                    // Для публичного чата, в котором пользователь ещё не участник, всё считается непрочитанным
+                    // Если lastReadAt == null (пользователь ещё не открывал чат), все сообщения считаются непрочитанными
                     return g.Count(m => lastReadAt == null || m.SentAt > lastReadAt);
                 });
 

@@ -47,6 +47,8 @@ function parseToken(token: string): { id: string } | null {
   }
 }
 
+const CHAT_NAME_MAX_LENGTH = 100
+
 export default function MessengerPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token') || ''
@@ -426,7 +428,7 @@ export default function MessengerPage() {
                     style={s.input}
                     placeholder="Название чата"
                     value={groupName}
-                    maxLength={100}
+                    maxLength={CHAT_NAME_MAX_LENGTH}
                     onChange={e => setGroupName(e.target.value)}
                   />
                   <select
