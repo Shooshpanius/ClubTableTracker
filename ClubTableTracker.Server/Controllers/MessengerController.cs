@@ -37,14 +37,21 @@ public class MessengerController : ControllerBase
             .Select(c => new { c.Id, LastReadAt = c.Members.FirstOrDefault(m => m.UserId == userId)?.LastReadAt })
             .ToDictionary(x => x.Id, x => x.LastReadAt);
 
-        var unreadCounts = _db.ChatMessages
+        // Загружаем chatId + sentAt в память, затем группируем на клиенте
+        var rawUnread = _db.ChatMessages
             .Where(m => chatIds.Contains(m.ChatId) && m.SenderId != userId)
+            .Select(m => new { m.ChatId, m.SentAt })
+            .ToList();
+
+        var unreadCounts = rawUnread
             .GroupBy(m => m.ChatId)
-            .Select(g => new { ChatId = g.Key, Messages = g.Select(m => new { m.SentAt }).ToList() })
-            .ToList()
             .ToDictionary(
-                g => g.ChatId,
-                g => g.Messages.Count(m => lastReadByChat.TryGetValue(g.ChatId, out var lr) && (lr == null || m.SentAt > lr)));
+                g => g.Key,
+                g =>
+                {
+                    lastReadByChat.TryGetValue(g.Key, out var lastReadAt);
+                    return g.Count(m => lastReadAt == null || m.SentAt > lastReadAt);
+                });
 
         var result = chats.Select(c =>
         {
