@@ -137,4 +137,20 @@ public class ClubController : ControllerBase
             .ToList();
         return Ok(photos);
     }
+
+    [HttpGet("{id}/chats")]
+    [Authorize]
+    public IActionResult GetClubChats(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == id && m.Status == "Approved" && !m.IsManualEntry);
+        if (!isMember) return Forbid();
+        var chats = _db.Chats
+            .Include(c => c.Members)
+            .Where(c => c.ClubId == id && c.IsGroup && c.IsPublic)
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => new { c.Id, c.Name, c.IsPublic, MemberCount = c.Members.Count })
+            .ToList();
+        return Ok(chats);
+    }
 }

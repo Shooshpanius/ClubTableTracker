@@ -278,55 +278,7 @@ public class MessengerController : ControllerBase
             Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name }
         });
     }
-
-    // POST /api/messenger/chats/group — создать групповой чат
-    [HttpPost("chats/group")]
-    public IActionResult CreateGroupChat([FromBody] MessengerGroupChatRequest req)
-    {
-        var userId = GetUserId();
-        if (userId == null) return Unauthorized();
-
-        if (string.IsNullOrWhiteSpace(req.Name) || req.Name.Length > 100)
-            return BadRequest("Название чата обязательно и не должно превышать 100 символов");
-
-        if (req.ClubId <= 0)
-            return BadRequest("Необходимо указать клуб");
-
-        var isClubMember = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == req.ClubId && m.Status == "Approved" && !m.IsManualEntry);
-        if (!isClubMember) return Forbid();
-
-        var chat = new Chat
-        {
-            Name = req.Name.Trim(),
-            IsGroup = true,
-            IsPublic = req.IsPublic,
-            ClubId = req.ClubId,
-        };
-        _db.Chats.Add(chat);
-        _db.SaveChanges();
-
-        // Создателя добавляем как участника
-        var members = new List<ChatMember> { new() { ChatId = chat.Id, UserId = userId } };
-
-        // Для приватного чата сразу добавляем переданный список участников
-        if (!req.IsPublic && req.MemberIds != null)
-        {
-            foreach (var memberId in req.MemberIds.Distinct())
-            {
-                if (memberId == userId) continue;
-                var otherIsClubMember = _db.Memberships.Any(m => m.UserId == memberId && m.ClubId == req.ClubId && m.Status == "Approved" && !m.IsManualEntry);
-                if (otherIsClubMember)
-                    members.Add(new ChatMember { ChatId = chat.Id, UserId = memberId });
-            }
-        }
-
-        _db.ChatMembers.AddRange(members);
-        _db.SaveChanges();
-
-        return Ok(new { chat.Id, chat.IsGroup, chat.IsPublic, chat.ClubId, chat.Name });
-    }
 }
 
 public record DirectChatRequest(string OtherUserId);
 public record SendMessageRequest(string Text);
-public record MessengerGroupChatRequest(string Name, int ClubId, bool IsPublic, List<string>? MemberIds);

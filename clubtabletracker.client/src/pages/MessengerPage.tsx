@@ -47,8 +47,6 @@ function parseToken(token: string): { id: string } | null {
   }
 }
 
-const CHAT_NAME_MAX_LENGTH = 100
-
 export default function MessengerPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token') || ''
@@ -60,12 +58,6 @@ export default function MessengerPage() {
   const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
-  const [newChatMode, setNewChatMode] = useState<'choose' | 'direct' | 'group'>('choose')
-  const [groupName, setGroupName] = useState('')
-  const [groupIsPublic, setGroupIsPublic] = useState(true)
-  const [groupClubId, setGroupClubId] = useState<number | null>(null)
-  const [groupSelectedMembers, setGroupSelectedMembers] = useState<Set<string>>(new Set())
-  const [myClubs, setMyClubs] = useState<Club[]>([])
   const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -149,22 +141,6 @@ export default function MessengerPage() {
 
   const openNewChat = async () => {
     setShowNewChat(true)
-    setNewChatMode('choose')
-    setGroupName('')
-    setGroupIsPublic(true)
-    setGroupSelectedMembers(new Set())
-    setGroupClubId(null)
-    setLoadingMembers(false)
-    setClubMembers([])
-    const msRes = await fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
-    if (!msRes.ok) return
-    const memberships: Membership[] = await msRes.json()
-    const approved = memberships.filter(m => m.status === 'Approved')
-    setMyClubs(approved.map(m => m.club))
-  }
-
-  const openDirectMode = async () => {
-    setNewChatMode('direct')
     setLoadingMembers(true)
     setClubMembers([])
     const msRes = await fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
@@ -186,47 +162,6 @@ export default function MessengerPage() {
     }))
     setClubMembers(allMembers)
     setLoadingMembers(false)
-  }
-
-  const loadClubMembersForGroup = async (clubId: number) => {
-    setGroupClubId(clubId)
-    setLoadingMembers(true)
-    setClubMembers([])
-    setGroupSelectedMembers(new Set())
-    const res = await fetch(`/api/club/${clubId}/members`, { headers: { Authorization: `Bearer ${token}` } })
-    if (!res.ok) { setLoadingMembers(false); return }
-    const members: ClubMember[] = await res.json()
-    setClubMembers(members.filter(m => !m.id.startsWith('manual:') && m.id !== myId))
-    setLoadingMembers(false)
-  }
-
-  const toggleGroupMember = (id: string) => {
-    setGroupSelectedMembers(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const createGroupChat = async () => {
-    if (!groupName.trim() || !groupClubId) return
-    const res = await fetch('/api/messenger/chats/group', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: groupName.trim(),
-        clubId: groupClubId,
-        isPublic: groupIsPublic,
-        memberIds: groupIsPublic ? null : Array.from(groupSelectedMembers)
-      })
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setShowNewChat(false)
-      await loadChats()
-      setActiveChatId(data.id)
-    }
   }
 
   const startDirectChat = async (otherUserId: string) => {
@@ -377,111 +312,27 @@ export default function MessengerPage() {
       {showNewChat && (
         <div style={s.overlay} onClick={() => setShowNewChat(false)}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
-            {newChatMode === 'choose' && (
-              <>
-                <div style={s.modalTitle}>Новый чат</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <button
-                    style={{ ...s.newBtn, padding: '12px', fontSize: '14px', textAlign: 'left' }}
-                    onClick={openDirectMode}
-                  >💬 Личный чат</button>
-                  <button
-                    style={{ ...s.newBtn, padding: '12px', fontSize: '14px', textAlign: 'left', background: '#2a6e2a' }}
-                    onClick={() => setNewChatMode('group')}
-                  >👥 Групповой чат</button>
-                </div>
-                <button style={{ ...s.backBtn, marginTop: '16px' }} onClick={() => setShowNewChat(false)}>Закрыть</button>
-              </>
-            )}
-            {newChatMode === 'direct' && (
-              <>
-                <div style={s.modalTitle}>Личное сообщение</div>
-                <button style={s.backBtn} onClick={() => setNewChatMode('choose')}>← Назад</button>
-                {loadingMembers ? (
-                  <div style={{ color: '#aaa' }}>Загрузка участников...</div>
-                ) : clubMembers.length === 0 ? (
-                  <div style={{ color: '#aaa' }}>Нет доступных участников</div>
-                ) : (
-                  <div style={s.memberList}>
-                    {clubMembers.map(m => (
-                      <div
-                        key={m.id}
-                        style={s.memberItem}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#0f3460')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                        onClick={() => startDirectChat(m.id)}
-                      >
-                        {m.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <button style={{ ...s.backBtn, marginTop: '16px' }} onClick={() => setShowNewChat(false)}>Закрыть</button>
-              </>
-            )}
-            {newChatMode === 'group' && (
-              <>
-                <div style={s.modalTitle}>Групповой чат</div>
-                <button style={s.backBtn} onClick={() => setNewChatMode('choose')}>← Назад</button>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-                  <input
-                    style={s.input}
-                    placeholder="Название чата"
-                    value={groupName}
-                    maxLength={CHAT_NAME_MAX_LENGTH}
-                    onChange={e => setGroupName(e.target.value)}
-                  />
-                  <select
-                    style={{ ...s.input, cursor: 'pointer' }}
-                    value={groupClubId ?? ''}
-                    onChange={e => { const v = Number(e.target.value); if (v) loadClubMembersForGroup(v) }}
+            <div style={s.modalTitle}>Личное сообщение</div>
+            {loadingMembers ? (
+              <div style={{ color: '#aaa' }}>Загрузка участников...</div>
+            ) : clubMembers.length === 0 ? (
+              <div style={{ color: '#aaa' }}>Нет доступных участников</div>
+            ) : (
+              <div style={s.memberList}>
+                {clubMembers.map(m => (
+                  <div
+                    key={m.id}
+                    style={s.memberItem}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#0f3460')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    onClick={() => startDirectChat(m.id)}
                   >
-                    <option value="">— Выберите клуб —</option>
-                    {myClubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input type="radio" checked={groupIsPublic} onChange={() => setGroupIsPublic(true)} />
-                      <span>🌐 Публичный</span>
-                    </label>
-                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input type="radio" checked={!groupIsPublic} onChange={() => setGroupIsPublic(false)} />
-                      <span>🔒 Приватный</span>
-                    </label>
+                    {m.name}
                   </div>
-                  {!groupIsPublic && groupClubId && (
-                    <div>
-                      <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px' }}>Участники (отметьте нужных):</div>
-                      {loadingMembers ? (
-                        <div style={{ color: '#aaa', fontSize: '13px' }}>Загрузка...</div>
-                      ) : (
-                        <div style={{ ...s.memberList, maxHeight: '160px' }}>
-                          {clubMembers.map(m => (
-                            <label
-                              key={m.id}
-                              style={{ ...s.memberItem, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={groupSelectedMembers.has(m.id)}
-                                onChange={() => toggleGroupMember(m.id)}
-                              />
-                              {m.name}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <button
-                  style={{ ...s.newBtn, width: '100%', padding: '10px', opacity: (!groupName.trim() || !groupClubId) ? 0.5 : 1 }}
-                  disabled={!groupName.trim() || !groupClubId}
-                  onClick={createGroupChat}
-                >Создать чат</button>
-                <button style={{ ...s.backBtn, marginTop: '8px' }} onClick={() => setShowNewChat(false)}>Закрыть</button>
-              </>
+                ))}
+              </div>
             )}
+            <button style={{ ...s.backBtn, marginTop: '16px' }} onClick={() => setShowNewChat(false)}>Закрыть</button>
           </div>
         </div>
       )}
