@@ -108,6 +108,17 @@ public class MessengerController : ControllerBase
         var otherUser = _db.Users.Find(req.OtherUserId);
         if (otherUser == null) return NotFound("Пользователь не найден");
 
+        // Оба пользователя должны состоять хотя бы в одном общем клубе
+        var myClubIds = _db.Memberships
+            .Where(m => m.UserId == userId && m.Status == "Approved" && !m.IsManualEntry)
+            .Select(m => m.ClubId)
+            .ToList();
+
+        var sharesClub = myClubIds.Count > 0 && _db.Memberships
+            .Any(m => m.UserId == req.OtherUserId && m.Status == "Approved" && !m.IsManualEntry && myClubIds.Contains(m.ClubId));
+
+        if (!sharesClub) return Forbid();
+
         var existing = _db.Chats
             .Include(c => c.Members)
             .Where(c => !c.IsGroup
