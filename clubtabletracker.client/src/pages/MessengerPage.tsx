@@ -93,7 +93,8 @@ export default function MessengerPage() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  const [viewportOffset, setViewportOffset] = useState(0)
+  const [vpHeight, setVpHeight] = useState(window.visualViewport?.height ?? window.innerHeight)
+  const [vpTop, setVpTop] = useState(window.visualViewport?.offsetTop ?? 0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -106,11 +107,15 @@ export default function MessengerPage() {
 
   useEffect(() => {
     const vv = window.visualViewport
-    if (!vv) return
+    if (!vv) {
+      const fallback = () => { setVpHeight(window.innerHeight); setVpTop(0) }
+      window.addEventListener('resize', fallback)
+      return () => window.removeEventListener('resize', fallback)
+    }
     let prevHeight = vv.height
     const handler = () => {
-      const offset = Math.max(0, window.innerHeight - vv.height)
-      setViewportOffset(offset)
+      setVpHeight(vv.height)
+      setVpTop(vv.offsetTop)
       if (vv.height < prevHeight) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }
@@ -269,7 +274,7 @@ export default function MessengerPage() {
   }
 
   const containerStyle: React.CSSProperties = {
-    display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: viewportOffset,
+    display: 'flex', position: 'fixed', top: vpTop, left: 0, right: 0, height: vpHeight,
     fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee', overflow: 'hidden',
   }
 
