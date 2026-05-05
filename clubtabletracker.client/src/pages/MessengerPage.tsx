@@ -76,6 +76,8 @@ function Avatar({ name, url, size = 36 }: { name: string; url?: string; size?: n
   return <div style={style}>{getInitials(name)}</div>
 }
 
+const MAX_TEXTAREA_HEIGHT = 120
+
 export default function MessengerPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token') || ''
@@ -91,13 +93,35 @@ export default function MessengerPage() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  const [viewportOffset, setViewportOffset] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    let prevHeight = vv.height
+    const handler = () => {
+      const offset = Math.max(0, window.innerHeight - vv.height)
+      setViewportOffset(offset)
+      if (vv.height < prevHeight) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
+      prevHeight = vv.height
+    }
+    vv.addEventListener('resize', handler)
+    vv.addEventListener('scroll', handler)
+    return () => {
+      vv.removeEventListener('resize', handler)
+      vv.removeEventListener('scroll', handler)
+    }
   }, [])
 
   const isMobile = windowWidth < 640
@@ -161,6 +185,13 @@ export default function MessengerPage() {
     if (isMobile) setMobileView('chat')
   }
 
+  const resizeTextarea = () => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px'
+  }
+
   const sendMessage = async () => {
     if (!inputText.trim() || activeChatId == null || sending) return
     setSending(true)
@@ -174,6 +205,9 @@ export default function MessengerPage() {
       const msg: Message = await res.json()
       setMessages(prev => [...prev, msg])
       setInputText('')
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+      }
       loadChats()
     }
   }
@@ -235,7 +269,7 @@ export default function MessengerPage() {
   }
 
   const containerStyle: React.CSSProperties = {
-    display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: viewportOffset,
     fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee', overflow: 'hidden',
   }
 
@@ -355,17 +389,19 @@ export default function MessengerPage() {
               })}
               <div ref={messagesEndRef} />
             </div>
-            <div style={{ padding: '10px 14px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e' }}>
-              <input
-                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none' }}
+            <div style={{ padding: '10px 14px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e', alignItems: 'flex-end' }}>
+              <textarea
+                ref={textareaRef}
+                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: '1.4', minHeight: '36px', maxHeight: MAX_TEXTAREA_HEIGHT + 'px', fontFamily: 'inherit' }}
                 placeholder="Написать сообщение..."
                 value={inputText}
-                onChange={e => setInputText(e.target.value)}
+                rows={1}
+                onChange={e => { setInputText(e.target.value); resizeTextarea() }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 maxLength={4000}
               />
               <button
-                style={{ background: sending || !inputText.trim() ? '#2a4a6a' : '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 14px', cursor: sending || !inputText.trim() ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+                style={{ background: sending || !inputText.trim() ? '#2a4a6a' : '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 14px', cursor: sending || !inputText.trim() ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, alignSelf: 'flex-end' }}
                 onClick={sendMessage}
                 disabled={sending || !inputText.trim()}
               >
