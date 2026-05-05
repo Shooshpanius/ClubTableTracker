@@ -93,6 +93,7 @@ export default function MessengerPage() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [deletingSelected, setDeletingSelected] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const [vpHeight, setVpHeight] = useState(window.visualViewport?.height ?? window.innerHeight)
@@ -102,6 +103,7 @@ export default function MessengerPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressStart = useRef<{ x: number; y: number } | null>(null)
+  const longPressTriggered = useRef(false)
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth)
@@ -234,12 +236,20 @@ export default function MessengerPage() {
     setMessages(prev => prev.filter(m => !selectedIds.has(m.id)))
     setSelectedIds(new Set())
     setDeletingSelected(false)
+    setShowDeleteConfirm(false)
     loadChats()
+  }
+
+  const handleDeleteClick = () => {
+    if (selectedIds.size === 0) return
+    setShowDeleteConfirm(true)
   }
 
   const startLongPress = (messageId: number, x: number, y: number) => {
     longPressStart.current = { x, y }
+    longPressTriggered.current = false
     longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
       setSelectedIds(prev => {
         const next = new Set(prev)
         next.add(messageId)
@@ -269,17 +279,19 @@ export default function MessengerPage() {
   }
 
   const handleMessagePointerUp = (messageId: number) => {
-    const timerWasRunning = longPressTimer.current != null
+    const wasLongPress = longPressTriggered.current
     cancelLongPress()
-    // Если таймер уже сработал — нажатие завершилось после выделения, ничего не делаем.
-    // Если таймер ещё не сработал — это обычный клик: в режиме выделения переключаем.
-    if (!timerWasRunning && selectedIds.has(messageId)) {
+    longPressTriggered.current = false
+    // Если сработал долгий нажим — выделение уже установлено, ничего не делаем.
+    // Если это обычный клик — в режиме выделения переключаем выбор.
+    if (wasLongPress) return
+    if (selectedIds.has(messageId)) {
       setSelectedIds(prev => {
         const next = new Set(prev)
         next.delete(messageId)
         return next
       })
-    } else if (!timerWasRunning && selectedIds.size > 0) {
+    } else if (selectedIds.size > 0) {
       setSelectedIds(prev => {
         const next = new Set(prev)
         next.add(messageId)
@@ -328,6 +340,9 @@ export default function MessengerPage() {
   }
 
   const activeChat = chats.find(c => c.id === activeChatId)
+
+  const pluralMessages = (n: number) =>
+    n === 1 ? '1 сообщение' : n < 5 ? `${n} сообщения` : `${n} сообщений`
 
   const parseUtc = (iso: string) => new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z')
 
@@ -441,9 +456,9 @@ export default function MessengerPage() {
               </span>
               {selectedIds.size > 0 && (
                 <button
-                  title={`Удалить ${selectedIds.size} сообщ.`}
+                  title={`Удалить ${pluralMessages(selectedIds.size)}`}
                   disabled={deletingSelected}
-                  onClick={deleteSelected}
+                  onClick={handleDeleteClick}
                   style={{ background: 'none', border: 'none', color: deletingSelected ? '#555' : '#e94560', cursor: deletingSelected ? 'default' : 'pointer', fontSize: '22px', lineHeight: 1, flexShrink: 0, padding: '2px 4px' }}
                 >🗑</button>
               )}
@@ -552,6 +567,36 @@ export default function MessengerPage() {
               style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '14px', padding: '4px 0', marginTop: '16px' }}
               onClick={() => setShowNewChat(false)}
             >Закрыть</button>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения удаления */}
+      {showDeleteConfirm && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            style={{ background: '#16213e', borderRadius: '10px', padding: '24px 20px', minWidth: '260px', maxWidth: '400px', width: '90%' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>Удалить сообщения</div>
+            <div style={{ fontSize: '14px', color: '#ccc', marginBottom: '20px' }}>
+              Удалить {pluralMessages(selectedIds.size)}? Это действие нельзя отменить.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                disabled={deletingSelected}
+                style={{ background: 'none', border: '1px solid #555', color: deletingSelected ? '#555' : '#ccc', borderRadius: '6px', padding: '8px 16px', cursor: deletingSelected ? 'default' : 'pointer', fontSize: '14px' }}
+                onClick={() => setShowDeleteConfirm(false)}
+              >Отмена</button>
+              <button
+                disabled={deletingSelected}
+                style={{ background: deletingSelected ? '#7a2030' : '#e94560', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', cursor: deletingSelected ? 'default' : 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                onClick={() => { void deleteSelected() }}
+              >{deletingSelected ? 'Удаление…' : 'Удалить'}</button>
+            </div>
           </div>
         </div>
       )}
