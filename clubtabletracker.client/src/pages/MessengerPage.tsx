@@ -91,6 +91,7 @@ export default function MessengerPage() {
   const [showNewChat, setShowNewChat] = useState(false)
   const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const [vpHeight, setVpHeight] = useState(window.visualViewport?.height ?? window.innerHeight)
@@ -217,8 +218,21 @@ export default function MessengerPage() {
     }
   }
 
+  const deleteMessage = async (messageId: number) => {
+    if (activeChatId == null || deletingId != null) return
+    setDeletingId(messageId)
+    const res = await fetch(`/api/messenger/chats/${activeChatId}/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    setDeletingId(null)
+    if (res.ok) {
+      setMessages(prev => prev.filter(m => m.id !== messageId))
+      loadChats()
+    }
+  }
+
   const openNewChat = async () => {
-    setShowNewChat(true)
     setLoadingMembers(true)
     setClubMembers([])
     const msRes = await fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
@@ -375,9 +389,17 @@ export default function MessengerPage() {
                 const isMe = m.sender.id === myId
                 if (isMe) {
                   return (
-                    <div key={m.id} style={{ alignSelf: 'flex-end', background: '#0f3460', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
-                      <div style={{ fontSize: '14px' }}>{m.text}</div>
-                      <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                    <div key={m.id} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+                      <button
+                        title="Удалить сообщение"
+                        disabled={deletingId === m.id}
+                        onClick={() => deleteMessage(m.id)}
+                        style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '14px', padding: '2px 4px', lineHeight: 1, flexShrink: 0, alignSelf: 'flex-start' }}
+                      >×</button>
+                      <div style={{ background: '#0f3460', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '100%', wordBreak: 'break-word' }}>
+                        <div style={{ fontSize: '14px' }}>{m.text}</div>
+                        <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                      </div>
                     </div>
                   )
                 }

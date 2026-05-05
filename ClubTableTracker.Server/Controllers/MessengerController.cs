@@ -282,6 +282,21 @@ public class MessengerController : ControllerBase
             Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name, AvatarUrl = sender.AvatarUrl }
         });
     }
+    // DELETE /api/messenger/chats/{chatId}/messages/{messageId}
+    [HttpDelete("chats/{chatId}/messages/{messageId}")]
+    public IActionResult DeleteMessage(int chatId, int messageId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var message = _db.ChatMessages.FirstOrDefault(m => m.Id == messageId && m.ChatId == chatId);
+        if (message == null) return NotFound();
+        if (message.SenderId != userId) return Forbid();
+
+        _db.ChatMessages.Remove(message);
+        _db.SaveChanges();
+        return NoContent();
+    }
 }
 
 public record DirectChatRequest(string OtherUserId);
