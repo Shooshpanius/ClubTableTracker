@@ -62,6 +62,7 @@ public class AuthController : ControllerBase
         var email = payload.Email ?? "";
         var name = payload.Name ?? "";
         var googleId = payload.Subject ?? "";
+        var avatarUrl = payload.Picture;
 
         if (string.IsNullOrEmpty(email)) return BadRequest("No email in token");
 
@@ -77,9 +78,15 @@ public class AuthController : ControllerBase
                     Email = email,
                     Name = name,
                     GoogleId = googleId,
+                    AvatarUrl = avatarUrl,
                     EnabledGameSystems = GameSystemConstants.AllJoined
                 };
                 _db.Users.Add(user);
+                _db.SaveChanges();
+            }
+            else if (user.AvatarUrl != avatarUrl)
+            {
+                user.AvatarUrl = avatarUrl;
                 _db.SaveChanges();
             }
         }

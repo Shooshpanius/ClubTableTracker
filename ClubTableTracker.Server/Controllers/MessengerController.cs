@@ -75,9 +75,11 @@ public class MessengerController : ControllerBase
         {
             var lastMsg = c.Messages.FirstOrDefault();
             string displayName;
+            string? avatarUrl = null;
             if (c.IsGroup)
             {
                 displayName = c.Name ?? "Групповой чат";
+                avatarUrl = c.LogoUrl;
             }
             else
             {
@@ -85,6 +87,7 @@ public class MessengerController : ControllerBase
                 displayName = other?.User != null
                     ? (other.User.DisplayName ?? other.User.Name)
                     : "Пользователь";
+                avatarUrl = other?.User?.AvatarUrl;
             }
             return new
             {
@@ -93,6 +96,7 @@ public class MessengerController : ControllerBase
                 c.IsPublic,
                 c.ClubId,
                 Name = displayName,
+                AvatarUrl = avatarUrl,
                 LastMessage = lastMsg == null ? null : new { lastMsg.Text, lastMsg.SentAt },
                 UnreadCount = unreadCounts.GetValueOrDefault(c.Id, 0)
             };
@@ -219,7 +223,7 @@ public class MessengerController : ControllerBase
                 m.ChatId,
                 m.Text,
                 m.SentAt,
-                Sender = new { m.Sender.Id, Name = m.Sender.DisplayName ?? m.Sender.Name }
+                Sender = new { m.Sender.Id, Name = m.Sender.DisplayName ?? m.Sender.Name, AvatarUrl = m.Sender.AvatarUrl }
             })
             .Reverse()
             .ToList();
@@ -275,7 +279,7 @@ public class MessengerController : ControllerBase
             message.ChatId,
             message.Text,
             message.SentAt,
-            Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name }
+            Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name, AvatarUrl = sender.AvatarUrl }
         });
     }
 }

@@ -13,6 +13,7 @@ public class AppUser
     public string? Bio { get; set; }
     [MaxLength(50)] public string? City { get; set; }
     public string GoogleId { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
     public List<ClubMembership> Memberships { get; set; } = new();
     public List<Booking> Bookings { get; set; } = new();
 }
