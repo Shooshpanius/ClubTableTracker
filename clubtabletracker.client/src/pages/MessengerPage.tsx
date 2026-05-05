@@ -8,6 +8,7 @@ interface ChatSummary {
   isPublic: boolean
   clubId?: number
   name: string
+  avatarUrl?: string
   lastMessage?: { text: string; sentAt: string }
   unreadCount: number
 }
@@ -17,12 +18,13 @@ interface Message {
   chatId: number
   text: string
   sentAt: string
-  sender: { id: string; name: string }
+  sender: { id: string; name: string; avatarUrl?: string }
 }
 
 interface ClubMember {
   id: string
   name: string
+  avatarUrl?: string
 }
 
 interface Club {
@@ -47,6 +49,33 @@ function parseToken(token: string): { id: string } | null {
   }
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function Avatar({ name, url, size = 36 }: { name: string; url?: string; size?: number }) {
+  const [imgError, setImgError] = useState(false)
+  const avatarColors = ['#4a9eff', '#e94560', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4']
+  const colorIdx = name.charCodeAt(0) % avatarColors.length
+  const bg = avatarColors[colorIdx]
+  const style: React.CSSProperties = {
+    width: size, height: size, borderRadius: '50%', flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: Math.round(size * 0.38), fontWeight: 'bold', color: '#fff',
+    background: bg, overflow: 'hidden', userSelect: 'none',
+  }
+  if (url && !imgError) {
+    return (
+      <div style={style}>
+        <img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setImgError(true)} />
+      </div>
+    )
+  }
+  return <div style={style}>{getInitials(name)}</div>
+}
+
 export default function MessengerPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token') || ''
@@ -60,8 +89,18 @@ export default function MessengerPage() {
   const [showNewChat, setShowNewChat] = useState(false)
   const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  const isMobile = windowWidth < 640
 
   useEffect(() => {
     if (!token || isTokenExpired(token)) { navigate('/'); return }
@@ -102,7 +141,6 @@ export default function MessengerPage() {
     pollRef.current = setInterval(async () => {
       await loadMessages(activeChatId)
       await loadChats()
-      // Сбрасываем счётчик только если накопились непрочитанные
       setChats(prev => {
         const chat = prev.find(c => c.id === activeChatId)
         if (chat && chat.unreadCount > 0) markAsRead(activeChatId)
@@ -120,6 +158,7 @@ export default function MessengerPage() {
     setActiveChatId(chatId)
     setMessages([])
     markAsRead(chatId)
+    if (isMobile) setMobileView('chat')
   }
 
   const sendMessage = async () => {
@@ -175,40 +214,11 @@ export default function MessengerPage() {
       const data = await res.json()
       await loadChats()
       setActiveChatId(data.id)
+      if (isMobile) setMobileView('chat')
     }
   }
 
   const activeChat = chats.find(c => c.id === activeChatId)
-
-  const s: Record<string, React.CSSProperties> = {
-    container: { display: 'flex', height: 'calc(100vh - 0px)', fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee' },
-    sidebar: { width: '280px', minWidth: '220px', borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', background: '#16213e' },
-    sideHeader: { padding: '16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    newBtn: { background: '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px' },
-    chatList: { flex: 1, overflowY: 'auto' },
-    chatItem: { padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #222' },
-    chatItemActive: { padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #222', background: '#0f3460' },
-    chatName: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    chatPreview: { fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    main: { flex: 1, display: 'flex', flexDirection: 'column' },
-    chatHeader: { padding: '16px', borderBottom: '1px solid #333', background: '#16213e', fontWeight: 'bold', fontSize: '16px' },
-    messages: { flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' },
-    msgBubbleMe: { alignSelf: 'flex-end', background: '#0f3460', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '60%' },
-    msgBubbleOther: { alignSelf: 'flex-start', background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '60%' },
-    msgSender: { fontSize: '11px', color: '#aaa', marginBottom: '2px' },
-    msgText: { fontSize: '14px', wordBreak: 'break-word' },
-    msgTime: { fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' },
-    inputArea: { padding: '12px 16px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e' },
-    input: { flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none' },
-    sendBtn: { background: '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 18px', cursor: 'pointer', fontWeight: 'bold' },
-    empty: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '16px' },
-    overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { background: '#16213e', borderRadius: '10px', padding: '24px', minWidth: '320px', maxWidth: '480px', width: '90%', maxHeight: '70vh', display: 'flex', flexDirection: 'column' },
-    modalTitle: { fontWeight: 'bold', fontSize: '16px', marginBottom: '16px' },
-    memberList: { overflowY: 'auto', flex: 1 },
-    memberItem: { padding: '10px 12px', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px' },
-    backBtn: { background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '14px', padding: '4px 0', marginBottom: '12px' },
-  }
 
   const formatTime = (iso: string) => {
     const d = new Date(iso)
@@ -222,45 +232,75 @@ export default function MessengerPage() {
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
   }
 
+  const containerStyle: React.CSSProperties = {
+    display: 'flex', height: 'calc(100vh)', fontFamily: 'Arial, sans-serif',
+    background: '#1a1a2e', color: '#eee', overflow: 'hidden',
+  }
+
+  const sidebarStyle: React.CSSProperties = {
+    width: isMobile ? '100%' : '280px',
+    minWidth: isMobile ? undefined : '220px',
+    borderRight: isMobile ? 'none' : '1px solid #333',
+    display: isMobile && mobileView === 'chat' ? 'none' : 'flex',
+    flexDirection: 'column',
+    background: '#16213e',
+    flexShrink: 0,
+  }
+
+  const mainStyle: React.CSSProperties = {
+    flex: 1, display: isMobile && mobileView === 'list' ? 'none' : 'flex',
+    flexDirection: 'column', minWidth: 0,
+  }
+
   return (
-    <div style={s.container}>
+    <div style={containerStyle}>
       {/* Боковая панель */}
-      <div style={s.sidebar}>
-        <div style={s.sideHeader}>
+      <div style={sidebarStyle}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Сообщения</span>
-          <button style={s.newBtn} onClick={openNewChat}>+ Новый</button>
+          <button
+            style={{ background: '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px' }}
+            onClick={openNewChat}
+          >+ Новый</button>
         </div>
-        <div style={s.chatList}>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {chats.length === 0 && (
             <div style={{ padding: '16px', color: '#555', fontSize: '13px' }}>Нет чатов</div>
           )}
           {chats.map(c => (
             <div
               key={c.id}
-              style={c.id === activeChatId ? s.chatItemActive : s.chatItem}
+              style={{
+                padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #222',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                background: c.id === activeChatId ? '#0f3460' : 'transparent',
+              }}
               onClick={() => selectChat(c.id)}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <div style={s.chatName}>
-                  {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
-                  {c.name}
+              <Avatar name={c.name} url={c.avatarUrl} size={40} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
+                    {c.name}
+                  </div>
+                  {c.unreadCount > 0 && (
+                    <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, marginLeft: '6px' }}>
+                      {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                    </span>
+                  )}
                 </div>
-                {c.unreadCount > 0 && (
-                  <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, marginLeft: '6px' }}>
-                    {c.unreadCount > 99 ? '99+' : c.unreadCount}
-                  </span>
+                {c.lastMessage && (
+                  <div style={{ fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.lastMessage.text.length > 35 ? c.lastMessage.text.slice(0, 35) + '…' : c.lastMessage.text}
+                    <span style={{ float: 'right', fontSize: '10px', color: '#666' }}>{formatDate(c.lastMessage.sentAt)}</span>
+                  </div>
                 )}
               </div>
-              {c.lastMessage && (
-                <div style={s.chatPreview}>
-                  {c.lastMessage.text.length > 40 ? c.lastMessage.text.slice(0, 40) + '…' : c.lastMessage.text}
-                  <span style={{ float: 'right', fontSize: '10px', color: '#666' }}>{formatDate(c.lastMessage.sentAt)}</span>
-                </div>
-              )}
             </div>
           ))}
         </div>
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #333' }}>
+        <div style={{ padding: '10px 16px', borderTop: '1px solid #333' }}>
           <button
             style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '13px' }}
             onClick={() => navigate('/')}
@@ -269,39 +309,65 @@ export default function MessengerPage() {
       </div>
 
       {/* Основная область */}
-      <div style={s.main}>
+      <div style={mainStyle}>
         {activeChatId == null ? (
-          <div style={s.empty}>Выберите чат или начните новый</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '16px', textAlign: 'center', padding: '16px' }}>
+            Выберите чат или начните новый
+          </div>
         ) : (
           <>
-            <div style={s.chatHeader}>
-              {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
-              {activeChat?.name ?? 'Чат'}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', background: '#16213e', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {isMobile && (
+                <button
+                  style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '22px', padding: '0 6px 0 0', lineHeight: 1, flexShrink: 0 }}
+                  onClick={() => setMobileView('list')}
+                >‹</button>
+              )}
+              <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
+                {activeChat?.name ?? 'Чат'}
+              </span>
             </div>
-            <div style={s.messages}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {messages.map(m => {
                 const isMe = m.sender.id === myId
+                if (isMe) {
+                  return (
+                    <div key={m.id} style={{ alignSelf: 'flex-end', background: '#0f3460', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
+                      <div style={{ fontSize: '14px' }}>{m.text}</div>
+                      <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                    </div>
+                  )
+                }
                 return (
-                  <div key={m.id} style={isMe ? s.msgBubbleMe : s.msgBubbleOther}>
-                    {!isMe && <div style={s.msgSender}>{m.sender.name}</div>}
-                    <div style={s.msgText}>{m.text}</div>
-                    <div style={s.msgTime}>{formatTime(m.sentAt)}</div>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                    <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
+                    <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
+                      <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{m.sender.name}</div>
+                      <div style={{ fontSize: '14px' }}>{m.text}</div>
+                      <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                    </div>
                   </div>
                 )
               })}
               <div ref={messagesEndRef} />
             </div>
-            <div style={s.inputArea}>
+            <div style={{ padding: '10px 14px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e' }}>
               <input
-                style={s.input}
+                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none' }}
                 placeholder="Написать сообщение..."
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 maxLength={4000}
               />
-              <button style={s.sendBtn} onClick={sendMessage} disabled={sending || !inputText.trim()}>
-                {sending ? '...' : 'Отправить'}
+              <button
+                style={{ background: sending || !inputText.trim() ? '#2a4a6a' : '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 14px', cursor: sending || !inputText.trim() ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '16px' }}
+                onClick={sendMessage}
+                disabled={sending || !inputText.trim()}
+              >
+                {sending ? '…' : '▶'}
               </button>
             </div>
           </>
@@ -310,29 +376,39 @@ export default function MessengerPage() {
 
       {/* Модальное окно нового чата */}
       {showNewChat && (
-        <div style={s.overlay} onClick={() => setShowNewChat(false)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <div style={s.modalTitle}>Личное сообщение</div>
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowNewChat(false)}
+        >
+          <div
+            style={{ background: '#16213e', borderRadius: '10px', padding: '20px', minWidth: '280px', maxWidth: '480px', width: '90%', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '16px' }}>Личное сообщение</div>
             {loadingMembers ? (
               <div style={{ color: '#aaa' }}>Загрузка участников...</div>
             ) : clubMembers.length === 0 ? (
               <div style={{ color: '#aaa' }}>Нет доступных участников</div>
             ) : (
-              <div style={s.memberList}>
+              <div style={{ overflowY: 'auto', flex: 1 }}>
                 {clubMembers.map(m => (
                   <div
                     key={m.id}
-                    style={s.memberItem}
+                    style={{ padding: '8px 10px', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#0f3460')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     onClick={() => startDirectChat(m.id)}
                   >
-                    {m.name}
+                    <Avatar name={m.name} url={m.avatarUrl} size={32} />
+                    <span>{m.name}</span>
                   </div>
                 ))}
               </div>
             )}
-            <button style={{ ...s.backBtn, marginTop: '16px' }} onClick={() => setShowNewChat(false)}>Закрыть</button>
+            <button
+              style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '14px', padding: '4px 0', marginTop: '16px' }}
+              onClick={() => setShowNewChat(false)}
+            >Закрыть</button>
           </div>
         </div>
       )}

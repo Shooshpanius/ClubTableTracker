@@ -10,6 +10,7 @@ public class Chat
     public bool IsPublic { get; set; } = false;
     public int? ClubId { get; set; }
     public Club? Club { get; set; }
+    public string? LogoUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<ChatMember> Members { get; set; } = new();
     public List<ChatMessage> Messages { get; set; } = new();

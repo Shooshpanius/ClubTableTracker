@@ -63,7 +63,7 @@ export default function ClubAdminPage() {
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [galleryError, setGalleryError] = useState('')
   const [campaignMapEditorEvent, setCampaignMapEditorEvent] = useState<ClubEventData | null>(null)
-  const [groupChats, setGroupChats] = useState<{ id: number; name: string; isPublic: boolean; createdAt: string; members: { userId: string; name: string }[] }[]>([])
+  const [groupChats, setGroupChats] = useState<{ id: number; name: string; isPublic: boolean; logoUrl?: string; createdAt: string; members: { userId: string; name: string }[] }[]>([])
   const [newChatName, setNewChatName] = useState('')
   const [newChatIsPublic, setNewChatIsPublic] = useState(false)
   const [chatError, setChatError] = useState('')
@@ -1351,6 +1351,10 @@ export default function ClubAdminPage() {
               <div key={chat.id} style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {chat.logoUrl
+                      ? <img src={chat.logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #444' }} />
+                      : <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#0f3460', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 'bold', color: '#4a9eff', border: '2px solid #444' }}>{chat.name.slice(0, 2).toUpperCase()}</div>
+                    }
                     <h4 style={{ margin: 0 }}>{chat.name}</h4>
                     <span style={{ fontSize: 12, background: chat.isPublic ? '#1a4a2a' : '#2a2a4a', color: chat.isPublic ? '#4caf50' : '#9b8fcc', borderRadius: 10, padding: '2px 8px' }}>
                       {chat.isPublic ? '🌐 Публичный' : '🔒 Приватный'}
@@ -1364,6 +1368,33 @@ export default function ClubAdminPage() {
                       if (res.ok) setGroupChats(groupChats.filter(c => c.id !== chat.id))
                     }}
                   >Удалить</button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <label style={{ fontSize: 13, color: '#aaa' }}>Лого чата:</label>
+                  <label style={{ ...btnStyle, background: '#555', cursor: 'pointer', padding: '4px 10px', fontSize: 12 }}>
+                    📷 Загрузить
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'POST', headers: { 'X-Club-Key': clubKey }, body: fd })
+                      if (res.ok) {
+                        const data = await res.json()
+                        setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: data.logoUrl } : c))
+                      }
+                      e.target.value = ''
+                    }} />
+                  </label>
+                  {chat.logoUrl && (
+                    <button
+                      style={{ ...btnStyle, background: '#555', padding: '4px 10px', fontSize: 12 }}
+                      onClick={async () => {
+                        const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                        if (res.ok) setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: undefined } : c))
+                      }}
+                    >🗑 Удалить лого</button>
+                  )}
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <strong style={{ fontSize: 13 }}>Участники ({chat.members.length}):</strong>

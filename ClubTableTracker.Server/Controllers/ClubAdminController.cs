@@ -1062,7 +1062,7 @@ public class ClubAdminController : ControllerBase
             .Include(c => c.Members).ThenInclude(m => m.User)
             .Where(c => c.ClubId == club.Id && c.IsGroup)
             .Select(c => new {
-                c.Id, c.Name, c.IsPublic, c.CreatedAt,
+                c.Id, c.Name, c.IsPublic, c.CreatedAt, c.LogoUrl,
                 Members = c.Members.Select(m => new { m.UserId, Name = m.User.DisplayName ?? m.User.Name })
             })
             .ToList();
@@ -1134,6 +1134,63 @@ public class ClubAdminController : ControllerBase
 
         _db.ChatMembers.Remove(member);
         _db.SaveChanges();
+        return NoContent();
+    }
+
+    [HttpPost("chats/{chatId}/logo")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> UploadChatLogo(int chatId, IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chat = _db.Chats.FirstOrDefault(c => c.Id == chatId && c.ClubId == club.Id && c.IsGroup);
+        if (chat == null) return NotFound();
+
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Разрешены только изображения");
+        if (file.Length > 5 * 1024 * 1024) return BadRequest("Файл слишком большой (макс. 5 МБ)");
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "chats", chatId.ToString());
+        Directory.CreateDirectory(dir);
+
+        if (!string.IsNullOrEmpty(chat.LogoUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, chat.LogoUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+        }
+
+        var fileName = $"logo{ext}";
+        var filePath = Path.Combine(dir, fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+            await file.CopyToAsync(stream);
+
+        chat.LogoUrl = $"/uploads/clubs/{club.Id}/chats/{chatId}/{fileName}";
+        _db.SaveChanges();
+
+        return Ok(new { logoUrl = chat.LogoUrl });
+    }
+
+    [HttpDelete("chats/{chatId}/logo")]
+    public IActionResult DeleteChatLogo(int chatId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var chat = _db.Chats.FirstOrDefault(c => c.Id == chatId && c.ClubId == club.Id && c.IsGroup);
+        if (chat == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(chat.LogoUrl))
+        {
+            var oldFile = Path.Combine(_env.ContentRootPath, chat.LogoUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(oldFile)) System.IO.File.Delete(oldFile);
+            chat.LogoUrl = null;
+            _db.SaveChanges();
+        }
+
         return NoContent();
     }
 }
