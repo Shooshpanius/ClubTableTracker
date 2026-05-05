@@ -91,12 +91,17 @@ export default function MessengerPage() {
   const [showNewChat, setShowNewChat] = useState(false)
   const [clubMembers, setClubMembers] = useState<ClubMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [deletingSelected, setDeletingSelected] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  const [viewportOffset, setViewportOffset] = useState(0)
+  const [vpHeight, setVpHeight] = useState(window.visualViewport?.height ?? window.innerHeight)
+  const [vpTop, setVpTop] = useState(window.visualViewport?.offsetTop ?? 0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressStart = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth)
@@ -106,11 +111,15 @@ export default function MessengerPage() {
 
   useEffect(() => {
     const vv = window.visualViewport
-    if (!vv) return
+    if (!vv) {
+      const fallback = () => { setVpHeight(window.innerHeight); setVpTop(0) }
+      window.addEventListener('resize', fallback)
+      return () => window.removeEventListener('resize', fallback)
+    }
     let prevHeight = vv.height
     const handler = () => {
-      const offset = Math.max(0, window.innerHeight - vv.height)
-      setViewportOffset(offset)
+      setVpHeight(vv.height)
+      setVpTop(vv.offsetTop)
       if (vv.height < prevHeight) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }
@@ -181,6 +190,7 @@ export default function MessengerPage() {
   const selectChat = (chatId: number) => {
     setActiveChatId(chatId)
     setMessages([])
+    setSelectedIds(new Set())
     markAsRead(chatId)
     if (isMobile) setMobileView('chat')
   }
@@ -212,8 +222,73 @@ export default function MessengerPage() {
     }
   }
 
+  const deleteSelected = async () => {
+    if (activeChatId == null || selectedIds.size === 0 || deletingSelected) return
+    setDeletingSelected(true)
+    for (const messageId of Array.from(selectedIds)) {
+      await fetch(`/api/messenger/chats/${activeChatId}/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    }
+    setMessages(prev => prev.filter(m => !selectedIds.has(m.id)))
+    setSelectedIds(new Set())
+    setDeletingSelected(false)
+    loadChats()
+  }
+
+  const startLongPress = (messageId: number, x: number, y: number) => {
+    longPressStart.current = { x, y }
+    longPressTimer.current = setTimeout(() => {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        next.add(messageId)
+        return next
+      })
+      longPressTimer.current = null
+    }, 400)
+  }
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current != null) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    longPressStart.current = null
+  }
+
+  const handleMessagePointerDown = (e: React.PointerEvent, messageId: number) => {
+    startLongPress(messageId, e.clientX, e.clientY)
+  }
+
+  const handleMessagePointerMove = (e: React.PointerEvent) => {
+    if (longPressStart.current == null) return
+    const dx = e.clientX - longPressStart.current.x
+    const dy = e.clientY - longPressStart.current.y
+    if (Math.sqrt(dx * dx + dy * dy) > 8) cancelLongPress()
+  }
+
+  const handleMessagePointerUp = (messageId: number) => {
+    const timerWasRunning = longPressTimer.current != null
+    cancelLongPress()
+    // Если таймер уже сработал — нажатие завершилось после выделения, ничего не делаем.
+    // Если таймер ещё не сработал — это обычный клик: в режиме выделения переключаем.
+    if (!timerWasRunning && selectedIds.has(messageId)) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        next.delete(messageId)
+        return next
+      })
+    } else if (!timerWasRunning && selectedIds.size > 0) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        next.add(messageId)
+        return next
+      })
+    }
+  }
+
   const openNewChat = async () => {
-    setShowNewChat(true)
     setLoadingMembers(true)
     setClubMembers([])
     const msRes = await fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
@@ -269,7 +344,7 @@ export default function MessengerPage() {
   }
 
   const containerStyle: React.CSSProperties = {
-    display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: viewportOffset,
+    display: 'flex', position: 'fixed', top: vpTop, left: 0, right: 0, height: vpHeight,
     fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee', overflow: 'hidden',
   }
 
@@ -356,23 +431,53 @@ export default function MessengerPage() {
               {isMobile && (
                 <button
                   style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '22px', padding: '0 6px 0 0', lineHeight: 1, flexShrink: 0 }}
-                  onClick={() => setMobileView('list')}
+                  onClick={() => { setMobileView('list'); setSelectedIds(new Set()) }}
                 >‹</button>
               )}
               <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
                 {activeChat?.name ?? 'Чат'}
               </span>
+              {selectedIds.size > 0 && (
+                <button
+                  title={`Удалить ${selectedIds.size} сообщ.`}
+                  disabled={deletingSelected}
+                  onClick={deleteSelected}
+                  style={{ background: 'none', border: 'none', color: deletingSelected ? '#555' : '#e94560', cursor: deletingSelected ? 'default' : 'pointer', fontSize: '22px', lineHeight: 1, flexShrink: 0, padding: '2px 4px' }}
+                >🗑</button>
+              )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div
+              style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+              onClick={() => { if (selectedIds.size > 0) setSelectedIds(new Set()) }}
+            >
               {messages.map(m => {
                 const isMe = m.sender.id === myId
+                const isSelected = selectedIds.has(m.id)
                 if (isMe) {
                   return (
-                    <div key={m.id} style={{ alignSelf: 'flex-end', background: '#0f3460', borderRadius: '12px 12px 2px 12px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
-                      <div style={{ fontSize: '14px' }}>{m.text}</div>
-                      <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                    <div
+                      key={m.id}
+                      style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', gap: '4px', userSelect: 'none' }}
+                      onPointerDown={e => { e.stopPropagation(); handleMessagePointerDown(e, m.id) }}
+                      onPointerMove={handleMessagePointerMove}
+                      onPointerUp={e => { e.stopPropagation(); handleMessagePointerUp(m.id) }}
+                      onPointerCancel={cancelLongPress}
+                      onContextMenu={e => e.preventDefault()}
+                    >
+                      <div style={{
+                        background: isSelected ? '#2a5fa8' : '#0f3460',
+                        borderRadius: '12px 12px 2px 12px',
+                        padding: '8px 14px',
+                        maxWidth: '70%',
+                        wordBreak: 'break-word',
+                        outline: isSelected ? '2px solid #4a9eff' : 'none',
+                        transition: 'background 0.15s',
+                      }}>
+                        <div style={{ fontSize: '14px' }}>{m.text}</div>
+                        <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                      </div>
                     </div>
                   )
                 }
