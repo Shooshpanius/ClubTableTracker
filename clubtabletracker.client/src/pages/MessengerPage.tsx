@@ -220,13 +220,15 @@ export default function MessengerPage() {
 
   const activeChat = chats.find(c => c.id === activeChatId)
 
+  const parseUtc = (iso: string) => new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z')
+
   const formatTime = (iso: string) => {
-    const d = new Date(iso)
+    const d = parseUtc(iso)
     return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   }
 
   const formatDate = (iso: string) => {
-    const d = new Date(iso)
+    const d = parseUtc(iso)
     const today = new Date()
     if (d.toDateString() === today.toDateString()) return formatTime(iso)
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
