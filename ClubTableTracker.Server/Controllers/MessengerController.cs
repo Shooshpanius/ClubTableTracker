@@ -248,6 +248,12 @@ public class MessengerController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Text) || req.Text.Length > 4000)
             return BadRequest("Текст сообщения обязателен и не должен превышать 4000 символов");
 
+        if (req.ReplyToId.HasValue)
+        {
+            var replyExists = _db.ChatMessages.Any(m => m.Id == req.ReplyToId.Value && m.ChatId == chatId);
+            if (!replyExists) return BadRequest("Указанное сообщение не найдено в этом чате");
+        }
+
         var chat = _db.Chats.Find(chatId);
         if (chat == null) return NotFound();
 

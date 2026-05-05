@@ -118,6 +118,8 @@ export default function MessengerPage() {
   const [forwardText, setForwardText] = useState<string | null>(null)
   // Toast «Скопировано»
   const [copyToast, setCopyToast] = useState(false)
+  // Toast ошибки
+  const [errorToast, setErrorToast] = useState<string | null>(null)
   // Удаление одного сообщения
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [deletingMessage, setDeletingMessage] = useState(false)
@@ -348,10 +350,17 @@ export default function MessengerPage() {
     }
   }
 
+  const showError = (msg: string) => {
+    setErrorToast(msg)
+    setTimeout(() => setErrorToast(null), 3000)
+  }
+
   const handleCopy = (text: string) => {
     void navigator.clipboard.writeText(text).then(() => {
       setCopyToast(true)
       setTimeout(() => setCopyToast(false), 2000)
+    }).catch(() => {
+      showError('Не удалось скопировать текст')
     })
     setContextMenu(null)
   }
@@ -368,11 +377,15 @@ export default function MessengerPage() {
 
   const forwardToChat = async (targetChatId: number) => {
     if (!forwardText) return
-    await fetch(`/api/messenger/chats/${targetChatId}/messages`, {
+    const res = await fetch(`/api/messenger/chats/${targetChatId}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: forwardText })
     })
+    if (!res.ok) {
+      showError('Не удалось переслать сообщение')
+      return
+    }
     setForwardText(null)
     if (targetChatId === activeChatId) {
       void loadMessages(activeChatId)
@@ -771,6 +784,17 @@ export default function MessengerPage() {
           padding: '8px 20px', fontSize: '14px', zIndex: 2000, pointerEvents: 'none',
         }}>
           Скопировано
+        </div>
+      )}
+
+      {/* Toast ошибки */}
+      {errorToast && (
+        <div style={{
+          position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(233,69,96,0.92)', color: '#fff', borderRadius: '20px',
+          padding: '8px 20px', fontSize: '14px', zIndex: 2000, pointerEvents: 'none',
+        }}>
+          {errorToast}
         </div>
       )}
     </div>
