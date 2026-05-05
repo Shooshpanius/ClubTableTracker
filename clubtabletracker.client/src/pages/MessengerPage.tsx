@@ -76,6 +76,8 @@ function Avatar({ name, url, size = 36 }: { name: string; url?: string; size?: n
   return <div style={style}>{getInitials(name)}</div>
 }
 
+const MAX_TEXTAREA_HEIGHT = 120
+
 export default function MessengerPage() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token') || ''
@@ -105,10 +107,14 @@ export default function MessengerPage() {
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
+    let prevHeight = vv.height
     const handler = () => {
-      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      const offset = Math.max(0, window.innerHeight - vv.height)
       setViewportOffset(offset)
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      if (vv.height < prevHeight) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
+      prevHeight = vv.height
     }
     vv.addEventListener('resize', handler)
     vv.addEventListener('scroll', handler)
@@ -183,7 +189,7 @@ export default function MessengerPage() {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    el.style.height = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px'
   }
 
   const sendMessage = async () => {
@@ -386,7 +392,7 @@ export default function MessengerPage() {
             <div style={{ padding: '10px 14px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e', alignItems: 'flex-end' }}>
               <textarea
                 ref={textareaRef}
-                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: '1.4', minHeight: '36px', maxHeight: '120px', fontFamily: 'inherit' }}
+                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: '1.4', minHeight: '36px', maxHeight: MAX_TEXTAREA_HEIGHT + 'px', fontFamily: 'inherit' }}
                 placeholder="Написать сообщение..."
                 value={inputText}
                 rows={1}
