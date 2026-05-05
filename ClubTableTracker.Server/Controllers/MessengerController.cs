@@ -212,6 +212,7 @@ public class MessengerController : ControllerBase
 
         var messages = _db.ChatMessages
             .Include(m => m.Sender)
+            .Include(m => m.ReplyTo).ThenInclude(r => r!.Sender)
             .Where(m => m.ChatId == chatId)
             .OrderByDescending(m => m.SentAt)
             .Skip(skip)
@@ -223,7 +224,13 @@ public class MessengerController : ControllerBase
                 m.ChatId,
                 m.Text,
                 m.SentAt,
-                Sender = new { m.Sender.Id, Name = m.Sender.DisplayName ?? m.Sender.Name, AvatarUrl = m.Sender.AvatarUrl }
+                Sender = new { m.Sender.Id, Name = m.Sender.DisplayName ?? m.Sender.Name, AvatarUrl = m.Sender.AvatarUrl },
+                ReplyTo = m.ReplyTo == null ? null : new
+                {
+                    m.ReplyTo.Id,
+                    m.ReplyTo.Text,
+                    SenderName = m.ReplyTo.Sender.DisplayName ?? m.ReplyTo.Sender.Name
+                }
             })
             .Reverse()
             .ToList();
@@ -267,19 +274,29 @@ public class MessengerController : ControllerBase
             ChatId = chatId,
             SenderId = userId,
             Text = req.Text.Trim(),
-            SentAt = DateTime.UtcNow
+            SentAt = DateTime.UtcNow,
+            ReplyToId = req.ReplyToId
         };
         _db.ChatMessages.Add(message);
         _db.SaveChanges();
 
         var sender = _db.Users.Find(userId)!;
+        ChatMessage? replyMsg = req.ReplyToId.HasValue
+            ? _db.ChatMessages.Include(m => m.Sender).FirstOrDefault(m => m.Id == req.ReplyToId.Value)
+            : null;
         return Ok(new
         {
             message.Id,
             message.ChatId,
             message.Text,
             message.SentAt,
-            Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name, AvatarUrl = sender.AvatarUrl }
+            Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name, AvatarUrl = sender.AvatarUrl },
+            ReplyTo = replyMsg == null ? null : new
+            {
+                replyMsg.Id,
+                replyMsg.Text,
+                SenderName = replyMsg.Sender.DisplayName ?? replyMsg.Sender.Name
+            }
         });
     }
     // DELETE /api/messenger/chats/{chatId}/messages/{messageId}
@@ -300,4 +317,4 @@ public class MessengerController : ControllerBase
 }
 
 public record DirectChatRequest(string OtherUserId);
-public record SendMessageRequest(string Text);
+public record SendMessageRequest(string Text, int? ReplyToId = null);

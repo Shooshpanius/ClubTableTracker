@@ -195,5 +195,11 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(m => m.SenderId)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChatMessage>()
+            .HasOne(m => m.ReplyTo)
+            .WithMany()
+            .HasForeignKey(m => m.ReplyToId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
