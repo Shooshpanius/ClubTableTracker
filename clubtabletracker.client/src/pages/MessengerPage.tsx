@@ -91,22 +91,25 @@ export default function MessengerPage() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  const [viewportHeight, setViewportHeight] = useState(
-    window.visualViewport ? window.visualViewport.height : window.innerHeight
-  )
+  const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight
+  const [viewportHeight, setViewportHeight] = useState(getViewportHeight)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const onResize = () => {
       setWindowWidth(window.innerWidth)
-      setViewportHeight(window.visualViewport ? window.visualViewport.height : window.innerHeight)
+      setViewportHeight(getViewportHeight())
     }
     window.addEventListener('resize', onResize)
-    window.visualViewport?.addEventListener('resize', onResize)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize)
+    }
     return () => {
       window.removeEventListener('resize', onResize)
-      window.visualViewport?.removeEventListener('resize', onResize)
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', onResize)
+      }
     }
   }, [])
 
