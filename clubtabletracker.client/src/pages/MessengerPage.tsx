@@ -91,13 +91,26 @@ export default function MessengerPage() {
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  const getViewportHeight = () => window.visualViewport?.height ?? window.innerHeight
+  const [viewportHeight, setViewportHeight] = useState(getViewportHeight)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    const onResize = () => setWindowWidth(window.innerWidth)
+    const onResize = () => {
+      setWindowWidth(window.innerWidth)
+      setViewportHeight(getViewportHeight())
+    }
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize)
+    }
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', onResize)
+      }
+    }
   }, [])
 
   const isMobile = windowWidth < 640
@@ -233,7 +246,7 @@ export default function MessengerPage() {
   }
 
   const containerStyle: React.CSSProperties = {
-    display: 'flex', height: 'calc(100vh)', fontFamily: 'Arial, sans-serif',
+    display: 'flex', height: `${viewportHeight}px`, fontFamily: 'Arial, sans-serif',
     background: '#1a1a2e', color: '#eee', overflow: 'hidden',
   }
 
