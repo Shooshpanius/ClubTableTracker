@@ -10,4 +10,6 @@ public class ChatMessage
     public AppUser Sender { get; set; } = null!;
     [MaxLength(4000)] public string Text { get; set; } = string.Empty;
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
+    public int? ReplyToId { get; set; }
+    public ChatMessage? ReplyTo { get; set; }
 }
