@@ -1,0 +1,324 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../constants.dart';
+
+/// Сервис для работы с API ClubTableTracker
+class ApiService {
+  final String _base;
+
+  ApiService({String? baseUrl}) : _base = baseUrl ?? apiBaseUrl;
+
+  Map<String, String> _headers(String? token) {
+    final h = <String, String>{'Content-Type': 'application/json'};
+    if (token != null && token.isNotEmpty) {
+      h['Authorization'] = 'Bearer $token';
+    }
+    return h;
+  }
+
+  // ─── Клубы ───────────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getClubs() async {
+    final res = await http.get(Uri.parse('$_base/api/club'));
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getMyMemberships(String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/club/my-memberships'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> applyToClub(int clubId, String token) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/club/$clubId/apply'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getClubTables(int clubId, String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/club/$clubId/tables'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getClubMembers(int clubId, String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/club/$clubId/members'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  // ─── Бронирования ────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getBookings(int clubId, String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/booking/club/$clubId'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getMyUpcomingBookings(String token,
+      {int? clubId}) async {
+    final query = clubId != null ? '?clubId=$clubId' : '';
+    final res = await http.get(
+      Uri.parse('$_base/api/booking/my-upcoming$query'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getAllUpcomingBookings(String token,
+      {int? clubId}) async {
+    final query = clubId != null ? '?clubId=$clubId' : '';
+    final res = await http.get(
+      Uri.parse('$_base/api/booking/upcoming-all$query'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  /// Создать бронирование
+  Future<Map<String, dynamic>> createBooking({
+    required int tableId,
+    required String startTime,
+    required String endTime,
+    required String token,
+    String? gameSystem,
+    bool isDoubles = false,
+    List<String>? participantIds,
+  }) async {
+    final body = <String, dynamic>{
+      'tableId': tableId,
+      'startTime': startTime,
+      'endTime': endTime,
+      if (gameSystem != null) 'gameSystem': gameSystem,
+      'isDoubles': isDoubles,
+      if (participantIds != null) 'participantIds': participantIds,
+    };
+    final res = await http.post(
+      Uri.parse('$_base/api/booking'),
+      headers: _headers(token),
+      body: jsonEncode(body),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Отменить бронирование
+  Future<void> cancelBooking(int bookingId, String token) async {
+    final res = await http.delete(
+      Uri.parse('$_base/api/booking/$bookingId'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  /// Присоединиться к бронированию
+  Future<void> joinBooking(int bookingId, String token) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/booking/$bookingId/join'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  /// Покинуть бронирование
+  Future<void> leaveBooking(int bookingId, String token) async {
+    final res = await http.delete(
+      Uri.parse('$_base/api/booking/$bookingId/leave'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  // ─── События ─────────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getClubEvents(int clubId, {String? token}) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/event/club/$clubId'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<void> registerEvent(int eventId, String token) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/event/$eventId/register'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> unregisterEvent(int eventId, String token) async {
+    final res = await http.delete(
+      Uri.parse('$_base/api/event/$eventId/unregister'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  // ─── Пользователь ────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getMe(String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/user/me'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<void> updateDisplayName(String name, String token) async {
+    final res = await http.put(
+      Uri.parse('$_base/api/user/display-name'),
+      headers: _headers(token),
+      body: jsonEncode({'displayName': name}),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> updateBio(String bio, String token) async {
+    final res = await http.put(
+      Uri.parse('$_base/api/user/bio'),
+      headers: _headers(token),
+      body: jsonEncode({'bio': bio}),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> updateCity(String city, String token) async {
+    final res = await http.put(
+      Uri.parse('$_base/api/user/city'),
+      headers: _headers(token),
+      body: jsonEncode({'city': city}),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> updateGameSystems(
+      List<String> systems, String token) async {
+    final res = await http.put(
+      Uri.parse('$_base/api/user/game-systems'),
+      headers: _headers(token),
+      body: jsonEncode({'enabledGameSystems': systems}),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> updateBookingColors(
+      Map<String, String> colors, String token) async {
+    final res = await http.put(
+      Uri.parse('$_base/api/user/booking-colors'),
+      headers: _headers(token),
+      body: jsonEncode({'bookingColors': jsonEncode(colors)}),
+    );
+    _checkStatus(res);
+  }
+
+  // ─── Авторизация ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> googleLogin(String credential) async {
+    final res = await http.post(
+      Uri.parse('$_base/api/auth/google'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'credential': credential}),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  // ─── Мессенджер ──────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getChats(String token) async {
+    final res = await http.get(
+      Uri.parse('$_base/api/messenger/chats'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getChatMessages(int chatId, String token,
+      {int? before, int limit = 50}) async {
+    var url = '$_base/api/messenger/chats/$chatId/messages?limit=$limit';
+    if (before != null) url += '&before=$before';
+    final res = await http.get(Uri.parse(url), headers: _headers(token));
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> sendMessage(
+      int chatId, String text, String token,
+      {int? replyToId}) async {
+    final body = <String, dynamic>{
+      'text': text,
+      if (replyToId != null) 'replyToId': replyToId,
+    };
+    final res = await http.post(
+      Uri.parse('$_base/api/messenger/chats/$chatId/messages'),
+      headers: _headers(token),
+      body: jsonEncode(body),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<void> markChatRead(int chatId, String token) async {
+    await http.post(
+      Uri.parse('$_base/api/messenger/chats/$chatId/read'),
+      headers: _headers(token),
+    );
+  }
+
+  // ─── Вспомогательное ─────────────────────────────────────────────────────
+
+  void _checkStatus(http.Response res) {
+    if (res.statusCode == 401) {
+      throw ApiException(401, 'Сессия истекла. Войдите снова.');
+    }
+    if (res.statusCode == 403) {
+      throw ApiException(403, 'Нет доступа.');
+    }
+    if (res.statusCode >= 400) {
+      String msg = 'Ошибка ${res.statusCode}';
+      try {
+        final body = jsonDecode(res.body);
+        if (body is Map && body.containsKey('message')) {
+          msg = body['message'] as String;
+        } else if (res.body.isNotEmpty) {
+          msg = res.body;
+        }
+      } catch (_) {
+        if (res.body.isNotEmpty) msg = res.body;
+      }
+      throw ApiException(res.statusCode, msg);
+    }
+  }
+}
+
+class ApiException implements Exception {
+  final int statusCode;
+  final String message;
+
+  const ApiException(this.statusCode, this.message);
+
+  @override
+  String toString() => message;
+}

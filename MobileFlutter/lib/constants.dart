@@ -1,0 +1,52 @@
+/// Константы приложения
+
+const int maxBookingDaysAhead = 30;
+
+/// Базовый URL API сервера.
+/// При развёртывании замените на реальный адрес backend'а.
+const String apiBaseUrl = 'https://go40k.ru';
+
+/// Основные игровые системы (отображаются первыми в настройках)
+const List<String> gameSystemsMain = [
+  'Warhammer 40,000',
+  'Age of Sigmar',
+  'The Horus Heresy',
+  'Necromunda',
+  'Blood Bowl',
+  'Warhammer Underworlds',
+  'Kill Team',
+  'Warcry',
+  'Middle-earth Strategy Battle Game',
+  'The Old World',
+  'Bushido',
+  'Battlefleet Gothic',
+  'Saga',
+  'Trench Crusade',
+  'Battletech',
+  'Mordheim',
+];
+
+/// Дополнительные игровые системы
+const List<String> gameSystemsBottom = [
+  'Покрас',
+  'Настольные игры',
+];
+
+/// Все игровые системы
+final List<String> allGameSystems = [...gameSystemsMain, ...gameSystemsBottom];
+
+/// Цвета бронирования по умолчанию
+const Map<String, String> defaultBookingColors = {
+  'freeSlot': '#90EE90',
+  'eventFreeSlot': '#C45C5C',
+  'myBooking': '#FF8C00',
+  'othersBooking': '#FFFF00',
+};
+
+/// Метки для цветов бронирования
+const Map<String, String> bookingColorLabels = {
+  'freeSlot': 'Свободно',
+  'eventFreeSlot': 'Свободно (событие)',
+  'myBooking': 'Моё бронирование',
+  'othersBooking': 'Занято',
+};
