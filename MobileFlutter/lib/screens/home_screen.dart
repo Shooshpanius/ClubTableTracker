@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../app_colors.dart';
+import '../constants.dart';
 import '../models/club.dart';
 import '../models/membership.dart';
 import '../models/club_event.dart';
@@ -28,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _api = ApiService();
   final _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
+    serverClientId: googleServerClientId,
   );
 
   String get _token => widget.token;

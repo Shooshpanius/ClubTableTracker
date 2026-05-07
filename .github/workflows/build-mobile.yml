@@ -33,6 +33,10 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
+          if [ -z "${GOOGLE_CLIENT_ID}" ]; then
+            echo "::error::Секрет GOOGLE_CLIENT_ID не задан. Добавьте его в Settings → Secrets → Actions."
+            exit 1
+          fi
           # GOOGLE_CLIENT_ID должен содержать полный ID вида
           # 1234567890-abcdef.apps.googleusercontent.com
           # Короткая часть (до .apps.googleusercontent.com) используется как OAuth-схема
@@ -43,6 +47,9 @@ jobs:
             MobileFlutter/ios/Runner/Info.plist
           sed -i "s/YOUR_GOOGLE_CLIENT_ID\.apps\.googleusercontent\.com/${GOOGLE_CLIENT_ID}/g" \
             MobileFlutter/ios/Runner/Info.plist
+          # serverClientId для GoogleSignIn в Flutter-коде (нужен Web Client ID)
+          sed -i "s/YOUR_GOOGLE_SERVER_CLIENT_ID/${GOOGLE_CLIENT_ID}/g" \
+            MobileFlutter/lib/constants.dart
 
       - name: Установка зависимостей
         working-directory: MobileFlutter
