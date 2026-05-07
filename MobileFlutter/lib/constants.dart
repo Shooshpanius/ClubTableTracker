@@ -6,6 +6,12 @@ const int maxBookingDaysAhead = 30;
 /// При развёртывании замените на реальный адрес backend'а.
 const String apiBaseUrl = 'https://go40k.ru';
 
+/// Web OAuth 2.0 Client ID для Google Sign-In.
+/// Подставляется CI через secrets.GOOGLE_CLIENT_ID.
+/// Вручную: замените на значение вида XXXXXXXX.apps.googleusercontent.com
+/// из Google Cloud Console → APIs & Services → Credentials → Web client.
+const String googleServerClientId = 'YOUR_GOOGLE_SERVER_CLIENT_ID';
+
 /// Основные игровые системы (отображаются первыми в настройках)
 const List<String> gameSystemsMain = [
   'Warhammer 40,000',
