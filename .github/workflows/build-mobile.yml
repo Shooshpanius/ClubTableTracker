@@ -51,6 +51,16 @@ jobs:
           sed -i "s/YOUR_GOOGLE_SERVER_CLIENT_ID/${GOOGLE_CLIENT_ID}/g" \
             MobileFlutter/lib/constants.dart
 
+      - name: Инъекция google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "${GOOGLE_SERVICES_JSON}" ]; then
+            echo "::error::Секрет GOOGLE_SERVICES_JSON не задан. Добавьте base64-содержимое google-services.json в Settings → Secrets → Actions."
+            exit 1
+          fi
+          echo "${GOOGLE_SERVICES_JSON}" | base64 -d > MobileFlutter/android/app/google-services.json
+
       - name: Установка зависимостей
         working-directory: MobileFlutter
         run: flutter pub get

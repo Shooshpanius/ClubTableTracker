@@ -44,3 +44,6 @@ app.*.map.json
 
 # Local configuration
 android/local.properties
+# Google Services — настоящий файл создаётся CI из секрета GOOGLE_SERVICES_JSON
+# Для локальной разработки скопируй google-services.json.example → google-services.json
+android/app/google-services.json

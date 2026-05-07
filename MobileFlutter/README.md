@@ -75,6 +75,17 @@ https://docs.flutter.dev/get-started/install
 YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercontent.com)
 ```
 
+**Android `google-services.json`** — этот файл обязателен для Google Sign-In.  
+Скопируйте `android/app/google-services.json.example` → `android/app/google-services.json`  
+и заполните все `YOUR_*` значениями из Google Cloud Console.  
+**Важно:** все вхождения `com.example.club_table_tracker` (package name) должны соответствовать  
+значению `applicationId` в `android/app/build.gradle`.  
+Для CI-сборки добавьте секрет `GOOGLE_SERVICES_JSON` (base64-содержимое файла):
+```bash
+base64 -w 0 android/app/google-services.json
+# скопируйте вывод → GitHub → Settings → Secrets → Actions → GOOGLE_SERVICES_JSON
+```
+
 **iOS** — в `ios/Runner/Info.plist` замените:
 ```
 YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercontent.com)
