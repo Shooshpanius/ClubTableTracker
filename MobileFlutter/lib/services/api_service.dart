@@ -1,12 +1,29 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import '../constants.dart';
 
 /// Сервис для работы с API ClubTableTracker
 class ApiService {
   final String _base;
+  final http.Client _client;
 
-  ApiService({String? baseUrl}) : _base = baseUrl ?? apiBaseUrl;
+  ApiService({String? baseUrl})
+      : _base = baseUrl ?? apiBaseUrl,
+        _client = _buildClient(baseUrl ?? apiBaseUrl);
+
+  /// Создаёт HTTP-клиент, принимающий самоподписанные/нераспознанные
+  /// сертификаты только для хоста API (go40k.ru).
+  /// TODO: убрать badCertificateCallback после настройки корректного
+  /// TLS-сертификата на сервере (Let's Encrypt или другой доверенный CA).
+  static http.Client _buildClient(String baseUrl) {
+    final apiHost = Uri.parse(baseUrl).host;
+    final httpClient = HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => host == apiHost;
+    return IOClient(httpClient);
+  }
 
   Map<String, String> _headers(String? token) {
     final h = <String, String>{'Content-Type': 'application/json'};
@@ -19,13 +36,13 @@ class ApiService {
   // ─── Клубы ───────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getClubs() async {
-    final res = await http.get(Uri.parse('$_base/api/club'));
+    final res = await _client.get(Uri.parse('$_base/api/club'));
     _checkStatus(res);
     return jsonDecode(res.body) as List<dynamic>;
   }
 
   Future<List<dynamic>> getMyMemberships(String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/club/my-memberships'),
       headers: _headers(token),
     );
@@ -34,7 +51,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> applyToClub(int clubId, String token) async {
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/club/$clubId/apply'),
       headers: _headers(token),
     );
@@ -43,7 +60,7 @@ class ApiService {
   }
 
   Future<List<dynamic>> getClubTables(int clubId, String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/club/$clubId/tables'),
       headers: _headers(token),
     );
@@ -52,7 +69,7 @@ class ApiService {
   }
 
   Future<List<dynamic>> getClubMembers(int clubId, String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/club/$clubId/members'),
       headers: _headers(token),
     );
@@ -63,7 +80,7 @@ class ApiService {
   // ─── Бронирования ────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getBookings(int clubId, String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/booking/club/$clubId'),
       headers: _headers(token),
     );
@@ -74,7 +91,7 @@ class ApiService {
   Future<List<dynamic>> getMyUpcomingBookings(String token,
       {int? clubId}) async {
     final query = clubId != null ? '?clubId=$clubId' : '';
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/booking/my-upcoming$query'),
       headers: _headers(token),
     );
@@ -85,7 +102,7 @@ class ApiService {
   Future<List<dynamic>> getAllUpcomingBookings(String token,
       {int? clubId}) async {
     final query = clubId != null ? '?clubId=$clubId' : '';
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/booking/upcoming-all$query'),
       headers: _headers(token),
     );
@@ -111,7 +128,7 @@ class ApiService {
       'isDoubles': isDoubles,
       if (participantIds != null) 'participantIds': participantIds,
     };
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/booking'),
       headers: _headers(token),
       body: jsonEncode(body),
@@ -122,7 +139,7 @@ class ApiService {
 
   /// Отменить бронирование
   Future<void> cancelBooking(int bookingId, String token) async {
-    final res = await http.delete(
+    final res = await _client.delete(
       Uri.parse('$_base/api/booking/$bookingId'),
       headers: _headers(token),
     );
@@ -131,7 +148,7 @@ class ApiService {
 
   /// Присоединиться к бронированию
   Future<void> joinBooking(int bookingId, String token) async {
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/booking/$bookingId/join'),
       headers: _headers(token),
     );
@@ -140,7 +157,7 @@ class ApiService {
 
   /// Покинуть бронирование
   Future<void> leaveBooking(int bookingId, String token) async {
-    final res = await http.delete(
+    final res = await _client.delete(
       Uri.parse('$_base/api/booking/$bookingId/leave'),
       headers: _headers(token),
     );
@@ -150,7 +167,7 @@ class ApiService {
   // ─── События ─────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getClubEvents(int clubId, {String? token}) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/event/club/$clubId'),
       headers: _headers(token),
     );
@@ -159,7 +176,7 @@ class ApiService {
   }
 
   Future<void> registerEvent(int eventId, String token) async {
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/event/$eventId/register'),
       headers: _headers(token),
     );
@@ -167,7 +184,7 @@ class ApiService {
   }
 
   Future<void> unregisterEvent(int eventId, String token) async {
-    final res = await http.delete(
+    final res = await _client.delete(
       Uri.parse('$_base/api/event/$eventId/unregister'),
       headers: _headers(token),
     );
@@ -177,7 +194,7 @@ class ApiService {
   // ─── Пользователь ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getMe(String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/user/me'),
       headers: _headers(token),
     );
@@ -186,7 +203,7 @@ class ApiService {
   }
 
   Future<void> updateDisplayName(String name, String token) async {
-    final res = await http.put(
+    final res = await _client.put(
       Uri.parse('$_base/api/user/display-name'),
       headers: _headers(token),
       body: jsonEncode({'displayName': name}),
@@ -195,7 +212,7 @@ class ApiService {
   }
 
   Future<void> updateBio(String bio, String token) async {
-    final res = await http.put(
+    final res = await _client.put(
       Uri.parse('$_base/api/user/bio'),
       headers: _headers(token),
       body: jsonEncode({'bio': bio}),
@@ -204,7 +221,7 @@ class ApiService {
   }
 
   Future<void> updateCity(String city, String token) async {
-    final res = await http.put(
+    final res = await _client.put(
       Uri.parse('$_base/api/user/city'),
       headers: _headers(token),
       body: jsonEncode({'city': city}),
@@ -214,7 +231,7 @@ class ApiService {
 
   Future<void> updateGameSystems(
       List<String> systems, String token) async {
-    final res = await http.put(
+    final res = await _client.put(
       Uri.parse('$_base/api/user/game-systems'),
       headers: _headers(token),
       body: jsonEncode({'enabledGameSystems': systems}),
@@ -224,7 +241,7 @@ class ApiService {
 
   Future<void> updateBookingColors(
       Map<String, String> colors, String token) async {
-    final res = await http.put(
+    final res = await _client.put(
       Uri.parse('$_base/api/user/booking-colors'),
       headers: _headers(token),
       body: jsonEncode({'bookingColors': jsonEncode(colors)}),
@@ -235,7 +252,7 @@ class ApiService {
   // ─── Авторизация ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> googleLogin(String credential) async {
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/auth/google'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'credential': credential}),
@@ -247,7 +264,7 @@ class ApiService {
   // ─── Мессенджер ──────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getChats(String token) async {
-    final res = await http.get(
+    final res = await _client.get(
       Uri.parse('$_base/api/messenger/chats'),
       headers: _headers(token),
     );
@@ -259,7 +276,7 @@ class ApiService {
       {int? before, int limit = 50}) async {
     var url = '$_base/api/messenger/chats/$chatId/messages?limit=$limit';
     if (before != null) url += '&before=$before';
-    final res = await http.get(Uri.parse(url), headers: _headers(token));
+    final res = await _client.get(Uri.parse(url), headers: _headers(token));
     _checkStatus(res);
     return jsonDecode(res.body) as List<dynamic>;
   }
@@ -271,7 +288,7 @@ class ApiService {
       'text': text,
       if (replyToId != null) 'replyToId': replyToId,
     };
-    final res = await http.post(
+    final res = await _client.post(
       Uri.parse('$_base/api/messenger/chats/$chatId/messages'),
       headers: _headers(token),
       body: jsonEncode(body),
@@ -281,7 +298,7 @@ class ApiService {
   }
 
   Future<void> markChatRead(int chatId, String token) async {
-    await http.post(
+    await _client.post(
       Uri.parse('$_base/api/messenger/chats/$chatId/read'),
       headers: _headers(token),
     );
