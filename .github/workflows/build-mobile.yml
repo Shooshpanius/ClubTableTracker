@@ -29,6 +29,21 @@ jobs:
         with:
           channel: stable
 
+      - name: Подстановка Google Client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        run: |
+          # GOOGLE_CLIENT_ID должен содержать полный ID вида
+          # 1234567890-abcdef.apps.googleusercontent.com
+          # Короткая часть (до .apps.googleusercontent.com) используется как OAuth-схема
+          SHORT_ID="${GOOGLE_CLIENT_ID%.apps.googleusercontent.com}"
+          sed -i "s/YOUR_CLIENT_ID/${SHORT_ID}/g" \
+            MobileFlutter/android/app/src/main/AndroidManifest.xml
+          sed -i "s/YOUR_CLIENT_ID/${SHORT_ID}/g" \
+            MobileFlutter/ios/Runner/Info.plist
+          sed -i "s/YOUR_GOOGLE_CLIENT_ID\.apps\.googleusercontent\.com/${GOOGLE_CLIENT_ID}/g" \
+            MobileFlutter/ios/Runner/Info.plist
+
       - name: Установка зависимостей
         working-directory: MobileFlutter
         run: flutter pub get
