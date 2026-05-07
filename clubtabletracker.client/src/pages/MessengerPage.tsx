@@ -402,18 +402,20 @@ export default function MessengerPage() {
   const deleteSelectedMessages = async () => {
     if (activeChatId == null || deletingMessage) return
     setDeletingMessage(true)
-    const deletedIds = new Set<number>()
-    for (const id of Array.from(selectedMessageIds)) {
-      const res = await fetch(`/api/messenger/chats/${activeChatId}/messages/${id}`, {
+    const ids = Array.from(selectedMessageIds)
+    const results = await Promise.all(ids.map(id =>
+      fetch(`/api/messenger/chats/${activeChatId}/messages/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) deletedIds.add(id)
-    }
+      }).then(res => ({ id, ok: res.ok })).catch(() => ({ id, ok: false }))
+    ))
+    const deletedIds = new Set(results.filter(r => r.ok).map(r => r.id))
+    const failedCount = results.length - deletedIds.size
     setMessages(prev => prev.filter(m => !deletedIds.has(m.id)))
     setDeletingMessage(false)
     setDeleteSelectedConfirm(false)
     setSelectedMessageIds(new Set())
+    if (failedCount > 0) showError(`Не удалось удалить ${failedCount} ${failedCount === 1 ? 'сообщение' : 'сообщений'}`)
     loadChats()
   }
 
