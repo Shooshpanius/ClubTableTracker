@@ -58,7 +58,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<!-- Google Sign-In URL scheme -->
+	<!-- SETUP REQUIRED: Replace YOUR_CLIENT_ID with your actual Google OAuth Client ID
+	     (the part before .apps.googleusercontent.com) from Google Cloud Console.
+	     See MobileFlutter/README.md for setup instructions. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

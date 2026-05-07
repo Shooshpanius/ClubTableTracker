@@ -25,15 +25,6 @@ class AppUser {
     final gsRaw = json['enabledGameSystems'] as String? ?? '';
     final gs = gsRaw.isNotEmpty ? gsRaw.split('|').where((s) => s.isNotEmpty).toList() : <String>[];
 
-    Map<String, String>? colors;
-    final colorsRaw = json['bookingColors'] as String?;
-    if (colorsRaw != null && colorsRaw.isNotEmpty) {
-      try {
-        // Декодируем вручную, чтобы не зависеть от dart:convert здесь
-        colors = null; // будет обработано в сервисе
-      } catch (_) {}
-    }
-
     return AppUser(
       id: (json['id'] as String?) ?? '',
       email: (json['email'] as String?) ?? '',

@@ -21,7 +21,9 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Google Sign-In callback -->
+            <!-- SETUP REQUIRED: Replace YOUR_CLIENT_ID with the part before
+                 .apps.googleusercontent.com from Google Cloud Console.
+                 See MobileFlutter/README.md for setup instructions. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>

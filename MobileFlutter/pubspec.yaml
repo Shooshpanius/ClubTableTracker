@@ -1,5 +1,5 @@
 name: club_table_tracker
-description: Mobile app for Club Table Tracker – бронирование игровых столов для варгеймерских клубов.
+description: Mobile app for Club Table Tracker - table booking system for wargaming clubs.
 version: 1.0.0+1
 
 environment:
