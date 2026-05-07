@@ -53,13 +53,78 @@ jobs:
 
       - name: Инъекция google-services.json
         env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GS_PROJECT_NUMBER: ${{ secrets.GS_PROJECT_NUMBER }}
+          GS_PROJECT_ID: ${{ secrets.GS_PROJECT_ID }}
+          GS_APP_ID: ${{ secrets.GS_APP_ID }}
+          GS_ANDROID_CLIENT_ID: ${{ secrets.GS_ANDROID_CLIENT_ID }}
+          GS_SHA1_CERT_HASH: ${{ secrets.GS_SHA1_CERT_HASH }}
+          GS_ANDROID_API_KEY: ${{ secrets.GS_ANDROID_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
-          if [ -z "${GOOGLE_SERVICES_JSON}" ]; then
-            echo "::error::Секрет GOOGLE_SERVICES_JSON не задан. Добавьте base64-содержимое google-services.json в Settings → Secrets → Actions."
-            exit 1
-          fi
-          echo "${GOOGLE_SERVICES_JSON}" | base64 -d > MobileFlutter/android/app/google-services.json
+          for var in GS_PROJECT_NUMBER GS_PROJECT_ID GS_APP_ID GS_ANDROID_CLIENT_ID GS_SHA1_CERT_HASH GS_ANDROID_API_KEY GOOGLE_CLIENT_ID; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Секрет $var не задан. Добавьте его в Settings → Secrets → Actions."
+              exit 1
+            fi
+          done
+
+          GOOGLE_SERVICES_JSON=$(jq -n \
+            --arg project_number  "$GS_PROJECT_NUMBER" \
+            --arg project_id      "$GS_PROJECT_ID" \
+            --arg app_id          "$GS_APP_ID" \
+            --arg android_client  "$GS_ANDROID_CLIENT_ID" \
+            --arg sha1_hash       "$GS_SHA1_CERT_HASH" \
+            --arg web_client      "$GOOGLE_CLIENT_ID" \
+            --arg api_key         "$GS_ANDROID_API_KEY" \
+            '{
+              "project_info": {
+                "project_number": $project_number,
+                "project_id": $project_id,
+                "storage_bucket": "\($project_id).appspot.com"
+              },
+              "client": [
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:\($project_number):android:\($app_id)",
+                    "android_client_info": {
+                      "package_name": "com.example.club_table_tracker"
+                    }
+                  },
+                  "oauth_client": [
+                    {
+                      "client_id": $android_client,
+                      "client_type": 1,
+                      "android_info": {
+                        "package_name": "com.example.club_table_tracker",
+                        "certificate_hash": $sha1_hash
+                      }
+                    },
+                    {
+                      "client_id": $web_client,
+                      "client_type": 3
+                    }
+                  ],
+                  "api_key": [
+                    {
+                      "current_key": $api_key
+                    }
+                  ],
+                  "services": {
+                    "appinvite_service": {
+                      "other_platform_oauth_client": [
+                        {
+                          "client_id": $web_client,
+                          "client_type": 3
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "configuration_version": "1"
+            }')
+
+          echo "$GOOGLE_SERVICES_JSON" > MobileFlutter/android/app/google-services.json
 
       - name: Установка зависимостей
         working-directory: MobileFlutter

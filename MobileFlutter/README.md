@@ -80,11 +80,18 @@ YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercon
 и заполните все `YOUR_*` значениями из Google Cloud Console.  
 **Важно:** все вхождения `com.example.club_table_tracker` (package name) должны соответствовать  
 значению `applicationId` в `android/app/build.gradle`.  
-Для CI-сборки добавьте секрет `GOOGLE_SERVICES_JSON` (base64-содержимое файла):
-```bash
-base64 -w 0 android/app/google-services.json
-# скопируйте вывод → GitHub → Settings → Secrets → Actions → GOOGLE_SERVICES_JSON
-```
+Для CI-сборки добавьте следующие секреты в **GitHub → Settings → Secrets → Actions**
+(action сам соберёт `google-services.json` и закодирует его в base64):
+
+| Секрет | Значение |
+|--------|---------|
+| `GS_PROJECT_NUMBER` | Номер проекта Firebase (например, `123456789012`) |
+| `GS_PROJECT_ID` | ID проекта Firebase (например, `my-project-id`) |
+| `GS_APP_ID` | Хеш-часть `mobilesdk_app_id` после `android:` (например, `abcdef0123456789`) |
+| `GS_ANDROID_CLIENT_ID` | Полный OAuth Client ID для Android (например, `123-xyz.apps.googleusercontent.com`) |
+| `GS_SHA1_CERT_HASH` | SHA-1 отпечаток сертификата подписи |
+| `GS_ANDROID_API_KEY` | Android API Key из Google Cloud Console |
+| `GOOGLE_CLIENT_ID` | Полный Web OAuth Client ID (используется также для Sign-In) |
 
 **iOS** — в `ios/Runner/Info.plist` замените:
 ```
