@@ -402,13 +402,15 @@ export default function MessengerPage() {
   const deleteSelectedMessages = async () => {
     if (activeChatId == null || deletingMessage) return
     setDeletingMessage(true)
+    const deletedIds = new Set<number>()
     for (const id of Array.from(selectedMessageIds)) {
-      await fetch(`/api/messenger/chats/${activeChatId}/messages/${id}`, {
+      const res = await fetch(`/api/messenger/chats/${activeChatId}/messages/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })
+      if (res.ok) deletedIds.add(id)
     }
-    setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)))
+    setMessages(prev => prev.filter(m => !deletedIds.has(m.id)))
     setDeletingMessage(false)
     setDeleteSelectedConfirm(false)
     setSelectedMessageIds(new Set())
@@ -556,7 +558,8 @@ export default function MessengerPage() {
                   {selectedMessageIds.size} {selectedMessageIds.size === 1 ? 'сообщение' : selectedMessageIds.size < 5 ? 'сообщения' : 'сообщений'} выбрано
                 </span>
                 {selectedMessageIds.size === 1 && (() => {
-                  const selMsg = messages.find(m => selectedMessageIds.has(m.id))!
+                  const selMsg = messages.find(m => selectedMessageIds.has(m.id))
+                  if (!selMsg) return null
                   return (
                     <>
                       <button
@@ -592,6 +595,26 @@ export default function MessengerPage() {
             >
               {messages.map(m => {
                 const isMe = m.sender.id === myId
+                const isSelected = selectedMessageIds.has(m.id)
+                const msgHandlers = {
+                  onClick: !isMobile ? (e: React.MouseEvent) => { e.stopPropagation(); toggleMessageSelection(m.id) } : undefined,
+                  onPointerDown: isMobile ? (e: React.PointerEvent) => { e.stopPropagation(); handleMessagePointerDown(e, m) } : undefined,
+                  onPointerMove: isMobile ? handleMessagePointerMove : undefined,
+                  onPointerUp: isMobile ? (e: React.PointerEvent) => { e.stopPropagation(); handleMessagePointerUp() } : undefined,
+                  onPointerCancel: isMobile ? cancelLongPress : undefined,
+                  onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+                }
+                const selectionCheckbox = isSelectionMode ? (
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                    border: '2px solid #4a9eff',
+                    background: isSelected ? '#4a9eff' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, color: '#fff',
+                  }}>
+                    {isSelected && '✓'}
+                  </div>
+                ) : null
                 if (isMe) {
                   return (
                     <div
@@ -602,27 +625,12 @@ export default function MessengerPage() {
                         userSelect: 'none',
                         ...(isSelectionMode ? {
                           cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
-                          background: selectedMessageIds.has(m.id) ? 'rgba(74,158,255,0.12)' : 'transparent',
+                          background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
                         } : { alignItems: 'flex-end', gap: '4px' }),
                       }}
-                      onClick={!isMobile ? e => { e.stopPropagation(); toggleMessageSelection(m.id) } : undefined}
-                      onPointerDown={isMobile ? e => { e.stopPropagation(); handleMessagePointerDown(e, m) } : undefined}
-                      onPointerMove={isMobile ? handleMessagePointerMove : undefined}
-                      onPointerUp={isMobile ? e => { e.stopPropagation(); handleMessagePointerUp() } : undefined}
-                      onPointerCancel={isMobile ? cancelLongPress : undefined}
-                      onContextMenu={e => e.preventDefault()}
+                      {...msgHandlers}
                     >
-                      {isSelectionMode && (
-                        <div style={{
-                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                          border: '2px solid #4a9eff',
-                          background: selectedMessageIds.has(m.id) ? '#4a9eff' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, color: '#fff',
-                        }}>
-                          {selectedMessageIds.has(m.id) && '✓'}
-                        </div>
-                      )}
+                      {selectionCheckbox}
                       <div style={{ flex: isSelectionMode ? 1 : undefined, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '4px' }}>
                         <div style={{
                           background: '#0f3460',
@@ -655,27 +663,12 @@ export default function MessengerPage() {
                       userSelect: 'none',
                       ...(isSelectionMode ? {
                         cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
-                        background: selectedMessageIds.has(m.id) ? 'rgba(74,158,255,0.12)' : 'transparent',
+                        background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
                       } : {}),
                     }}
-                    onClick={!isMobile ? e => { e.stopPropagation(); toggleMessageSelection(m.id) } : undefined}
-                    onPointerDown={isMobile ? e => { e.stopPropagation(); handleMessagePointerDown(e, m) } : undefined}
-                    onPointerMove={isMobile ? handleMessagePointerMove : undefined}
-                    onPointerUp={isMobile ? e => { e.stopPropagation(); handleMessagePointerUp() } : undefined}
-                    onPointerCancel={isMobile ? cancelLongPress : undefined}
-                    onContextMenu={e => e.preventDefault()}
+                    {...msgHandlers}
                   >
-                    {isSelectionMode && (
-                      <div style={{
-                        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                        border: '2px solid #4a9eff',
-                        background: selectedMessageIds.has(m.id) ? '#4a9eff' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, color: '#fff',
-                      }}>
-                        {selectedMessageIds.has(m.id) && '✓'}
-                      </div>
-                    )}
+                    {selectionCheckbox}
                     <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
                     <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
                       {m.replyTo && (
