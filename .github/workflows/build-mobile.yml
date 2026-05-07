@@ -2,6 +2,10 @@ name: Сборка мобильного приложения
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'MobileFlutter/**'
 
 jobs:
   android:
@@ -14,39 +18,28 @@ jobs:
       - name: Получение кода
         uses: actions/checkout@v4
 
-      - name: Установка .NET 10
-        uses: actions/setup-dotnet@v4
+      - name: Установка Java 17
+        uses: actions/setup-java@v4
         with:
-          dotnet-version: '10.0.x'
+          distribution: temurin
+          java-version: '21'
 
-      - name: Установка workload Android
-        run: dotnet workload install android
+      - name: Установка Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
 
-      - name: Получение номера последнего PR
-        id: get_pr
-        run: |
-          PR_NUMBER=$(gh pr list \
-            --repo "${{ github.repository }}" \
-            --state merged \
-            --limit 1 \
-            --json number \
-            --jq '.[0].number // 0')
-          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Установка зависимостей
+        working-directory: MobileFlutter
+        run: flutter pub get
 
       - name: Сборка APK
-        run: >
-          dotnet build
-          MobileAndroid/MobileAndroid.csproj
-          -f net10.0-android
-          -c Release
-          -p:ApplicationDisplayVersion=0.0.${{ steps.get_pr.outputs.pr_number }}
-          -p:ApplicationVersion=${{ steps.get_pr.outputs.pr_number }}
+        working-directory: MobileFlutter
+        run: flutter build apk --release
 
       - name: Загрузка APK как артефакта
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: MobileAndroid/bin/Release/net10.0-android/*.apk
+          path: MobileFlutter/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
