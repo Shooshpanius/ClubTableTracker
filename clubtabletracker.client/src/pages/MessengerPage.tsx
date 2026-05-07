@@ -124,6 +124,10 @@ export default function MessengerPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [deletingMessage, setDeletingMessage] = useState(false)
 
+  // Выделение сообщений (только десктоп)
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(new Set())
+  const [deleteSelectedConfirm, setDeleteSelectedConfirm] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -162,6 +166,7 @@ export default function MessengerPage() {
   }, [])
 
   const isMobile = windowWidth < 640
+  const isSelectionMode = !isMobile && selectedMessageIds.size > 0
 
   useEffect(() => {
     if (!token || isTokenExpired(token)) { navigate('/'); return }
@@ -224,6 +229,7 @@ export default function MessengerPage() {
     setMessages([])
     setContextMenu(null)
     setReplyTo(null)
+    setSelectedMessageIds(new Set())
     markAsRead(chatId)
     if (isMobile) setMobileView('chat')
   }
@@ -375,6 +381,40 @@ export default function MessengerPage() {
     setContextMenu(null)
   }
 
+  const toggleMessageSelection = (msgId: number) => {
+    setSelectedMessageIds(prev => {
+      const next = new Set(prev)
+      if (next.has(msgId)) next.delete(msgId)
+      else next.add(msgId)
+      return next
+    })
+  }
+
+  const handleCopySelected = () => {
+    const text = messages.filter(m => selectedMessageIds.has(m.id)).map(m => m.text).join('\n')
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopyToast(true)
+      setTimeout(() => setCopyToast(false), 2000)
+      setSelectedMessageIds(new Set())
+    }).catch(() => showError('Не удалось скопировать текст'))
+  }
+
+  const deleteSelectedMessages = async () => {
+    if (activeChatId == null || deletingMessage) return
+    setDeletingMessage(true)
+    for (const id of Array.from(selectedMessageIds)) {
+      await fetch(`/api/messenger/chats/${activeChatId}/messages/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    }
+    setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)))
+    setDeletingMessage(false)
+    setDeleteSelectedConfirm(false)
+    setSelectedMessageIds(new Set())
+    loadChats()
+  }
+
   const forwardToChat = async (targetChatId: number) => {
     if (!forwardText) return
     const res = await fetch(`/api/messenger/chats/${targetChatId}/messages`, {
@@ -500,7 +540,7 @@ export default function MessengerPage() {
               {isMobile && (
                 <button
                   style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '22px', padding: '0 6px 0 0', lineHeight: 1, flexShrink: 0 }}
-                  onClick={() => { setMobileView('list'); setContextMenu(null); setReplyTo(null) }}
+                  onClick={() => { setMobileView('list'); setContextMenu(null); setReplyTo(null); setSelectedMessageIds(new Set()) }}
                 >‹</button>
               )}
               <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} />
@@ -509,9 +549,46 @@ export default function MessengerPage() {
                 {activeChat?.name ?? 'Чат'}
               </span>
             </div>
+            {/* Панель выделения (только десктоп) */}
+            {isSelectionMode && (
+              <div style={{ padding: '8px 14px', background: '#0f3460', borderBottom: '1px solid #1a3a6a', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '13px', flex: 1, color: '#aaa' }}>
+                  {selectedMessageIds.size} {selectedMessageIds.size === 1 ? 'сообщение' : selectedMessageIds.size < 5 ? 'сообщения' : 'сообщений'} выбрано
+                </span>
+                {selectedMessageIds.size === 1 && (() => {
+                  const selMsg = messages.find(m => selectedMessageIds.has(m.id))!
+                  return (
+                    <>
+                      <button
+                        style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
+                        onClick={() => { handleReply({ messageId: selMsg.id, text: selMsg.text, isMe: selMsg.sender.id === myId, senderName: selMsg.sender.name }); setSelectedMessageIds(new Set()) }}
+                      >↩ Ответить</button>
+                      <button
+                        style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
+                        onClick={() => { handleForward(selMsg.text); setSelectedMessageIds(new Set()) }}
+                      >↗ Переслать</button>
+                    </>
+                  )
+                })()}
+                <button
+                  style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
+                  onClick={handleCopySelected}
+                >📋 Копировать</button>
+                {messages.filter(m => selectedMessageIds.has(m.id)).every(m => m.sender.id === myId) && (
+                  <button
+                    style={{ background: 'none', border: '1px solid #e94560', color: '#e94560', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
+                    onClick={() => setDeleteSelectedConfirm(true)}
+                  >🗑 Удалить</button>
+                )}
+                <button
+                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '18px', padding: '0 4px', lineHeight: 1 }}
+                  onClick={() => setSelectedMessageIds(new Set())}
+                >✕</button>
+              </div>
+            )}
             <div
               style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}
-              onClick={() => setContextMenu(null)}
+              onClick={() => { setContextMenu(null); if (!isMobile) setSelectedMessageIds(new Set()) }}
             >
               {messages.map(m => {
                 const isMe = m.sender.id === myId
@@ -519,31 +596,53 @@ export default function MessengerPage() {
                   return (
                     <div
                       key={m.id}
-                      style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', gap: '4px', userSelect: 'none' }}
-                      onPointerDown={e => { e.stopPropagation(); handleMessagePointerDown(e, m) }}
-                      onPointerMove={handleMessagePointerMove}
-                      onPointerUp={e => { e.stopPropagation(); handleMessagePointerUp() }}
-                      onPointerCancel={cancelLongPress}
+                      style={{
+                        alignSelf: isSelectionMode ? 'stretch' : 'flex-end',
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        userSelect: 'none',
+                        ...(isSelectionMode ? {
+                          cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
+                          background: selectedMessageIds.has(m.id) ? 'rgba(74,158,255,0.12)' : 'transparent',
+                        } : { alignItems: 'flex-end', gap: '4px' }),
+                      }}
+                      onClick={!isMobile ? e => { e.stopPropagation(); toggleMessageSelection(m.id) } : undefined}
+                      onPointerDown={isMobile ? e => { e.stopPropagation(); handleMessagePointerDown(e, m) } : undefined}
+                      onPointerMove={isMobile ? handleMessagePointerMove : undefined}
+                      onPointerUp={isMobile ? e => { e.stopPropagation(); handleMessagePointerUp() } : undefined}
+                      onPointerCancel={isMobile ? cancelLongPress : undefined}
                       onContextMenu={e => e.preventDefault()}
                     >
-                      <div style={{
-                        background: '#0f3460',
-                        borderRadius: '12px 12px 2px 12px',
-                        padding: '8px 14px',
-                        maxWidth: '70%',
-                        wordBreak: 'break-word',
-                      }}>
-                        {m.replyTo && (
-                          <div style={{
-                            borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
-                            fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
-                          }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
-                            <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
-                          </div>
-                        )}
-                        <div style={{ fontSize: '14px' }}>{m.text}</div>
-                        <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                      {isSelectionMode && (
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                          border: '2px solid #4a9eff',
+                          background: selectedMessageIds.has(m.id) ? '#4a9eff' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, color: '#fff',
+                        }}>
+                          {selectedMessageIds.has(m.id) && '✓'}
+                        </div>
+                      )}
+                      <div style={{ flex: isSelectionMode ? 1 : undefined, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '4px' }}>
+                        <div style={{
+                          background: '#0f3460',
+                          borderRadius: '12px 12px 2px 12px',
+                          padding: '8px 14px',
+                          maxWidth: '70%',
+                          wordBreak: 'break-word',
+                        }}>
+                          {m.replyTo && (
+                            <div style={{
+                              borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
+                              fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
+                            }}>
+                              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
+                              <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
+                            </div>
+                          )}
+                          <div style={{ fontSize: '14px' }}>{m.text}</div>
+                          <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                        </div>
                       </div>
                     </div>
                   )
@@ -551,13 +650,32 @@ export default function MessengerPage() {
                 return (
                   <div
                     key={m.id}
-                    style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', userSelect: 'none' }}
-                    onPointerDown={e => { e.stopPropagation(); handleMessagePointerDown(e, m) }}
-                    onPointerMove={handleMessagePointerMove}
-                    onPointerUp={e => { e.stopPropagation(); handleMessagePointerUp() }}
-                    onPointerCancel={cancelLongPress}
+                    style={{
+                      display: 'flex', alignItems: isSelectionMode ? 'center' : 'flex-end', gap: '8px',
+                      userSelect: 'none',
+                      ...(isSelectionMode ? {
+                        cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
+                        background: selectedMessageIds.has(m.id) ? 'rgba(74,158,255,0.12)' : 'transparent',
+                      } : {}),
+                    }}
+                    onClick={!isMobile ? e => { e.stopPropagation(); toggleMessageSelection(m.id) } : undefined}
+                    onPointerDown={isMobile ? e => { e.stopPropagation(); handleMessagePointerDown(e, m) } : undefined}
+                    onPointerMove={isMobile ? handleMessagePointerMove : undefined}
+                    onPointerUp={isMobile ? e => { e.stopPropagation(); handleMessagePointerUp() } : undefined}
+                    onPointerCancel={isMobile ? cancelLongPress : undefined}
                     onContextMenu={e => e.preventDefault()}
                   >
+                    {isSelectionMode && (
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                        border: '2px solid #4a9eff',
+                        background: selectedMessageIds.has(m.id) ? '#4a9eff' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, color: '#fff',
+                      }}>
+                        {selectedMessageIds.has(m.id) && '✓'}
+                      </div>
+                    )}
                     <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
                     <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
                       {m.replyTo && (
@@ -770,6 +888,36 @@ export default function MessengerPage() {
                 disabled={deletingMessage}
                 style={{ background: deletingMessage ? '#7a2030' : '#e94560', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px', fontWeight: 'bold' }}
                 onClick={() => { void deleteMessage(deleteTargetId) }}
+              >{deletingMessage ? 'Удаление…' : 'Удалить'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения удаления выбранных */}
+      {deleteSelectedConfirm && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setDeleteSelectedConfirm(false)}
+        >
+          <div
+            style={{ background: '#16213e', borderRadius: '10px', padding: '24px 20px', minWidth: '260px', maxWidth: '400px', width: '90%' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>Удалить сообщения</div>
+            <div style={{ fontSize: '14px', color: '#ccc', marginBottom: '20px' }}>
+              Удалить {selectedMessageIds.size} {selectedMessageIds.size === 1 ? 'сообщение' : selectedMessageIds.size < 5 ? 'сообщения' : 'сообщений'}? Это действие нельзя отменить.
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                disabled={deletingMessage}
+                style={{ background: 'none', border: '1px solid #555', color: deletingMessage ? '#555' : '#ccc', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px' }}
+                onClick={() => setDeleteSelectedConfirm(false)}
+              >Отмена</button>
+              <button
+                disabled={deletingMessage}
+                style={{ background: deletingMessage ? '#7a2030' : '#e94560', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                onClick={() => { void deleteSelectedMessages() }}
               >{deletingMessage ? 'Удаление…' : 'Удалить'}</button>
             </div>
           </div>
