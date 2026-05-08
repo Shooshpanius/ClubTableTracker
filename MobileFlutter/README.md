@@ -96,10 +96,10 @@ YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercon
 ```bash
 # Ключ отладки (для разработки)
 keytool -list -v -keystore ~/.android/debug.keystore \
-  -alias androiddebugkey -storepass android -keypass android | grep SHA1
+  -alias androiddebugkey -storepass android -keypass android | grep 'SHA1:'
 
 # Релизный ключ
-keytool -list -v -keystore <путь-к-keystore> -alias <alias> | grep SHA1
+keytool -list -v -keystore <путь-к-keystore> -alias <alias> | grep 'SHA1:'
 ```
 
 **iOS** — в `ios/Runner/Info.plist` замените:

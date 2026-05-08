@@ -160,8 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
           e.code == 'sign_in_failed' &&
           (e.message?.contains(': 10:') ?? false)) {
         _showSnack(
-          'Google Sign-In не настроен для этого приложения (код 10). '
-          'Обратитесь к разработчику: необходимо зарегистрировать SHA-1 ключа подписи в Google Cloud Console.',
+          'Google Sign-In не настроен для этого приложения (код 10).\n'
+          'Необходимо зарегистрировать SHA-1 ключа подписи в Google Cloud Console.',
         );
       } else {
         _showSnack('Ошибка входа: $e');
