@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -155,7 +156,16 @@ class _HomeScreenState extends State<HomeScreen> {
       await AuthService.saveToken(token);
       widget.onTokenChanged(token);
     } catch (e) {
-      _showSnack('Ошибка входа: $e');
+      if (e is PlatformException &&
+          e.code == 'sign_in_failed' &&
+          (e.message?.contains(': 10:') ?? false)) {
+        _showSnack(
+          'Google Sign-In не настроен для этого приложения (код 10). '
+          'Обратитесь к разработчику: необходимо зарегистрировать SHA-1 ключа подписи в Google Cloud Console.',
+        );
+      } else {
+        _showSnack('Ошибка входа: $e');
+      }
     }
   }
 

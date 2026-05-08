@@ -64,6 +64,8 @@ jobs:
         env:
           CLIENT_SECRET_WEB: ${{ secrets.CLIENT_SECRET_WEB }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          ANDROID_CLIENT_ID: ${{ secrets.ANDROID_CLIENT_ID }}
+          ANDROID_SHA1: ${{ secrets.ANDROID_SHA1 }}
         run: |
           if [ -z "${GOOGLE_CLIENT_ID}" ]; then
             echo "::error::GOOGLE_CLIENT_ID не задан — проверьте секрет CLIENT_SECRET_WEB."
@@ -91,33 +93,78 @@ jobs:
             APP_PACKAGE="com.example.club_table_tracker"
             # mobilesdk_app_id нужен плагину google-services; приложение использует только
             # google_sign_in (без Firebase SDK), поэтому hex-суффикс не влияет на функционал.
-            jq -n \
-              --arg project_number "${PROJECT_NUMBER}" \
-              --arg project_id "${PROJECT_ID}" \
-              --arg web_client_id "${WEB_CLIENT_ID}" \
-              --arg package_name "${APP_PACKAGE}" \
-              '{
-                "project_info": {
-                  "project_number": $project_number,
-                  "project_id": $project_id,
-                  "storage_bucket": ($project_id + ".appspot.com")
-                },
-                "client": [{
-                  "client_info": {
-                    "mobilesdk_app_id": ("1:" + $project_number + ":android:0000000000000000"),
-                    "android_client_info": {
-                      "package_name": $package_name
-                    }
+            if [ -n "${ANDROID_CLIENT_ID}" ] && [ -n "${ANDROID_SHA1}" ]; then
+              # Android OAuth клиент (client_type=1) с SHA-1 обязателен для Google Sign-In на Android.
+              # Без него Google Play Services возвращает DEVELOPER_ERROR (code 10).
+              jq -n \
+                --arg project_number "${PROJECT_NUMBER}" \
+                --arg project_id "${PROJECT_ID}" \
+                --arg web_client_id "${WEB_CLIENT_ID}" \
+                --arg android_client_id "${ANDROID_CLIENT_ID}" \
+                --arg sha1 "${ANDROID_SHA1}" \
+                --arg package_name "${APP_PACKAGE}" \
+                '{
+                  "project_info": {
+                    "project_number": $project_number,
+                    "project_id": $project_id,
+                    "storage_bucket": ($project_id + ".appspot.com")
                   },
-                  "oauth_client": [{
-                    "client_id": $web_client_id,
-                    "client_type": 3
+                  "client": [{
+                    "client_info": {
+                      "mobilesdk_app_id": ("1:" + $project_number + ":android:0000000000000000"),
+                      "android_client_info": {
+                        "package_name": $package_name
+                      }
+                    },
+                    "oauth_client": [
+                      {
+                        "client_id": $android_client_id,
+                        "client_type": 1,
+                        "android_info": {
+                          "package_name": $package_name,
+                          "certificate_hash": $sha1
+                        }
+                      },
+                      {
+                        "client_id": $web_client_id,
+                        "client_type": 3
+                      }
+                    ],
+                    "api_key": [{"current_key": ""}],
+                    "services": {}
                   }],
-                  "api_key": [{"current_key": ""}],
-                  "services": {}
-                }],
-                "configuration_version": "1"
-              }' > MobileFlutter/android/app/google-services.json
+                  "configuration_version": "1"
+                }' > MobileFlutter/android/app/google-services.json
+            else
+              echo "::warning::Секреты ANDROID_CLIENT_ID и ANDROID_SHA1 не заданы. Google Sign-In на Android будет выдавать ошибку DEVELOPER_ERROR (code 10). Добавьте оба секрета для включения Google Sign-In."
+              jq -n \
+                --arg project_number "${PROJECT_NUMBER}" \
+                --arg project_id "${PROJECT_ID}" \
+                --arg web_client_id "${WEB_CLIENT_ID}" \
+                --arg package_name "${APP_PACKAGE}" \
+                '{
+                  "project_info": {
+                    "project_number": $project_number,
+                    "project_id": $project_id,
+                    "storage_bucket": ($project_id + ".appspot.com")
+                  },
+                  "client": [{
+                    "client_info": {
+                      "mobilesdk_app_id": ("1:" + $project_number + ":android:0000000000000000"),
+                      "android_client_info": {
+                        "package_name": $package_name
+                      }
+                    },
+                    "oauth_client": [{
+                      "client_id": $web_client_id,
+                      "client_type": 3
+                    }],
+                    "api_key": [{"current_key": ""}],
+                    "services": {}
+                  }],
+                  "configuration_version": "1"
+                }' > MobileFlutter/android/app/google-services.json
+            fi
           fi
 
       - name: Установка зависимостей
