@@ -198,8 +198,20 @@ jobs:
               -keypass android \
               -dname "CN=Android Debug,O=Android,C=US"
             NEW_SHA1=$(keytool -list -keystore "${KEYSTORE_PATH}" -alias androiddebugkey -storepass android 2>/dev/null | grep "SHA1:" | awk '{print $2}')
-            echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1}. Для работы Google Sign-In зарегистрируйте этот SHA-1 в Google Cloud Console. Чтобы использовать постоянный keystore, запишите в секрет ANDROID_FILE результат команды: base64 -w 0 ~/.android/debug.keystore"
+            echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1}. Зарегистрируйте этот SHA-1 в Google Cloud Console. Keystore сохранён как артефакт 'debug-keystore' — скачайте файл keystore.b64, его содержимое положите в секрет ANDROID_FILE, а SHA-1 выше — в секрет ANDROID_SHA1."
+            # Сохраняем keystore в base64-файл для артефакта
+            mkdir -p /tmp/keystore-export
+            base64 -w 0 "${KEYSTORE_PATH}" > /tmp/keystore-export/keystore.b64
+            echo "KEYSTORE_GENERATED=true" >> "$GITHUB_ENV"
           fi
+
+      - name: Сохранение сгенерированного keystore как артефакта
+        if: env.KEYSTORE_GENERATED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-keystore
+          path: /tmp/keystore-export/keystore.b64
+          retention-days: 7
 
       - name: Установка зависимостей
         working-directory: MobileFlutter
