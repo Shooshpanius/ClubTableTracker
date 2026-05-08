@@ -175,6 +175,10 @@ jobs:
             echo "::error::Секрет ANDROID_FILE не задан. Загрузите base64-содержимое debug.keystore в Settings → Secrets → Actions."
             exit 1
           fi
+          if ! echo "${ANDROID_FILE}" | base64 -d > /dev/null 2>&1; then
+            echo "::error::Секрет ANDROID_FILE не является корректным base64. Убедитесь, что в секрет записано именно base64-кодированное содержимое файла debug.keystore, а не JSON с credentials. Получить нужное значение: base64 -w 0 ~/.android/debug.keystore"
+            exit 1
+          fi
           mkdir -p ~/.android
           echo "${ANDROID_FILE}" | base64 -d > ~/.android/debug.keystore
 
