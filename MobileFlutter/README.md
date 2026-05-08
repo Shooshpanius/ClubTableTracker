@@ -80,18 +80,27 @@ YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercon
 и заполните все `YOUR_*` значениями из Google Cloud Console.  
 **Важно:** все вхождения `com.example.club_table_tracker` (package name) должны соответствовать  
 значению `applicationId` в `android/app/build.gradle`.  
-Для CI-сборки добавьте следующие секреты в **GitHub → Settings → Secrets → Actions**
-(action сам соберёт `google-services.json` и закодирует его в base64):
+Для CI-сборки добавьте следующие секреты в **GitHub → Settings → Secrets → Actions**:
 
-| Секрет | Значение |
-|--------|---------|
-| `GS_PROJECT_NUMBER` | Номер проекта Firebase (например, `123456789012`) |
-| `GS_PROJECT_ID` | ID проекта Firebase (например, `my-project-id`) |
-| `GS_APP_ID` | Хеш-часть `mobilesdk_app_id` после `android:` (например, `abcdef0123456789`) |
-| `GS_ANDROID_CLIENT_ID` | Полный OAuth Client ID для Android (например, `123-xyz.apps.googleusercontent.com`) |
-| `GS_SHA1_CERT_HASH` | SHA-1 отпечаток сертификата подписи |
-| `GS_ANDROID_API_KEY` | Android API Key из Google Cloud Console |
-| `GOOGLE_CLIENT_ID` | Полный Web OAuth Client ID (используется также для Sign-In) |
+| Секрет | Обязателен | Значение |
+|--------|:----------:|---------|
+| `CLIENT_SECRET_WEB` | ✅ | Содержимое файла `client_secret_*.json` из Google Cloud Console (Web-клиент OAuth 2.0) |
+| `GOOGLE_SERVICES_JSON` | — | Полное содержимое `google-services.json` из Firebase Console. Если задан и содержит `project_info`, используется напрямую (рекомендуется). При наличии этого секрета `ANDROID_CLIENT_ID` и `ANDROID_SHA1` игнорируются. |
+| `ANDROID_CLIENT_ID` | ⚠️ | OAuth Client ID для Android из Google Cloud Console (вида `123-xyz.apps.googleusercontent.com`). Обязателен для работы Google Sign-In на Android, если `GOOGLE_SERVICES_JSON` не задан. |
+| `ANDROID_SHA1` | ⚠️ | SHA-1 отпечаток ключа подписи APK (зарегистрированный в Google Cloud Console для Android-клиента). Обязателен вместе с `ANDROID_CLIENT_ID`. |
+
+> **Почему нужен `ANDROID_SHA1`?**  
+> Google Play Services проверяет SHA-1 подпись APK при каждом входе через Google. Если SHA-1 не зарегистрирован в Google Cloud Console или отсутствует Android OAuth-клиент в `google-services.json` — вход завершится ошибкой `DEVELOPER_ERROR` (code 10).
+
+**Как получить SHA-1:**
+```bash
+# Ключ отладки (для разработки)
+keytool -list -v -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android | grep 'SHA1:'
+
+# Релизный ключ
+keytool -list -v -keystore <путь-к-keystore> -alias <alias> | grep 'SHA1:'
+```
 
 **iOS** — в `ios/Runner/Info.plist` замените:
 ```
