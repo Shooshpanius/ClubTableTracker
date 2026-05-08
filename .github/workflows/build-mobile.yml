@@ -167,6 +167,17 @@ jobs:
             fi
           fi
 
+      - name: Восстановление debug keystore из секрета
+        env:
+          ANDROID_FILE: ${{ secrets.ANDROID_FILE }}
+        run: |
+          if [ -z "${ANDROID_FILE}" ]; then
+            echo "::error::Секрет ANDROID_FILE не задан. Загрузите base64-содержимое debug.keystore в Settings → Secrets → Actions."
+            exit 1
+          fi
+          mkdir -p ~/.android
+          echo "${ANDROID_FILE}" | base64 -d > ~/.android/debug.keystore
+
       - name: Установка зависимостей
         working-directory: MobileFlutter
         run: flutter pub get
