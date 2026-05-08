@@ -175,16 +175,21 @@ jobs:
           KEYSTORE_PATH=~/.android/debug.keystore
           RESTORED=false
 
-          # Пробуем восстановить keystore из секрета ANDROID_FILE, если он задан
+          # Пробуем восстановить keystore из секрета ANDROID_FILE, если он задан.
+          # Важно: декодируем сразу в файл, а не в переменную — command substitution
+          # ($(...)) обрезает null-байты, которые присутствуют в бинарном JKS-файле,
+          # и это делает keystore невалидным.
           if [ -n "${ANDROID_FILE}" ]; then
-            DECODED=$(echo "${ANDROID_FILE}" | base64 -d 2>/dev/null) || true
-            if [ -n "${DECODED}" ] && echo "${DECODED}" | keytool -list -keystore /dev/stdin -storepass android -storetype JKS > /dev/null 2>&1; then
-              echo "${ANDROID_FILE}" | base64 -d > "${KEYSTORE_PATH}"
+            TMPKS=$(mktemp)
+            echo "${ANDROID_FILE}" | base64 -d > "${TMPKS}" 2>/dev/null || true
+            if keytool -list -keystore "${TMPKS}" -storepass android -storetype JKS > /dev/null 2>&1; then
+              cp "${TMPKS}" "${KEYSTORE_PATH}"
               RESTORED=true
               echo "::notice::Keystore успешно восстановлен из секрета ANDROID_FILE."
             else
               echo "::warning::Секрет ANDROID_FILE задан, но не является валидным JKS keystore (возможно, передан SHA-1 или другие данные вместо keystore-файла). Будет сгенерирован временный keystore."
             fi
+            rm -f "${TMPKS}"
           fi
 
           # Если keystore не восстановлен — генерируем временный debug keystore
@@ -197,7 +202,9 @@ jobs:
               -storepass android \
               -keypass android \
               -dname "CN=Android Debug,O=Android,C=US"
-            NEW_SHA1=$(keytool -list -keystore "${KEYSTORE_PATH}" -alias androiddebugkey -storepass android 2>/dev/null | grep "SHA1:" | awk '{print $2}')
+            # Используем -v (verbose), чтобы получить полный отпечаток — без флага -v
+            # вывод keytool может не содержать строку "SHA1:" в некоторых версиях Java.
+            NEW_SHA1=$(keytool -list -v -keystore "${KEYSTORE_PATH}" -alias androiddebugkey -storepass android 2>/dev/null | grep -i "SHA1:" | head -1 | awk -F': ' '{print $2}' | tr -d ' \r')
             echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1}. Зарегистрируйте этот SHA-1 в Google Cloud Console. Keystore сохранён как артефакт 'debug-keystore' — скачайте файл keystore.b64, его содержимое положите в секрет ANDROID_FILE, а SHA-1 выше — в секрет ANDROID_SHA1."
             # Сохраняем keystore в base64-файл для артефакта
             mkdir -p /tmp/keystore-export
