@@ -96,12 +96,15 @@ jobs:
             if [ -n "${ANDROID_CLIENT_ID}" ] && [ -n "${ANDROID_SHA1}" ]; then
               # Android OAuth клиент (client_type=1) с SHA-1 обязателен для Google Sign-In на Android.
               # Без него Google Play Services возвращает DEVELOPER_ERROR (code 10).
+              # certificate_hash в google-services.json должен быть в нижнем регистре без двоеточий —
+              # именно в таком формате его ожидает плагин com.google.gms.google-services при сборке.
+              SHA1_CLEAN=$(echo "${ANDROID_SHA1}" | tr -d ':' | tr '[:upper:]' '[:lower:]')
               jq -n \
                 --arg project_number "${PROJECT_NUMBER}" \
                 --arg project_id "${PROJECT_ID}" \
                 --arg web_client_id "${WEB_CLIENT_ID}" \
                 --arg android_client_id "${ANDROID_CLIENT_ID}" \
-                --arg sha1 "${ANDROID_SHA1}" \
+                --arg sha1 "${SHA1_CLEAN}" \
                 --arg package_name "${APP_PACKAGE}" \
                 '{
                   "project_info": {
@@ -166,6 +169,33 @@ jobs:
                 }' > MobileFlutter/android/app/google-services.json
             fi
           fi
+
+      - name: Диагностика google-services.json
+        run: |
+          GSJ="MobileFlutter/android/app/google-services.json"
+          if [ ! -f "${GSJ}" ]; then
+            echo "::error::google-services.json не найден после инъекции!"
+            exit 1
+          fi
+          echo "::notice::Структура google-services.json:"
+          echo "  project_id   = $(jq -r '.project_info.project_id' "${GSJ}")"
+          ANDROID_CLIENTS=$(jq '[.client[].oauth_client[] | select(.client_type == 1)] | length' "${GSJ}")
+          WEB_CLIENTS=$(jq '[.client[].oauth_client[] | select(.client_type == 3)] | length' "${GSJ}")
+          echo "  android oauth clients (type=1): ${ANDROID_CLIENTS}"
+          echo "  web oauth clients    (type=3): ${WEB_CLIENTS}"
+          if [ "${ANDROID_CLIENTS}" -lt 1 ]; then
+            echo "::error::В google-services.json нет Android OAuth client (client_type=1). Google Sign-In будет выдавать DEVELOPER_ERROR (code 10). Задайте секреты ANDROID_CLIENT_ID и ANDROID_SHA1."
+            exit 1
+          fi
+          CERT_HASH=$(jq -r '.client[].oauth_client[] | select(.client_type == 1) | .android_info.certificate_hash' "${GSJ}")
+          echo "  certificate_hash (нормализованный): ${CERT_HASH}"
+          # Проверяем подстановку serverClientId в constants.dart
+          SERVER_ID=$(grep 'googleServerClientId' MobileFlutter/lib/constants.dart | head -1)
+          if echo "${SERVER_ID}" | grep -q 'YOUR_GOOGLE_SERVER_CLIENT_ID'; then
+            echo "::error::В constants.dart не был подставлен serverClientId — строка содержит YOUR_GOOGLE_SERVER_CLIENT_ID. Проверьте шаг 'Подстановка Google Client ID'."
+            exit 1
+          fi
+          echo "  constants.dart serverClientId подставлен: OK"
 
       - name: Подготовка debug keystore
         env:
