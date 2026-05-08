@@ -37,9 +37,10 @@ jobs:
             echo "::error::Секрет CLIENT_SECRET_WEB не задан. Добавьте содержимое файла client_secret_*.json в Settings → Secrets → Actions."
             exit 1
           fi
-          GOOGLE_CLIENT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '.web.client_id // empty')
+          # Поддерживаем оба формата: Web OAuth (.web) и Android/Desktop OAuth (.installed)
+          GOOGLE_CLIENT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '(.web // .installed).client_id // empty')
           if [ -z "${GOOGLE_CLIENT_ID}" ]; then
-            echo "::error::Не удалось извлечь web.client_id из CLIENT_SECRET_WEB. Убедитесь, что файл содержит объект .web."
+            echo "::error::Не удалось извлечь client_id из CLIENT_SECRET_WEB. Убедитесь, что файл содержит объект .web или .installed."
             exit 1
           fi
           echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
@@ -76,8 +77,8 @@ jobs:
           if echo "${GOOGLE_SERVICES_JSON}" | jq -e '.project_info' > /dev/null 2>&1; then
             echo "${GOOGLE_SERVICES_JSON}" > MobileFlutter/android/app/google-services.json
           else
-            PROJECT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '.web.project_id')
-            WEB_CLIENT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '.web.client_id')
+            PROJECT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '(.web // .installed).project_id')
+            WEB_CLIENT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '(.web // .installed).client_id')
             # Google OAuth client_id имеет формат <project_number>-<hash>.apps.googleusercontent.com,
             # поэтому project_number — числовая часть до первого дефиса.
             PROJECT_NUMBER="${WEB_CLIENT_ID%%-*}"
