@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../app_colors.dart';
-import '../constants.dart';
 import '../models/club.dart';
 import '../models/game_table.dart';
 import '../models/booking.dart';
