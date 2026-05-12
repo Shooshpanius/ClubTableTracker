@@ -263,6 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   List<ChatMessage> _messages = [];
+  List<dynamic> _listItems = [];
   bool _loading = true;
   bool _sending = false;
   ChatMessage? _replyTo;
@@ -298,6 +299,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _messages = data
             .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
             .toList();
+        _listItems = _buildListItems(_messages);
         _loading = false;
       });
       if (!silent) _scrollToBottom();
@@ -387,13 +389,61 @@ class _ChatScreenState extends State<ChatScreen> {
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
-                        itemCount: _messages.length,
-                        itemBuilder: (_, i) =>
-                            _buildMessage(_messages[i]),
+                        itemCount: _listItems.length,
+                        itemBuilder: (_, i) {
+                          final item = _listItems[i];
+                          if (item is DateTime) {
+                            return _buildDateSeparator(item);
+                          }
+                          return _buildMessage(item as ChatMessage);
+                        },
                       ),
           ),
           _buildInputArea(),
         ],
+      ),
+    );
+  }
+
+  static List<dynamic> _buildListItems(List<ChatMessage> messages) {
+    final items = <dynamic>[];
+    DateTime? lastDate;
+    for (final msg in messages) {
+      final local = msg.sentAtDateTime.toLocal();
+      final dateOnly = DateTime(local.year, local.month, local.day);
+      if (lastDate == null || dateOnly != lastDate) {
+        items.add(dateOnly);
+        lastDate = dateOnly;
+      }
+      items.add(msg);
+    }
+    return items;
+  }
+
+  Widget _buildDateSeparator(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    String label;
+    if (date == today) {
+      label = 'Сегодня';
+    } else if (date == yesterday) {
+      label = 'Вчера';
+    } else {
+      label = DateFormat('d MMMM yyyy', 'ru').format(date);
+    }
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.panelBg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+        ),
       ),
     );
   }
