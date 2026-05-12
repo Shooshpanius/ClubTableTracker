@@ -302,7 +302,6 @@ class _ChatScreenState extends State<ChatScreen> {
         _listItems = _buildListItems(_messages);
         _loading = false;
       });
-      if (!silent) _scrollToBottom();
     } catch (_) {
       if (!silent && mounted) setState(() => _loading = false);
     }
@@ -344,7 +343,7 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
+          0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -387,6 +386,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       )
                     : ListView.builder(
                         controller: _scrollCtrl,
+                        reverse: true,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         itemCount: _listItems.length,
@@ -417,7 +417,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       items.add(msg);
     }
-    return items;
+    return items.reversed.toList();
   }
 
   Widget _buildDateSeparator(DateTime date) {
