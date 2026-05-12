@@ -223,7 +223,9 @@ export default function MessengerPage() {
     const container = messagesContainerRef.current
     if (!container) return
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
-    if (scrollToBottomRef.current || isAtBottom) {
+    if (scrollToBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    } else if (isAtBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
     scrollToBottomRef.current = false
