@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isTokenExpired } from '../utils/auth'
 
@@ -453,6 +453,19 @@ export default function MessengerPage() {
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
   }
 
+  const getDateLabel = (iso: string) => {
+    const d = parseUtc(iso)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(today.getDate() - 1)
+    if (d.toDateString() === today.toDateString()) return 'Сегодня'
+    if (d.toDateString() === yesterday.toDateString()) return 'Вчера'
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  const isSameDay = (a: string, b: string) =>
+    parseUtc(a).toDateString() === parseUtc(b).toDateString()
+
   const containerStyle: React.CSSProperties = {
     display: 'flex', position: 'fixed', top: vpTop, left: 0, right: 0, height: vpHeight,
     fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee', overflow: 'hidden',
@@ -595,7 +608,7 @@ export default function MessengerPage() {
               style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}
               onClick={() => { setContextMenu(null); if (!isMobile) setSelectedMessageIds(new Set()) }}
             >
-              {messages.map(m => {
+              {messages.map((m, idx) => {
                 const isMe = m.sender.id === myId
                 const isSelected = selectedMessageIds.has(m.id)
                 const msgHandlers = {
@@ -617,76 +630,91 @@ export default function MessengerPage() {
                     {isSelected && '✓'}
                   </div>
                 ) : null
+                const showDateSep = idx === 0 || !isSameDay(messages[idx - 1].sentAt, m.sentAt)
+                const dateSeparator = showDateSep ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    margin: '8px 0', userSelect: 'none',
+                  }}>
+                    <div style={{ flex: 1, height: '1px', background: '#333' }} />
+                    <span style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap' }}>{getDateLabel(m.sentAt)}</span>
+                    <div style={{ flex: 1, height: '1px', background: '#333' }} />
+                  </div>
+                ) : null
                 if (isMe) {
                   return (
+                    <Fragment key={m.id}>
+                      {dateSeparator}
+                      <div
+                        style={{
+                          alignSelf: isSelectionMode ? 'stretch' : 'flex-end',
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          userSelect: 'none',
+                          ...(isSelectionMode ? {
+                            cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
+                            background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
+                          } : { alignItems: 'flex-end', gap: '4px' }),
+                        }}
+                        {...msgHandlers}
+                      >
+                        {selectionCheckbox}
+                        <div style={{ flex: isSelectionMode ? 1 : undefined, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '4px' }}>
+                          <div style={{
+                            background: '#0f3460',
+                            borderRadius: '12px 12px 2px 12px',
+                            padding: '8px 14px',
+                            maxWidth: '70%',
+                            wordBreak: 'break-word',
+                          }}>
+                            {m.replyTo && (
+                              <div style={{
+                                borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
+                                fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
+                              }}>
+                                <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
+                                <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
+                              </div>
+                            )}
+                            <div style={{ fontSize: '14px' }}>{m.text}</div>
+                            <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </Fragment>
+                  )
+                }
+                return (
+                  <Fragment key={m.id}>
+                    {dateSeparator}
                     <div
-                      key={m.id}
                       style={{
-                        alignSelf: isSelectionMode ? 'stretch' : 'flex-end',
-                        display: 'flex', alignItems: 'center', gap: '8px',
+                        display: 'flex', alignItems: isSelectionMode ? 'center' : 'flex-end', gap: '8px',
                         userSelect: 'none',
                         ...(isSelectionMode ? {
                           cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
                           background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
-                        } : { alignItems: 'flex-end', gap: '4px' }),
+                        } : {}),
                       }}
                       {...msgHandlers}
                     >
                       {selectionCheckbox}
-                      <div style={{ flex: isSelectionMode ? 1 : undefined, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '4px' }}>
-                        <div style={{
-                          background: '#0f3460',
-                          borderRadius: '12px 12px 2px 12px',
-                          padding: '8px 14px',
-                          maxWidth: '70%',
-                          wordBreak: 'break-word',
-                        }}>
-                          {m.replyTo && (
-                            <div style={{
-                              borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
-                              fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
-                            }}>
-                              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
-                              <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
-                            </div>
-                          )}
-                          <div style={{ fontSize: '14px' }}>{m.text}</div>
-                          <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
-                        </div>
+                      <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
+                      <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
+                        {m.replyTo && (
+                          <div style={{
+                            borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
+                            fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
+                          }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
+                            <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
+                          </div>
+                        )}
+                        <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{m.sender.name}</div>
+                        <div style={{ fontSize: '14px' }}>{m.text}</div>
+                        <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
                       </div>
                     </div>
-                  )
-                }
-                return (
-                  <div
-                    key={m.id}
-                    style={{
-                      display: 'flex', alignItems: isSelectionMode ? 'center' : 'flex-end', gap: '8px',
-                      userSelect: 'none',
-                      ...(isSelectionMode ? {
-                        cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
-                        background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
-                      } : {}),
-                    }}
-                    {...msgHandlers}
-                  >
-                    {selectionCheckbox}
-                    <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
-                    <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
-                      {m.replyTo && (
-                        <div style={{
-                          borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
-                          fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
-                        }}>
-                          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
-                          <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
-                        </div>
-                      )}
-                      <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{m.sender.name}</div>
-                      <div style={{ fontSize: '14px' }}>{m.text}</div>
-                      <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
-                    </div>
-                  </div>
+                  </Fragment>
                 )
               })}
               <div ref={messagesEndRef} />
