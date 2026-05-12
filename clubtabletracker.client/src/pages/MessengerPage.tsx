@@ -220,6 +220,7 @@ export default function MessengerPage() {
   }, [activeChatId, loadMessages, loadChats, markAsRead])
 
   useEffect(() => {
+    if (messages.length === 0) return
     const container = messagesContainerRef.current
     if (!container) return
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
