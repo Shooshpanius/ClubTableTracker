@@ -129,6 +129,8 @@ export default function MessengerPage() {
   const [deleteSelectedConfirm, setDeleteSelectedConfirm] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const scrollToBottomRef = useRef(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -201,6 +203,7 @@ export default function MessengerPage() {
 
   useEffect(() => {
     if (activeChatId == null) return
+    scrollToBottomRef.current = true
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadMessages(activeChatId)
     if (pollRef.current) clearInterval(pollRef.current)
@@ -217,7 +220,13 @@ export default function MessengerPage() {
   }, [activeChatId, loadMessages, loadChats, markAsRead])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (!container) return
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+    if (scrollToBottomRef.current || isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    scrollToBottomRef.current = false
   }, [messages])
 
   useEffect(() => {
@@ -254,6 +263,7 @@ export default function MessengerPage() {
     setSending(false)
     if (res.ok) {
       const msg: Message = await res.json()
+      scrollToBottomRef.current = true
       setMessages(prev => [...prev, msg])
       setInputText('')
       setReplyTo(null)
@@ -605,6 +615,7 @@ export default function MessengerPage() {
               </div>
             )}
             <div
+              ref={messagesContainerRef}
               style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}
               onClick={() => { setContextMenu(null); if (!isMobile) setSelectedMessageIds(new Set()) }}
             >
