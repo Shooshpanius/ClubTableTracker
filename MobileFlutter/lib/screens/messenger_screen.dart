@@ -263,6 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   List<ChatMessage> _messages = [];
+  List<dynamic> _listItems = [];
   bool _loading = true;
   bool _sending = false;
   ChatMessage? _replyTo;
@@ -298,6 +299,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _messages = data
             .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
             .toList();
+        _listItems = _buildListItems(_messages);
         _loading = false;
       });
       if (!silent) _scrollToBottom();
@@ -403,10 +405,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  List<dynamic> get _listItems {
+  static List<dynamic> _buildListItems(List<ChatMessage> messages) {
     final items = <dynamic>[];
     DateTime? lastDate;
-    for (final msg in _messages) {
+    for (final msg in messages) {
       final local = msg.sentAtDateTime.toLocal();
       final dateOnly = DateTime(local.year, local.month, local.day);
       if (lastDate == null || dateOnly != lastDate) {
