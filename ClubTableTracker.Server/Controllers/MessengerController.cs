@@ -34,6 +34,7 @@ public class MessengerController : ControllerBase
         var memberChats = _db.Chats
             .Include(c => c.Members).ThenInclude(m => m.User)
             .Include(c => c.Messages.OrderByDescending(msg => msg.SentAt).Take(1))
+            .Include(c => c.Club)
             .Where(c => c.Members.Any(m => m.UserId == userId))
             .ToList();
 
@@ -42,6 +43,7 @@ public class MessengerController : ControllerBase
         var publicGroupChats = _db.Chats
             .Include(c => c.Members).ThenInclude(m => m.User)
             .Include(c => c.Messages.OrderByDescending(msg => msg.SentAt).Take(1))
+            .Include(c => c.Club)
             .Where(c => c.IsGroup && c.IsPublic && c.ClubId != null && myClubIds.Contains(c.ClubId!.Value) && !joinedChatIds.Contains(c.Id))
             .ToList();
 
@@ -97,6 +99,8 @@ public class MessengerController : ControllerBase
                 c.ClubId,
                 Name = displayName,
                 AvatarUrl = avatarUrl,
+                ClubShortName = c.IsGroup ? c.Club?.ShortName : null,
+                ClubBadgeColor = c.IsGroup ? c.Club?.BadgeColor : null,
                 LastMessage = lastMsg == null ? null : new { lastMsg.Text, lastMsg.SentAt },
                 UnreadCount = unreadCounts.GetValueOrDefault(c.Id, 0)
             };

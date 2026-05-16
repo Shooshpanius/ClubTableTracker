@@ -9,6 +9,8 @@ interface ChatSummary {
   clubId?: number
   name: string
   avatarUrl?: string
+  clubShortName?: string
+  clubBadgeColor?: string
   lastMessage?: { text: string; sentAt: string }
   unreadCount: number
 }
@@ -69,13 +71,14 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase()
 }
 
-function Avatar({ name, url, size = 36 }: { name: string; url?: string; size?: number }) {
+function Avatar({ name, url, size = 36, isGroup = false }: { name: string; url?: string; size?: number; isGroup?: boolean }) {
   const [imgError, setImgError] = useState(false)
   const avatarColors = ['#4a9eff', '#e94560', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4']
   const colorIdx = name.charCodeAt(0) % avatarColors.length
   const bg = avatarColors[colorIdx]
+  const borderRadius = isGroup ? `${Math.round(size * 0.22)}px` : '50%'
   const style: React.CSSProperties = {
-    width: size, height: size, borderRadius: '50%', flexShrink: 0,
+    width: size, height: size, borderRadius, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: Math.round(size * 0.38), fontWeight: 'bold', color: '#fff',
     background: bg, overflow: 'hidden', userSelect: 'none',
@@ -331,6 +334,7 @@ export default function MessengerPage() {
   }
 
   const openNewChat = async () => {
+    setShowNewChat(true)
     setLoadingMembers(true)
     setClubMembers([])
     const msRes = await fetch('/api/club/my-memberships', { headers: { Authorization: `Bearer ${token}` } })
@@ -527,18 +531,26 @@ export default function MessengerPage() {
               }}
               onClick={() => selectChat(c.id)}
             >
-              <Avatar name={c.name} url={c.avatarUrl} size={40} />
+              <Avatar name={c.name} url={c.avatarUrl} size={40} isGroup={c.isGroup} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
                     {c.name}
                   </div>
-                  {c.unreadCount > 0 && (
-                    <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, marginLeft: '6px' }}>
-                      {c.unreadCount > 99 ? '99+' : c.unreadCount}
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
+                    {c.isGroup && c.clubShortName && (
+                      <span style={{
+                        background: c.clubBadgeColor || '#4a9eff', color: '#fff',
+                        borderRadius: '4px', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold',
+                      }}>{c.clubShortName}</span>
+                    )}
+                    {c.unreadCount > 0 && (
+                      <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>
+                        {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {c.lastMessage && (
                   <div style={{ fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -573,11 +585,17 @@ export default function MessengerPage() {
                   onClick={() => { setMobileView('list'); setContextMenu(null); setReplyTo(null); setSelectedMessageIds(new Set()) }}
                 >‹</button>
               )}
-              <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} />
+              <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} isGroup={activeChat?.isGroup} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
                 {activeChat?.name ?? 'Чат'}
               </span>
+              {activeChat?.isGroup && activeChat.clubShortName && (
+                <span style={{
+                  background: activeChat.clubBadgeColor || '#4a9eff', color: '#fff',
+                  borderRadius: '4px', padding: '2px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0,
+                }}>{activeChat.clubShortName}</span>
+              )}
             </div>
             {/* Панель выделения (только десктоп) */}
             {isSelectionMode && (
@@ -884,7 +902,7 @@ export default function MessengerPage() {
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     onClick={() => { void forwardToChat(c.id) }}
                   >
-                    <Avatar name={c.name} url={c.avatarUrl} size={32} />
+                    <Avatar name={c.name} url={c.avatarUrl} size={32} isGroup={c.isGroup} />
                     <span style={{ fontSize: '14px' }}>
                       {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
                       {c.name}

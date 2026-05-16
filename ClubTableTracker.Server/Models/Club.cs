@@ -11,6 +11,8 @@ public class Club
     public string OpenTime { get; set; } = "10:00";
     public string CloseTime { get; set; } = "22:00";
     public string? LogoUrl { get; set; }
+    [MaxLength(20)] public string? ShortName { get; set; }
+    [MaxLength(20)] public string? BadgeColor { get; set; }
     public List<GameTable> Tables { get; set; } = new();
     public List<ClubMembership> Memberships { get; set; } = new();
 }
