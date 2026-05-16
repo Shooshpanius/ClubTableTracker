@@ -87,7 +87,7 @@ public class ClubAdminController : ControllerBase
     {
         var club = GetAuthorizedClub();
         if (club == null) return Unauthorized();
-        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime, club.LogoUrl });
+        return Ok(new { club.Id, club.Name, club.Description, club.OpenTime, club.CloseTime, club.LogoUrl, club.ShortName, club.BadgeColor });
     }
 
     [HttpPut("settings")]
@@ -97,8 +97,12 @@ public class ClubAdminController : ControllerBase
         if (club == null) return Unauthorized();
         club.OpenTime = req.OpenTime;
         club.CloseTime = req.CloseTime;
+        if (req.ShortName != null)
+            club.ShortName = req.ShortName.Trim().Length > 0 ? req.ShortName.Trim() : null;
+        if (req.BadgeColor != null)
+            club.BadgeColor = req.BadgeColor.Trim().Length > 0 ? req.BadgeColor.Trim() : null;
         _db.SaveChanges();
-        return Ok(new { club.OpenTime, club.CloseTime });
+        return Ok(new { club.OpenTime, club.CloseTime, club.ShortName, club.BadgeColor });
     }
 
     [HttpGet("tables")]
@@ -1196,7 +1200,7 @@ public class ClubAdminController : ControllerBase
 }
 
 public record TableRequest(string Number, string Size, string SupportedGames, double X, double Y, double Width, double Height, bool EventsOnly = false);
-public record ClubSettingsRequest(string OpenTime, string CloseTime);
+public record ClubSettingsRequest(string OpenTime, string CloseTime, string? ShortName = null, string? BadgeColor = null);
 public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTime, int MaxParticipants, string EventType, string? GameSystem, string? TableIds, string? Description, string? GameMasterId = null);
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);

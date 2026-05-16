@@ -5,7 +5,7 @@ import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../con
 import { getAttachmentDisplayName } from '../utils/attachmentName'
 
 interface ClubInfo {
-  id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
+  id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string; shortName?: string; badgeColor?: string;
 }
 interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
@@ -24,6 +24,8 @@ export default function ClubAdminPage() {
   const [selectedGames, setSelectedGames] = useState<string[]>([])
   const [openTime, setOpenTime] = useState('10:00')
   const [closeTime, setCloseTime] = useState('22:00')
+  const [shortName, setShortName] = useState('')
+  const [badgeColor, setBadgeColor] = useState('#4a9eff')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [events, setEvents] = useState<ClubEventData[]>([])
   const [newEvent, setNewEvent] = useState({ title: '', startTime: '', endTime: '', maxParticipants: 8, eventType: 'Tournament', gameSystem: '', tableIds: '', description: '', gameMasterId: '' })
@@ -78,6 +80,8 @@ export default function ClubAdminPage() {
       setClub(data)
       setOpenTime(data.openTime || '10:00')
       setCloseTime(data.closeTime || '22:00')
+      setShortName(data.shortName || '')
+      setBadgeColor(data.badgeColor || '#4a9eff')
       setError('')
       loadData(clubKey)
     } else {
@@ -292,14 +296,17 @@ export default function ClubAdminPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
       body: JSON.stringify({
-        openTime, closeTime
+        openTime, closeTime,
+        shortName: shortName.trim() || null,
+        badgeColor: badgeColor || null,
       })
     })
     if (res.ok) {
       const data = await res.json()
       setClub(prev => prev ? {
         ...prev,
-        openTime: data.openTime, closeTime: data.closeTime
+        openTime: data.openTime, closeTime: data.closeTime,
+        shortName: data.shortName ?? undefined, badgeColor: data.badgeColor ?? undefined,
       } : prev)
       setSettingsSaved(true)
       setTimeout(() => setSettingsSaved(false), 2000)
@@ -929,6 +936,36 @@ export default function ClubAdminPage() {
               <div>
                 <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Закрытие</label>
                 <input style={inputStyle} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Краткое наименование <span style={{ color: '#666', fontWeight: 'normal' }}>(до 20 символов, отображается на бейдже чатов)</span></label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    style={{ ...inputStyle, width: 160 }}
+                    type="text"
+                    maxLength={20}
+                    placeholder="Напр.: МГК или Warhammer"
+                    value={shortName}
+                    onChange={e => setShortName(e.target.value)}
+                  />
+                  <div>
+                    <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Цвет бейджа</label>
+                    <input
+                      type="color"
+                      value={badgeColor || '#4a9eff'}
+                      onChange={e => setBadgeColor(e.target.value)}
+                      style={{ width: 40, height: 32, padding: 2, border: '1px solid #555', borderRadius: 6, background: 'none', cursor: 'pointer' }}
+                    />
+                  </div>
+                  {shortName.trim() && (
+                    <span style={{
+                      background: badgeColor || '#4a9eff', color: '#fff',
+                      borderRadius: '4px', padding: '3px 8px', fontSize: '13px', fontWeight: 'bold',
+                    }}>{shortName.trim()}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
