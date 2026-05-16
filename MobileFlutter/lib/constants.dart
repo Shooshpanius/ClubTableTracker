@@ -10,7 +10,7 @@ const String apiBaseUrl = 'https://go40k.ru';
 /// Подставляется CI через secrets.GOOGLE_CLIENT_ID.
 /// Вручную: замените на значение вида XXXXXXXX.apps.googleusercontent.com
 /// из Google Cloud Console → APIs & Services → Credentials → Web client.
-const String googleServerClientId = 'YOUR_GOOGLE_SERVER_CLIENT_ID';
+const String googleServerClientId = '864128408339-d7j3k1852l3ksiadpnnhbmfo3v50s8e0.apps.googleusercontent.com';
 
 /// Основные игровые системы (отображаются первыми в настройках)
 const List<String> gameSystemsMain = [

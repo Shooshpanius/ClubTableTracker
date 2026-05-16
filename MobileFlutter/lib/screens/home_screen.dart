@@ -27,6 +27,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _signingChannel =
+      MethodChannel('com.example.club_table_tracker/signing');
+
   final _api = ApiService();
   final _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
@@ -159,9 +162,51 @@ class _HomeScreenState extends State<HomeScreen> {
       if (e is PlatformException &&
           e.code == 'sign_in_failed' &&
           (e.message?.contains(': 10:') ?? false)) {
-        _showSnack(
-          'Google Sign-In не настроен для этого приложения (код 10).\n'
-          'Необходимо зарегистрировать SHA-1 ключа подписи в Google Cloud Console.',
+        String sha1Info = 'не удалось получить';
+        try {
+          final sha1 = await _signingChannel.invokeMethod<String>('getSha1');
+          if (sha1 != null) sha1Info = sha1;
+        } catch (_) {}
+        if (!mounted) return;
+        showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            backgroundColor: AppColors.cardBg,
+            title: const Text(
+              'Google Sign-In: ошибка 10',
+              style: TextStyle(color: AppColors.accent),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'SHA-1 этой сборки не зарегистрирован в Google Cloud Console.',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'SHA-1 подписи:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  sha1Info,
+                  style: const TextStyle(
+                    color: AppColors.accentBlue,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK', style: TextStyle(color: AppColors.accent)),
+              ),
+            ],
+          ),
         );
       } else {
         _showSnack('Ошибка входа: $e');
@@ -205,7 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.panelBg),
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: AppColors.textPrimary)),
+        backgroundColor: AppColors.panelBg,
+      ),
     );
   }
 
