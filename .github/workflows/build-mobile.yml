@@ -37,6 +37,13 @@ jobs:
             echo "::error::Секрет CLIENT_SECRET_WEB не задан. Добавьте содержимое файла client_secret_*.json в Settings → Secrets → Actions."
             exit 1
           fi
+          # Проверяем, что секрет содержит валидный JSON, прежде чем передавать его в jq.
+          # Без этой проверки jq завершается с кодом 5 (parse error) и bash (-eo pipefail)
+          # немедленно прерывает шаг — без понятного сообщения об ошибке.
+          if ! echo "${CLIENT_SECRET_WEB}" | jq empty > /dev/null 2>&1; then
+            echo "::error::Секрет CLIENT_SECRET_WEB содержит невалидный JSON. Убедитесь, что в секрет вставлено содержимое файла client_secret_*.json целиком (не base64, не путь к файлу и не SHA-1)."
+            exit 1
+          fi
           # Поддерживаем оба формата: Web OAuth (.web) и Android/Desktop OAuth (.installed)
           GOOGLE_CLIENT_ID=$(echo "${CLIENT_SECRET_WEB}" | jq -r '(.web // .installed).client_id // empty')
           if [ -z "${GOOGLE_CLIENT_ID}" ]; then
