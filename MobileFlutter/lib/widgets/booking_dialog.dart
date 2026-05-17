@@ -463,7 +463,7 @@ class _BookingDialogState extends State<BookingDialog> {
                 ),
                 onPressed: _saving ? null : _submit,
                 child: Text(
-                  _saving ? 'Бронируем...' : 'В резерв',
+                  _saving ? 'Бронируем...' : 'Забронировать',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
