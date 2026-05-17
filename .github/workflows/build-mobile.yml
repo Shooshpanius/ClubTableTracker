@@ -264,11 +264,13 @@ jobs:
             # как секрет (маскировка работает по точному совпадению строки).
             NEW_SHA1_DISPLAY=$(echo "${NEW_SHA1}" | sed 's/\(..\)/\1 /g' | sed 's/ $//')
             echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1_DISPLAY}. Зарегистрируйте этот SHA-1 в Google Cloud Console. Keystore сохранён как артефакт 'debug-keystore' — скачайте файл keystore.b64, его содержимое положите в секрет ANDROID_FILE, а SHA-1 выше — в секрет ANDROID_SHA1."
-            # Сохраняем keystore в base64-файл для артефакта
-            mkdir -p /tmp/keystore-export
-            base64 -w 0 "${KEYSTORE_PATH}" > /tmp/keystore-export/keystore.b64
-            echo "KEYSTORE_GENERATED=true" >> "$GITHUB_ENV"
           fi
+
+          # Всегда экспортируем keystore в base64-файл для артефакта —
+          # так файл доступен для скачивания как при первом запуске (без ANDROID_FILE),
+          # так и при последующих (когда keystore восстановлен из секрета).
+          mkdir -p /tmp/keystore-export
+          base64 -w 0 "${KEYSTORE_PATH}" > /tmp/keystore-export/keystore.b64
 
       - name: Вывод SHA-1 используемого keystore
         run: |
@@ -279,8 +281,7 @@ jobs:
           echo "::notice::SHA-1 keystore'а, которым подписан APK: ${SHA1_DISPLAY}"
           echo "Зарегистрируйте этот SHA-1 в Google Cloud Console → Credentials → Android OAuth Client для пакета com.example.club_table_tracker"
 
-      - name: Сохранение сгенерированного keystore как артефакта
-        if: env.KEYSTORE_GENERATED == 'true'
+      - name: Сохранение keystore как артефакта
         uses: actions/upload-artifact@v4
         with:
           name: debug-keystore
