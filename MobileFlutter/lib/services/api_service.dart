@@ -166,6 +166,24 @@ class ApiService {
     _checkStatus(res);
   }
 
+  /// Принять приглашение на бронирование
+  Future<void> acceptInvite(int bookingId, String token) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/booking/$bookingId/accept-invite'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
+  /// Отклонить приглашение на бронирование
+  Future<void> declineInvite(int bookingId, String token) async {
+    final res = await _client.delete(
+      Uri.parse('$_base/api/booking/$bookingId/decline-invite'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
   // ─── События ─────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getClubEvents(int clubId, {String? token}) async {

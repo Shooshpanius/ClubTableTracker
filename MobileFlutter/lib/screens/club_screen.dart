@@ -205,6 +205,30 @@ class _ClubScreenState extends State<ClubScreen>
     }
   }
 
+  Future<void> _acceptInvite(Booking booking) async {
+    try {
+      await _api.acceptInvite(booking.id, _token);
+      await _loadBookings();
+      await _loadMyUpcoming();
+      _showSnack('Вы приняли приглашение');
+    } catch (e) {
+      _showSnack(e.toString());
+    }
+  }
+
+  Future<void> _declineInvite(Booking booking) async {
+    final confirm = await _showConfirm('Отклонить приглашение?');
+    if (!confirm) return;
+    try {
+      await _api.declineInvite(booking.id, _token);
+      await _loadBookings();
+      await _loadMyUpcoming();
+      _showSnack('Приглашение отклонено');
+    } catch (e) {
+      _showSnack(e.toString());
+    }
+  }
+
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -522,13 +546,16 @@ class _ClubScreenState extends State<ClubScreen>
 
   Widget _buildBookingTile(Booking booking) {
     final isMe = booking.user.id == _myId;
-    final isParticipant =
-        booking.participants.any((p) => p.id == _myId);
-    final canJoin = !isMe &&
-        !isParticipant &&
-        booking.isDoubles &&
-        booking.participants.isEmpty;
-    final canLeave = isParticipant;
+    final myParticipantEntry =
+        booking.participants.where((p) => p.id == _myId).firstOrNull;
+    final isParticipant = myParticipantEntry != null;
+    final isInvited = myParticipantEntry?.status == 'Invited';
+    final acceptedCount =
+        booking.participants.where((p) => p.status != 'Invited').length;
+    final maxPlayers = booking.isDoubles ? 4 : 2;
+    final canJoin = !isMe && !isParticipant && acceptedCount < maxPlayers - 1;
+    final canLeave = isParticipant && !isInvited;
+    final canAcceptInvite = isInvited;
     final canCancel = isMe;
 
     final fmt = DateFormat('HH:mm');
@@ -580,7 +607,7 @@ class _ClubScreenState extends State<ClubScreen>
               style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 11),
             ),
-          if (canJoin || canLeave || canCancel) ...[
+          if (canJoin || canLeave || canAcceptInvite || canCancel) ...[
             const SizedBox(height: 6),
             Row(
               children: [
@@ -602,6 +629,18 @@ class _ClubScreenState extends State<ClubScreen>
                     AppColors.accentYellow,
                     () => _leaveBooking(booking),
                   ),
+                if (canAcceptInvite) ...[
+                  _actionBtn(
+                    '✓ Принять',
+                    AppColors.statusApproved,
+                    () => _acceptInvite(booking),
+                  ),
+                  _actionBtn(
+                    '✗ Отклонить',
+                    AppColors.statusRejected,
+                    () => _declineInvite(booking),
+                  ),
+                ],
               ],
             ),
           ],
