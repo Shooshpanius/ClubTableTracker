@@ -32,8 +32,8 @@ jobs:
           FLUTTER_VERSION="1.0.${PR_NUMBER}+${PR_NUMBER}"
           sed -i "s/^version: .*/version: ${FLUTTER_VERSION}/" MobileFlutter/pubspec.yaml
           # Инжектируем версию в lib/version.dart для отображения в шапке приложения
-          sed -i "s/appBuildNumber = 'BUILD_NUMBER'/appBuildNumber = '${PR_NUMBER}'/" MobileFlutter/lib/version.dart
-          sed -i "s/appBuildDate = 'BUILD_DATE'/appBuildDate = '${PR_DATE}'/" MobileFlutter/lib/version.dart
+          sed -i "s/const String appBuildNumber = 'BUILD_NUMBER'/const String appBuildNumber = '${PR_NUMBER}'/" MobileFlutter/lib/version.dart
+          sed -i "s/const String appBuildDate = 'BUILD_DATE'/const String appBuildDate = '${PR_DATE}'/" MobileFlutter/lib/version.dart
           echo "::notice::Flutter версия установлена: ${FLUTTER_VERSION} (PR #${PR_NUMBER} от ${PR_DATE})"
 
       - name: Установка Java 17
