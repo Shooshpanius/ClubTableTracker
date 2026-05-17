@@ -9,6 +9,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/Shooshpanius/ClubTableTracker?style=flat-square&logo=github&label=Issues)](https://github.com/Shooshpanius/ClubTableTracker/issues)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![.NET](https://img.shields.io/badge/.NET_10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
 ![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -17,7 +18,7 @@
 
 </div>
 
-**ClubTableTracker** — полнофункциональная система для управления столами и бронированием мест в настольных клубах. Включает **веб-приложение** (ASP.NET Core + React + TypeScript + Vite).
+**ClubTableTracker** — полнофункциональная система для управления столами и бронированием мест в настольных клубах. Включает **веб-приложение** (ASP.NET Core + React + TypeScript + Vite) и **мобильное приложение для Android** (Flutter).
 
 ---
 
@@ -32,6 +33,7 @@
 - [Конфигурация](#конфигурация)
 - [API](#api)
 - [Архитектура базы данных](#архитектура-базы-данных)
+- [Мобильное приложение](#мобильное-приложение)
 
 ---
 
@@ -118,6 +120,17 @@ ClubTableTracker/
 │   │   └── main.tsx                  # Точка входа React
 │   ├── .env.example                  # Пример переменных окружения
 │   └── vite.config.ts                # Конфигурация Vite
+│
+├── MobileFlutter/                    # Мобильное приложение Flutter (Android)
+│   ├── pubspec.yaml                  # Зависимости Flutter-проекта
+│   ├── android/                      # Конфигурация Android
+│   └── lib/
+│       ├── main.dart                 # Точка входа, маршрутизация
+│       ├── constants.dart            # URL API, Google Client ID, игровые системы
+│       ├── models/                   # Dart-модели данных
+│       ├── services/                 # API-клиент, авторизация
+│       ├── screens/                  # Экраны приложения
+│       └── widgets/                  # Переиспользуемые виджеты
 │
 └── ClubTableTracker.slnx             # Файл решения Visual Studio
 ```
@@ -656,4 +669,24 @@ ChatMessage
 ```
 
 База данных MariaDB/MySQL создаётся и обновляется автоматически при первом запуске приложения через EF Core Migrations (`db.Database.Migrate()`). Убедитесь, что MySQL/MariaDB-сервер запущен и пользователь из строки подключения имеет права на создание и изменение базы данных.
+
+---
+
+## Мобильное приложение
+
+Flutter-приложение для Android повторяет функционал мобильной веб-версии:
+
+- Просмотр клубов и управление членством
+- Столы: статус занятости, создание бронирований (одиночная игра или 2×2)
+- Приглашения: принять / отклонить входящее приглашение в бронирование
+- Предстоящие игры
+- Клубные события: запись / отмена записи
+- Список участников клуба
+- Мессенджер: личные чаты, ответы, автообновление
+- Настройки профиля: имя, биография, город, игровые системы, цвета бронирований
+
+Сборка производится автоматически через GitHub Actions (`.github/workflows/build-mobile.yml`) при каждом push в `main`, затрагивающем директорию `MobileFlutter/`. Готовый APK доступен как артефакт воркфлоу.
+
+Подробная документация: [`MobileFlutter/README.md`](MobileFlutter/README.md)
+
 ---
