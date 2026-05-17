@@ -118,7 +118,8 @@ class ApiService {
     required String token,
     String? gameSystem,
     bool isDoubles = false,
-    List<String>? participantIds,
+    bool isForOthers = false,
+    List<String>? invitedUserIds,
   }) async {
     final body = <String, dynamic>{
       'tableId': tableId,
@@ -126,7 +127,8 @@ class ApiService {
       'endTime': endTime,
       if (gameSystem != null) 'gameSystem': gameSystem,
       'isDoubles': isDoubles,
-      if (participantIds != null) 'participantIds': participantIds,
+      'isForOthers': isForOthers,
+      if (invitedUserIds != null) 'invitedUserIds': invitedUserIds,
     };
     final res = await _client.post(
       Uri.parse('$_base/api/booking'),

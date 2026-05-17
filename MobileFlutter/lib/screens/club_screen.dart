@@ -417,6 +417,9 @@ class _ClubScreenState extends State<ClubScreen>
     );
   }
 
+  bool get _isCurrentUserModerator =>
+      _members.any((m) => m.id == _myId && m.isModerator);
+
   void _openBookingDialog(GameTable table) {
     showModalBottomSheet(
       context: context,
@@ -431,6 +434,7 @@ class _ClubScreenState extends State<ClubScreen>
         token: _token,
         members: _members,
         myId: _myId,
+        isModerator: _isCurrentUserModerator,
         api: _api,
         onBookingCreated: () async {
           await _loadBookings();
