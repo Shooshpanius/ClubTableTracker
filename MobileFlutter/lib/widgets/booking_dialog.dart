@@ -9,6 +9,7 @@ import '../models/club_member.dart';
 import '../services/api_service.dart';
 
 const String _reservedUserId = '__RESERVED__';
+const String _promptSelectSystemId = '__prompt__';
 const int _maxInvitedSlots = 4;
 
 /// Диалог создания бронирования (показывается как bottom sheet)
@@ -166,6 +167,13 @@ class _BookingDialogState extends State<BookingDialog> {
       ),
     );
     if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  String _getParticipantLabel(int index) {
+    if (_isForOthers) {
+      return _isDoubles ? 'Игрок ${index + 1}:' : (index == 0 ? 'Игрок 1:' : 'Игрок 2:');
+    }
+    return _isDoubles ? 'Игрок ${index + 2}:' : 'Оппонент:';
   }
 
   Future<void> _submit() async {
@@ -363,74 +371,78 @@ class _BookingDialogState extends State<BookingDialog> {
             // Слоты участников
             if (widget.members.isNotEmpty) ...[
               const SizedBox(height: 4),
-              ...List.generate(_inviteSlots, (i) {
-                final label = _isForOthers
-                    ? (_isDoubles
-                        ? 'Игрок ${i + 1}:'
-                        : (i == 0 ? 'Игрок 1:' : 'Игрок 2:'))
-                    : (_isDoubles ? 'Игрок ${i + 2}:' : 'Оппонент:');
+              Builder(builder: (context) {
+                final selectedIds = _invitedUserIds.toSet();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(_inviteSlots, (i) {
+                    final currentId = _invitedUserIds[i];
+                    final eligible = _eligibleMembers
+                        .where((m) =>
+                            m.id == currentId ||
+                            !selectedIds.contains(m.id))
+                        .toList();
 
-                final currentId = _invitedUserIds[i];
-                final eligible = _eligibleMembers
-                    .where((m) => !_invitedUserIds
-                        .asMap()
-                        .entries
-                        .any((e) => e.key != i && e.value == m.id))
-                    .toList();
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: _isForOthers
-                              ? const Color(0xFFFFC107)
-                              : AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      DropdownButton<String>(
-                        value: currentId.isNotEmpty ? currentId : null,
-                        hint: const Text('— Не выбран —',
-                            style: TextStyle(color: AppColors.textMuted)),
-                        dropdownColor: AppColors.cardBg,
-                        style: const TextStyle(color: AppColors.textPrimary),
-                        isExpanded: true,
-                        onChanged: (v) => _setInvitedAt(i, v ?? ''),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: '',
-                            child: Text('— Не выбран —',
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getParticipantLabel(i),
+                            style: TextStyle(
+                              color: _isForOthers
+                                  ? const Color(0xFFFFC107)
+                                  : AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          DropdownButton<String>(
+                            value: currentId.isNotEmpty ? currentId : null,
+                            hint: const Text('— Не выбран —',
                                 style: TextStyle(color: AppColors.textMuted)),
-                          ),
-                          const DropdownMenuItem<String>(
-                            value: _reservedUserId,
-                            child: Text('ЗАБРОНИРОВАНО',
-                                style: TextStyle(color: AppColors.textSecondary)),
-                          ),
-                          if (systems.isNotEmpty &&
-                              (_gameSystem == null || _gameSystem!.isEmpty))
-                            const DropdownMenuItem<String>(
-                              value: '__prompt__',
-                              enabled: false,
-                              child: Text('Сначала выберите систему',
-                                  style: TextStyle(
-                                      color: AppColors.textMuted, fontSize: 12)),
-                            ),
-                          ...eligible.map(
-                            (m) => DropdownMenuItem<String>(
-                              value: m.id,
-                              child: Text(m.effectiveName),
-                            ),
+                            dropdownColor: AppColors.cardBg,
+                            style:
+                                const TextStyle(color: AppColors.textPrimary),
+                            isExpanded: true,
+                            onChanged: (v) => _setInvitedAt(i, v ?? ''),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: '',
+                                child: Text('— Не выбран —',
+                                    style:
+                                        TextStyle(color: AppColors.textMuted)),
+                              ),
+                              const DropdownMenuItem<String>(
+                                value: _reservedUserId,
+                                child: Text('ЗАБРОНИРОВАНО',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary)),
+                              ),
+                              if (systems.isNotEmpty &&
+                                  (_gameSystem == null ||
+                                      _gameSystem!.isEmpty))
+                                const DropdownMenuItem<String>(
+                                  value: _promptSelectSystemId,
+                                  enabled: false,
+                                  child: Text('Сначала выберите систему',
+                                      style: TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 12)),
+                                ),
+                              ...eligible.map(
+                                (m) => DropdownMenuItem<String>(
+                                  value: m.id,
+                                  child: Text(m.effectiveName),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    );
+                  }),
                 );
               }),
             ],
