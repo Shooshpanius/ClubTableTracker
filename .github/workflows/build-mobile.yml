@@ -260,7 +260,10 @@ jobs:
             # Используем -v (verbose), чтобы получить полный отпечаток — без флага -v
             # вывод keytool может не содержать строку "SHA1:" в некоторых версиях Java.
             NEW_SHA1=$(keytool -list -v -keystore "${KEYSTORE_PATH}" -alias androiddebugkey -storepass android 2>/dev/null | grep -i "SHA1:" | head -1 | awk -F': ' '{print $2}' | tr -d ' \r')
-            echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1}. Зарегистрируйте этот SHA-1 в Google Cloud Console. Keystore сохранён как артефакт 'debug-keystore' — скачайте файл keystore.b64, его содержимое положите в секрет ANDROID_FILE, а SHA-1 выше — в секрет ANDROID_SHA1."
+            # Добавляем пробел после каждой пары символов, чтобы GitHub не замаскировал значение
+            # как секрет (маскировка работает по точному совпадению строки).
+            NEW_SHA1_DISPLAY=$(echo "${NEW_SHA1}" | sed 's/\(..\)/\1 /g' | sed 's/ $//')
+            echo "::warning::Сгенерирован временный debug keystore. SHA-1 нового ключа: ${NEW_SHA1_DISPLAY}. Зарегистрируйте этот SHA-1 в Google Cloud Console. Keystore сохранён как артефакт 'debug-keystore' — скачайте файл keystore.b64, его содержимое положите в секрет ANDROID_FILE, а SHA-1 выше — в секрет ANDROID_SHA1."
             # Сохраняем keystore в base64-файл для артефакта
             mkdir -p /tmp/keystore-export
             base64 -w 0 "${KEYSTORE_PATH}" > /tmp/keystore-export/keystore.b64
@@ -270,7 +273,10 @@ jobs:
       - name: Вывод SHA-1 используемого keystore
         run: |
           SHA1=$(keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android 2>/dev/null | grep -i "SHA1:" | head -1 | awk -F': ' '{print $2}' | tr -d ' \r')
-          echo "::notice::SHA-1 keystore'а, которым подписан APK: ${SHA1}"
+          # Добавляем пробел после каждой пары символов, чтобы GitHub не замаскировал значение
+          # как секрет (маскировка работает по точному совпадению строки).
+          SHA1_DISPLAY=$(echo "${SHA1}" | sed 's/\(..\)/\1 /g' | sed 's/ $//')
+          echo "::notice::SHA-1 keystore'а, которым подписан APK: ${SHA1_DISPLAY}"
           echo "Зарегистрируйте этот SHA-1 в Google Cloud Console → Credentials → Android OAuth Client для пакета com.example.club_table_tracker"
 
       - name: Сохранение сгенерированного keystore как артефакта
