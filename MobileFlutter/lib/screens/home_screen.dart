@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../app_colors.dart';
 import '../constants.dart';
+import '../version.dart';
 import '../models/club.dart';
 import '../models/membership.dart';
 import '../models/club_event.dart';
@@ -385,6 +386,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Бронирование игровых столов для варгеймерских клубов',
                       style: TextStyle(
                           color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.panelBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Beta v0.0.$appBuildNumber от $appBuildDate',
+                        style: const TextStyle(
+                          color: AppColors.textBlue,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
