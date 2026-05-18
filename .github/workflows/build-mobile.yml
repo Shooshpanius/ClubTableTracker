@@ -93,6 +93,7 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           ANDROID_CLIENT_ID: ${{ secrets.ANDROID_CLIENT_ID }}
           ANDROID_SHA1: ${{ secrets.ANDROID_SHA1 }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
           if [ -z "${GOOGLE_CLIENT_ID}" ]; then
             echo "::error::GOOGLE_CLIENT_ID не задан — проверьте секрет CLIENT_SECRET_WEB."
@@ -118,8 +119,18 @@ jobs:
             fi
             # package_name соответствует applicationId в MobileFlutter/android/app/build.gradle
             APP_PACKAGE="com.example.club_table_tracker"
-            # mobilesdk_app_id нужен плагину google-services; приложение использует только
-            # google_sign_in (без Firebase SDK), поэтому hex-суффикс не влияет на функционал.
+            # mobilesdk_app_id — уникальный идентификатор Firebase-приложения.
+            # Если задан секрет FIREBASE_APP_ID (формат: 1:<project_number>:android:<hex>),
+            # берём hex-часть из него. Без корректного mobilesdk_app_id Firebase SDK
+            # не может зарегистрироваться в FCM и getToken() вернёт null.
+            # Значение берётся из Firebase Console → Project Settings → General → App ID.
+            if [ -n "${FIREBASE_APP_ID}" ]; then
+              FIREBASE_APP_HEX="${FIREBASE_APP_ID##*:}"
+            else
+              FIREBASE_APP_HEX="0000000000000000"
+              echo "::warning::Секрет FIREBASE_APP_ID не задан — FCM токен будет null."
+              echo "::warning::Добавьте App ID из Firebase Console → Project Settings → General → Your apps → App ID в секрет FIREBASE_APP_ID."
+            fi
             if [ -n "${ANDROID_CLIENT_ID}" ] && [ -n "${ANDROID_SHA1}" ]; then
               # Android OAuth клиент (client_type=1) с SHA-1 обязателен для Google Sign-In на Android.
               # Без него Google Play Services возвращает DEVELOPER_ERROR (code 10).
@@ -133,6 +144,7 @@ jobs:
                 --arg android_client_id "${ANDROID_CLIENT_ID}" \
                 --arg sha1 "${SHA1_CLEAN}" \
                 --arg package_name "${APP_PACKAGE}" \
+                --arg app_hex "${FIREBASE_APP_HEX}" \
                 '{
                   "project_info": {
                     "project_number": $project_number,
@@ -141,7 +153,7 @@ jobs:
                   },
                   "client": [{
                     "client_info": {
-                      "mobilesdk_app_id": ("1:" + $project_number + ":android:0000000000000000"),
+                      "mobilesdk_app_id": ("1:" + $project_number + ":android:" + $app_hex),
                       "android_client_info": {
                         "package_name": $package_name
                       }
@@ -172,6 +184,7 @@ jobs:
                 --arg project_id "${PROJECT_ID}" \
                 --arg web_client_id "${WEB_CLIENT_ID}" \
                 --arg package_name "${APP_PACKAGE}" \
+                --arg app_hex "${FIREBASE_APP_HEX}" \
                 '{
                   "project_info": {
                     "project_number": $project_number,
@@ -180,7 +193,7 @@ jobs:
                   },
                   "client": [{
                     "client_info": {
-                      "mobilesdk_app_id": ("1:" + $project_number + ":android:0000000000000000"),
+                      "mobilesdk_app_id": ("1:" + $project_number + ":android:" + $app_hex),
                       "android_client_info": {
                         "package_name": $package_name
                       }
