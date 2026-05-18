@@ -42,9 +42,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Gradle cache/wrapper internals
+# Gradle cache — contains lock files held by the Gradle daemon (permission errors)
 .gradle/
-android/.gradle/
+**/.gradle/
 
 # Local configuration
 android/local.properties
