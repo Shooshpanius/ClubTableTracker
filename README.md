@@ -371,6 +371,7 @@ ClubTableTracker/
 | `Jwt:Secret` | Секрет для подписи JWT-токенов. Минимум 32 символа. Смените перед деплоем! |
 | `Google:ClientId` | Client ID из [Google Cloud Console](https://console.cloud.google.com/). Используется сервером для верификации подписи Google ID-токена. |
 | `ConnectionStrings:Default` | Строка подключения к MySQL. Пример: `Server=localhost;Database=clubtracker;User=root;Password=your-password;` Используйте отдельного пользователя с минимальными привилегиями в продакшене. |
+| `Firebase:ServiceAccountJson` | JSON сервисного аккаунта Firebase (см. ниже). Передаётся как env var `Firebase__ServiceAccountJson`. Если не задан — push-уведомления отключаются, остальной функционал не затрагивается. |
 
 ### Фронтенд (`.env`)
 
@@ -388,6 +389,49 @@ ClubTableTracker/
 5. Скопируйте Client ID и вставьте:
    - в `appsettings.json` → `Google:ClientId` (для верификации токена на сервере)
    - в `.env` → `VITE_GOOGLE_CLIENT_ID` (для кнопки входа на фронтенде)
+
+### Настройка FCM push-уведомлений (мобильное приложение)
+
+Push-уведомления приходят при получении нового сообщения в мессенджере. Требуется настройка Firebase-проекта.
+
+> **Опционально:** если FCM не настроен, приложение работает в штатном режиме, push-уведомления просто не отправляются.
+
+#### Шаг 1 — Сервисный аккаунт Firebase (для бэкенда)
+
+1. Откройте [Firebase Console](https://console.firebase.google.com/) → выберите проект.
+2. **Project Settings → Service Accounts → Generate new private key** → скачайте JSON.
+3. Передайте содержимое этого JSON в переменную окружения бэкенда:
+
+**В `.env` (для Docker Compose):**
+```
+Firebase__ServiceAccountJson={"type":"service_account","project_id":"ваш-project-id",...}
+```
+Содержимое JSON — **на одной строке** (уберите переносы строк).
+
+**Для CI/CD** — добавьте GitHub Secret `FIREBASE_SERVICE_ACCOUNT_JSON` с содержимым JSON.
+
+#### Шаг 2 — `google-services.json` (для мобильного приложения)
+
+FCM требует, чтобы в `android/app/google-services.json` был зарегистрирован Firebase-проект.
+
+1. В Firebase Console → **Project Settings → General → Your apps**.
+2. Выберите (или добавьте) Android-приложение с package name `com.example.club_table_tracker`.
+3. Скачайте `google-services.json`.
+4. Для **GitHub Actions** — добавьте или обновите GitHub Secret `GOOGLE_SERVICES_JSON` с содержимым этого файла.  
+   Воркфлоу `build-mobile.yml` уже умеет использовать `GOOGLE_SERVICES_JSON` напрямую.
+
+> Если `GOOGLE_SERVICES_JSON` уже задан для Google Sign-In и содержит `project_info` — он подходит для FCM без изменений.
+
+#### Шаг 3 — Канал уведомлений Android
+
+FCM отправляет уведомления в канал `messages`. Канал создаётся Flutter-плагином `firebase_messaging` автоматически при первом получении уведомления. Дополнительных настроек не требуется.
+
+#### Итоговая таблица секретов для FCM
+
+| GitHub Secret | Назначение |
+|---|---|
+| `GOOGLE_SERVICES_JSON` | `google-services.json` из Firebase Console (Flutter-приложение). Обязателен для FCM в приложении. |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | JSON сервисного аккаунта (Project Settings → Service Accounts). Обязателен для отправки push с сервера. |
 
 ---
 
@@ -410,6 +454,7 @@ ClubTableTracker/
 | `PUT` | `/api/user/game-systems` | Обновить список игровых систем |
 | `PUT` | `/api/user/booking-colors` | Обновить цвета бронирований |
 | `PUT` | `/api/user/bio` | Обновить биографию (не более 500 символов) |
+| `PUT` | `/api/user/fcm-token` | Зарегистрировать / сбросить FCM-токен устройства (используется мобильным приложением) |
 
 ### Клубы (`/api/club`)
 
@@ -541,7 +586,8 @@ AppUser
   ├── EnabledGameSystems         ← игровые системы через '|' (опционально)
   ├── BookingColors              ← цвета бронирований (JSON, опционально)
   ├── Bio                        ← биография до 500 символов (опционально)
-  └── City                       ← город (до 50 символов, опционально)
+  ├── City                       ← город (до 50 символов, опционально)
+  └── FcmToken                   ← FCM-токен мобильного устройства для push-уведомлений (до 300 символов, опционально)
 
 Club
   ├── Id

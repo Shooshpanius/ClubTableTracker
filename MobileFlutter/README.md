@@ -52,6 +52,7 @@
 | Хранение токена | `shared_preferences` |
 | Форматирование дат | `intl` |
 | Кеш изображений | `cached_network_image` |
+| Push-уведомления | Firebase Cloud Messaging (`firebase_messaging`) |
 
 ---
 
@@ -115,7 +116,45 @@ YOUR_CLIENT_ID → ваш реальный Client ID (без .apps.googleusercon
 YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com → полный Client ID
 ```
 
-### 4. Настройте адрес сервера
+### 4. Настройте Firebase (FCM push-уведомления)
+
+Push-уведомления о новых сообщениях приходят через Firebase Cloud Messaging.  
+Для работы FCM необходимо настроить Firebase-проект и передать серверный ключ бэкенду.
+
+> **Важно:** Если не настроить FCM, приложение продолжит работать, но push-уведомления о сообщениях приходить не будут.
+
+#### 4.1 Подготовка Firebase-проекта
+
+1. Откройте [Firebase Console](https://console.firebase.google.com/) и выберите свой проект (или создайте новый).
+2. Перейдите в **Project Settings → Service Accounts**.
+3. Нажмите **Generate new private key** → **Generate Key** — скачается JSON-файл.  
+   Этот файл — **секрет**. Не добавляйте его в репозиторий.
+4. Перейдите в **Project Settings → General → Your apps**.
+5. Добавьте Android-приложение с package name `com.example.club_table_tracker`, если оно ещё не добавлено.
+6. Скачайте **`google-services.json`** из Firebase Console для этого Android-приложения.  
+   Этот файл нужен при сборке APK вместо заглушки `google-services.json.example`.
+
+#### 4.2 Настройка бэкенда
+
+Передайте содержимое JSON-файла из шага 4.1.3 в переменную окружения `Firebase__ServiceAccountJson` на сервере.
+
+**Для Docker Compose** — добавьте в `.env`:
+```
+Firebase__ServiceAccountJson={"type":"service_account","project_id":"your-project-id",...}
+```
+Значение — это содержимое скачанного JSON на одной строке (удалите переносы строк).  
+В `docker-compose.yml` переменная автоматически попадёт в контейнер бэкенда через `environment`.
+
+**Для GitHub Actions** (CI-деплой) — добавьте в **Settings → Secrets → Actions**:
+
+| Секрет | Обязателен | Значение |
+|--------|:----------:|---------|
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | ✅ (для FCM) | Содержимое JSON-файла сервисного аккаунта из Firebase Console (Project Settings → Service Accounts → Generate new private key) |
+| `GOOGLE_SERVICES_JSON` | ✅ (для FCM) | Содержимое `google-services.json` из Firebase Console. Без этого файла FCM не инициализируется во Flutter и приложение не получит FCM-токен. |
+
+> Если `GOOGLE_SERVICES_JSON` уже задан для Google Sign-In — он подходит и для FCM, отдельно добавлять не нужно.
+
+#### 4.3 Настройте адрес сервера
 
 В `lib/constants.dart` измените `apiBaseUrl`:
 ```dart
@@ -154,7 +193,8 @@ MobileFlutter/
     │   └── chat.dart               # Модели чата/сообщений
     ├── services/
     │   ├── api_service.dart        # HTTP клиент для API сервера
-    │   └── auth_service.dart       # Авторизация, JWT токены
+    │   ├── auth_service.dart       # Авторизация, JWT токены
+    │   └── fcm_service.dart        # FCM push-уведомления (регистрация/сброс токена)
     ├── screens/
     │   ├── home_screen.dart        # Главная страница
     │   ├── club_screen.dart        # Страница клуба
@@ -196,6 +236,7 @@ MobileFlutter/
 | PUT | `/api/user/city` | Изменить город |
 | PUT | `/api/user/game-systems` | Изменить игровые системы |
 | PUT | `/api/user/booking-colors` | Обновить цвета бронирований |
+| PUT | `/api/user/fcm-token` | Зарегистрировать / сбросить FCM токен устройства (Bearer) |
 | POST | `/api/auth/google` | Авторизация через Google |
 | GET | `/api/messenger/chats` | Список чатов |
 | GET | `/api/messenger/chats/{id}/messages` | Сообщения чата |
