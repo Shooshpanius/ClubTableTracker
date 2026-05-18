@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
 
+<<<<<<< HEAD
 /// Канал уведомлений для новых сообщений (должен совпадать с ChannelId на сервере)
 const _kMessagesChannelId = 'messages';
 const _kMessagesChannelName = 'Сообщения';
@@ -11,6 +12,17 @@ const _kMessagesChannelDesc = 'Уведомления о новых сообще
 
 final _localNotifications = FlutterLocalNotificationsPlugin();
 int _notificationId = 0;
+=======
+final FlutterLocalNotificationsPlugin _localNotifications =
+    FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'Уведомления',
+  description: 'Уведомления Club Table Tracker',
+  importance: Importance.high,
+);
+>>>>>>> 48a9b07 (FIX)
 
 /// Обработчик фоновых уведомлений (должен быть top-level функцией)
 @pragma('vm:entry-point')
@@ -28,7 +40,49 @@ class FcmService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
+<<<<<<< HEAD
     await _initLocalNotifications();
+=======
+    // Инициализируем flutter_local_notifications для показа foreground-уведомлений
+    await _localNotifications.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+    );
+
+    // Создаём канал уведомлений для Android 8+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_channel);
+
+    // iOS: показывать уведомления когда приложение открыто
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Показываем уведомление когда приложение на переднем плане (Android)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      if (notification == null) return;
+      _localNotifications.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            icon: '@mipmap/ic_launcher',
+          ),
+        ),
+      );
+    });
+>>>>>>> 48a9b07 (FIX)
 
     // Запрашиваем разрешение на уведомления (Android 13+, iOS)
     final settings = await _messaging.requestPermission(

@@ -42,6 +42,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Gradle cache/wrapper internals
+.gradle/
+android/.gradle/
+
 # Local configuration
 android/local.properties
 # Google Services — настоящий файл создаётся CI из секрета GOOGLE_SERVICES_JSON
