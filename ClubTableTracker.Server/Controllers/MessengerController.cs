@@ -251,7 +251,7 @@ public class MessengerController : ControllerBase
 
     // POST /api/messenger/chats/{chatId}/messages
     [HttpPost("chats/{chatId}/messages")]
-    public IActionResult SendMessage(int chatId, [FromBody] SendMessageRequest req)
+    public async Task<IActionResult> SendMessage(int chatId, [FromBody] SendMessageRequest req)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
@@ -310,7 +310,7 @@ public class MessengerController : ControllerBase
             .Cast<string>()
             .ToList();
         var senderDisplayName = sender.DisplayName ?? sender.Name;
-        _ = _fcm.SendMessageNotificationAsync(recipientTokens, senderDisplayName, message.Text, chatId);
+        await _fcm.SendMessageNotificationAsync(recipientTokens, senderDisplayName, message.Text, chatId);
 
         return Ok(new
         {
