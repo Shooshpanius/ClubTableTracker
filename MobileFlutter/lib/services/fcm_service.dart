@@ -26,8 +26,6 @@ class FcmService {
   static Future<void> init(String token) async {
     if (token.isEmpty) return;
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
     await _initLocalNotifications();
 
     // Запрашиваем разрешение на уведомления (Android 13+, iOS)
@@ -57,7 +55,12 @@ class FcmService {
   /// Инициализация flutter_local_notifications и создание канала "messages"
   static Future<void> _initLocalNotifications() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
     await _localNotifications.initialize(initSettings);
 
     const channel = AndroidNotificationChannel(

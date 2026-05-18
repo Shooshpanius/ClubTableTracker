@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'app_colors.dart';
 import 'screens/home_screen.dart';
@@ -14,10 +15,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ru', null);
   await Firebase.initializeApp();
+  // Фоновый обработчик должен быть зарегистрирован до runApp()
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token') ?? '';
   if (token.isNotEmpty) {
-    FcmService.init(token);
+    await FcmService.init(token);
   }
   runApp(ClubTableTrackerApp(initialToken: token));
 }
