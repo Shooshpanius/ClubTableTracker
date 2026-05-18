@@ -41,6 +41,11 @@ class _ClubScreenState extends State<ClubScreen>
   bool _loading = true;
   String? _error;
 
+  // ─── Вкладка «Столы»: состояние аккордеонов ────────────────────────────
+  int? _expandedTableId;
+  bool _calendarExpanded = false;
+  late DateTime _selectedDate;
+
   late TabController _tabController;
 
   String get _token => widget.token;
@@ -57,6 +62,8 @@ class _ClubScreenState extends State<ClubScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
     _loadAll();
   }
 
@@ -315,90 +322,283 @@ class _ClubScreenState extends State<ClubScreen>
 
   // ─── Вкладка: Столы ─────────────────────────────────────────────────────
 
-  Widget _buildTablesTab() {
-    if (_tables.isEmpty) {
-      return const Center(
-        child: Text('Нет столов',
-            style: TextStyle(color: AppColors.textSecondary)),
-      );
-    }
+  // Вспомогательные методы для вкладки «Столы»
 
-    final now = DateTime.now();
+  static int _parseTimeToMinutes(String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length < 2) return 0;
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
 
-    return RefreshIndicator(
-      onRefresh: _loadAll,
-      color: AppColors.accent,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _tables.length,
-        itemBuilder: (_, i) {
-          final table = _tables[i];
-          final tableBookings = _bookings
-              .where((b) => b.tableId == table.id)
-              .toList();
-          final activeBooking = tableBookings.firstWhere(
-            (b) =>
-                b.startDateTime.isBefore(now) &&
-                b.endDateTime.isAfter(now),
-            orElse: () => Booking(
-              id: -1,
-              tableId: -1,
-              startTime: '',
-              endTime: '',
-              user: BookingUser(id: '', name: ''),
-            ),
-          );
-          final isOccupied = activeBooking.id != -1;
+  static bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              border: Border.all(
-                color: isOccupied
-                    ? AppColors.statusRejected
-                    : AppColors.statusApproved,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListTile(
-              title: Text(
-                'Стол №${table.number}',
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  /// Возвращает понедельник недели, в которую входит [date].
+  static DateTime _weekMonday(DateTime date) {
+    return DateTime(date.year, date.month, date.day - (date.weekday - 1));
+  }
+
+  // Аккордеон-календарь (текущая неделя)
+  Widget _buildCalendarAccordion() {
+    final fmtFull = DateFormat('EEE, d MMM', 'ru');
+    final monday = _weekMonday(_selectedDate);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Заголовок аккордеона
+          InkWell(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            onTap: () =>
+                setState(() => _calendarExpanded = !_calendarExpanded),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
                 children: [
-                  if (table.size.isNotEmpty)
-                    Text('Размер: ${table.size}',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12)),
-                  if (table.supportedGames.isNotEmpty)
-                    Text(
-                      table.supportedGames,
+                  const Text('📅 ',
+                      style: TextStyle(fontSize: 15)),
+                  Expanded(
+                    child: Text(
+                      fmtFull.format(_selectedDate),
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold),
                     ),
-                  if (isOccupied)
-                    Text(
-                      '🎮 ${activeBooking.user.name}'
-                      '${activeBooking.gameSystem != null ? " · ${activeBooking.gameSystem}" : ""}',
-                      style: const TextStyle(
-                          color: AppColors.accentYellow, fontSize: 12),
-                    ),
+                  ),
+                  Icon(
+                    _calendarExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppColors.textSecondary,
+                  ),
                 ],
               ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+          ),
+
+          // Тело аккордеона — 7 дней текущей недели
+          if (_calendarExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(7, (i) {
+                  final day = monday.add(Duration(days: i));
+                  final isSelected = _isSameDay(day, _selectedDate);
+                  final isToday = _isSameDay(
+                      day, DateTime.now());
+                  const dayNames = [
+                    'Пн',
+                    'Вт',
+                    'Ср',
+                    'Чт',
+                    'Пт',
+                    'Сб',
+                    'Вс'
+                  ];
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedDate = day;
+                      _expandedTableId = null;
+                    }),
+                    child: Container(
+                      width: 38,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.accent
+                            : isToday
+                                ? AppColors.panelBg
+                                : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: isToday && !isSelected
+                            ? Border.all(
+                                color: AppColors.accent.withOpacity(0.5))
+                            : null,
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            dayNames[i],
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${day.day}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : isToday
+                                      ? AppColors.accent
+                                      : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Тонкая полоска занятости стола на выбранный день
+  Widget _buildOccupancyBar(GameTable table) {
+    final club = _club;
+    if (club == null) return const SizedBox(height: 4);
+
+    final openMin = _parseTimeToMinutes(club.openTime);
+    final closeMin = _parseTimeToMinutes(club.closeTime);
+    final total = closeMin - openMin;
+    if (total <= 0) return const SizedBox(height: 4);
+
+    final dayBookings = _bookings
+        .where((b) =>
+            b.tableId == table.id &&
+            _isSameDay(b.startDateTime, _selectedDate))
+        .toList()
+      ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
+
+    final List<(bool, int, int)> segments = [];
+    int cursor = openMin;
+    for (final b in dayBookings) {
+      final bStart = b.startDateTime.hour * 60 + b.startDateTime.minute;
+      final bEnd = b.endDateTime.hour * 60 + b.endDateTime.minute;
+      final sStart = bStart < openMin ? openMin : bStart;
+      final sEnd = bEnd > closeMin ? closeMin : bEnd;
+      if (sStart > cursor) segments.add((true, cursor, sStart));
+      if (sEnd > sStart) segments.add((false, sStart, sEnd));
+      cursor = sEnd > cursor ? sEnd : cursor;
+    }
+    if (cursor < closeMin) segments.add((true, cursor, closeMin));
+    if (segments.isEmpty) return const SizedBox(height: 4);
+
+    return SizedBox(
+      height: 4,
+      child: Row(
+        children: segments.map((seg) {
+          final flex = seg.$3 - seg.$2;
+          return Expanded(
+            flex: flex,
+            child: Container(
+              color: seg.$1
+                  ? AppColors.statusApproved
+                  : AppColors.statusRejected,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // Один элемент — аккордеон стола
+  Widget _buildTableAccordionItem(GameTable table) {
+    final now = DateTime.now();
+    final isExpanded = _expandedTableId == table.id;
+
+    // Определяем, занят ли стол прямо сейчас
+    final activeBooking = _bookings.firstWhere(
+      (b) =>
+          b.tableId == table.id &&
+          b.startDateTime.isBefore(now) &&
+          b.endDateTime.isAfter(now),
+      orElse: () => Booking(
+        id: -1,
+        tableId: -1,
+        startTime: '',
+        endTime: '',
+        user: BookingUser(id: '', name: ''),
+      ),
+    );
+    final isOccupied = activeBooking.id != -1;
+
+    // Бронирования на выбранный день
+    final dayBookings = _bookings
+        .where((b) =>
+            b.tableId == table.id &&
+            _isSameDay(b.startDateTime, _selectedDate))
+        .toList()
+      ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        border: Border.all(
+          color: isExpanded
+              ? AppColors.accentBlue
+              : isOccupied
+                  ? AppColors.statusRejected
+                  : AppColors.statusApproved,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ─── Заголовок ────────────────────────────────────────────────
+          InkWell(
+            borderRadius: isExpanded
+                ? const BorderRadius.vertical(top: Radius.circular(7))
+                : BorderRadius.circular(7),
+            onTap: () => setState(() {
+              _expandedTableId = isExpanded ? null : table.id;
+            }),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Стол №${table.number}',
+                          style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15),
+                        ),
+                        if (table.size.isNotEmpty)
+                          Text(
+                            table.size,
+                            style: const TextStyle(
+                                color: AppColors.textMuted, fontSize: 11),
+                          ),
+                        if (isOccupied)
+                          Text(
+                            '🎮 ${activeBooking.user.name}'
+                            '${activeBooking.gameSystem != null ? ' · ${activeBooking.gameSystem}' : ''}',
+                            style: const TextStyle(
+                                color: AppColors.accentYellow, fontSize: 11),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Бейдж занятости
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                        horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: isOccupied
                           ? AppColors.statusRejected
@@ -413,30 +613,95 @@ class _ClubScreenState extends State<ClubScreen>
                           fontWeight: FontWeight.bold),
                     ),
                   ),
-                  if (!isOccupied && _token.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: AppColors.accentPurple,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => _openBookingDialog(table),
-                      child: const Text(
-                        'Забронировать',
-                        style:
-                            TextStyle(color: Colors.white, fontSize: 10),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(width: 6),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
                 ],
               ),
-              onTap: () => _showTableDetail(table),
             ),
-          );
-        },
+          ),
+
+          // ─── Полоска занятости ────────────────────────────────────────
+          _buildOccupancyBar(table),
+
+          // ─── Тело аккордеона ─────────────────────────────────────────
+          if (isExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Кнопка «Забронировать»
+                  if (_token.isNotEmpty)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentPurple,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.add, size: 15,
+                            color: Colors.white),
+                        label: const Text('Забронировать',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 13)),
+                        onPressed: () => _openBookingDialog(table),
+                      ),
+                    ),
+
+                  const SizedBox(height: 10),
+
+                  // Бронирования на выбранный день
+                  if (dayBookings.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Нет бронирований на выбранный день',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    )
+                  else
+                    ...dayBookings
+                        .map((b) => _buildBookingTile(b))
+                        .toList(),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTablesTab() {
+    return RefreshIndicator(
+      onRefresh: _loadAll,
+      color: AppColors.accent,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Аккордеон-календарь
+          _buildCalendarAccordion(),
+
+          if (_tables.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 24),
+                child: Text('Нет столов',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            )
+          else
+            ..._tables.map(_buildTableAccordionItem).toList(),
+        ],
       ),
     );
   }
@@ -464,82 +729,6 @@ class _ClubScreenState extends State<ClubScreen>
           await _loadBookings();
           await _loadMyUpcoming();
         },
-      ),
-    );
-  }
-
-  void _showTableDetail(GameTable table) {
-    final now = DateTime.now();
-    final tableBookings = _bookings
-        .where((b) => b.tableId == table.id)
-        .where((b) => b.endDateTime.isAfter(now))
-        .toList()
-      ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.cardBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (_, ctrl) => Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 8, bottom: 4),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textMuted,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Text(
-                    'Стол №${table.number}',
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  if (_token.isNotEmpty)
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentPurple),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _openBookingDialog(table);
-                      },
-                      child: const Text('Забронировать'),
-                    ),
-                ],
-              ),
-            ),
-            const Divider(color: AppColors.border, height: 1),
-            Expanded(
-              child: tableBookings.isEmpty
-                  ? const Center(
-                      child: Text('Нет предстоящих бронирований',
-                          style: TextStyle(
-                              color: AppColors.textSecondary)))
-                  : ListView.builder(
-                      controller: ctrl,
-                      padding: const EdgeInsets.all(12),
-                      itemCount: tableBookings.length,
-                      itemBuilder: (_, i) =>
-                          _buildBookingTile(tableBookings[i]),
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }
