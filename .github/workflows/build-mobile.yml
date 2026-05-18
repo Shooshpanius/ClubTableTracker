@@ -282,14 +282,13 @@ jobs:
           # Экспортируем используемый keystore как артефакт (удобно для резервной копии).
           base64 -w 0 "${KEYSTORE_PATH}" > /tmp/keystore-export/keystore.b64
 
-      - name: Вывод SHA-1 используемого keystore
+      - name: Вывод SHA-1 keystore (предварительный)
         run: |
           SHA1=$(keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android 2>/dev/null | grep -i "SHA1:" | head -1 | awk -F': ' '{print $2}' | tr -d ' \r')
           # Добавляем пробел после каждой пары символов, чтобы GitHub не замаскировал значение
           # как секрет (маскировка работает по точному совпадению строки).
           SHA1_DISPLAY=$(echo "${SHA1}" | sed 's/\(..\)/\1 /g' | sed 's/ $//')
-          echo "::notice::SHA-1 keystore'а, которым подписан APK: ${SHA1_DISPLAY}"
-          echo "Зарегистрируйте этот SHA-1 в Google Cloud Console → Credentials → Android OAuth Client для пакета com.example.club_table_tracker"
+          echo "::notice::SHA-1 keystore-файла (до сборки): ${SHA1_DISPLAY}"
 
       - name: Сохранение keystore как артефакта
         if: always()
@@ -307,6 +306,30 @@ jobs:
       - name: Сборка APK
         working-directory: MobileFlutter
         run: flutter build apk --release
+
+      - name: Вывод SHA-1 фактически подписанного APK
+        run: |
+          APK="MobileFlutter/build/app/outputs/flutter-apk/app-release.apk"
+          # Ищем apksigner в Android build-tools (берём самую новую версию)
+          APKSIGNER=$(find "${ANDROID_HOME}/build-tools" -name "apksigner" -type f 2>/dev/null | sort -V | tail -1)
+          if [ -z "${APKSIGNER}" ]; then
+            echo "::warning::apksigner не найден — SHA-1 из APK не извлечён. Убедитесь, что Android build-tools установлены."
+          else
+            # apksigner выводит строки вида:
+            # "Signer #1 certificate SHA-1 digest: <hex без двоеточий>"
+            SHA1_HEX=$("${APKSIGNER}" verify --print-certs "${APK}" 2>/dev/null \
+              | grep -i "SHA-1 digest" | head -1 | awk '{print $NF}')
+            if [ -z "${SHA1_HEX}" ]; then
+              echo "::warning::Не удалось извлечь SHA-1 из APK через apksigner."
+            else
+              # Преобразуем hex в формат XX:XX:XX…
+              SHA1_COLON=$(echo "${SHA1_HEX}" | tr '[:lower:]' '[:upper:]' | fold -w2 | paste -sd: -)
+              # Разделяем пробелами для обхода маскировки секретов в GitHub Actions
+              SHA1_DISPLAY=$(echo "${SHA1_COLON}" | sed 's/:/: /g')
+              echo "::notice::SHA-1 сертификата, которым ФАКТИЧЕСКИ подписан APK: ${SHA1_DISPLAY}"
+              echo "::notice::Именно этот SHA-1 нужно зарегистрировать в Google Cloud Console → Credentials → Android OAuth Client (пакет com.example.club_table_tracker)."
+            fi
+          fi
 
       - name: Загрузка APK как артефакта
         uses: actions/upload-artifact@v4

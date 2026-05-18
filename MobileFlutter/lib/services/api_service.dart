@@ -77,6 +77,15 @@ class ApiService {
     return jsonDecode(res.body) as List<dynamic>;
   }
 
+  Future<List<dynamic>> getClubGallery(int clubId, String token) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/club/$clubId/gallery'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
   // ─── Бронирования ────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getBookings(int clubId, String token) async {
@@ -265,6 +274,15 @@ class ApiService {
       Uri.parse('$_base/api/user/booking-colors'),
       headers: _headers(token),
       body: jsonEncode({'bookingColors': jsonEncode(colors)}),
+    );
+    _checkStatus(res);
+  }
+
+  Future<void> updateFcmToken(String? fcmToken, String token) async {
+    final res = await _client.put(
+      Uri.parse('$_base/api/user/fcm-token'),
+      headers: _headers(token),
+      body: jsonEncode({'fcmToken': fcmToken}),
     );
     _checkStatus(res);
   }

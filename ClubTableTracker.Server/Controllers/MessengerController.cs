@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
+using ClubTableTracker.Server.Services;
 
 namespace ClubTableTracker.Server.Controllers;
 
@@ -13,7 +14,13 @@ namespace ClubTableTracker.Server.Controllers;
 public class MessengerController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public MessengerController(AppDbContext db) => _db = db;
+    private readonly FcmService _fcm;
+
+    public MessengerController(AppDbContext db, FcmService fcm)
+    {
+        _db = db;
+        _fcm = fcm;
+    }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -244,7 +251,7 @@ public class MessengerController : ControllerBase
 
     // POST /api/messenger/chats/{chatId}/messages
     [HttpPost("chats/{chatId}/messages")]
-    public IActionResult SendMessage(int chatId, [FromBody] SendMessageRequest req)
+    public async Task<IActionResult> SendMessage(int chatId, [FromBody] SendMessageRequest req)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
@@ -294,6 +301,17 @@ public class MessengerController : ControllerBase
         ChatMessage? replyMsg = req.ReplyToId.HasValue
             ? _db.ChatMessages.Include(m => m.Sender).FirstOrDefault(m => m.Id == req.ReplyToId.Value)
             : null;
+
+        // Отправляем push-уведомления всем участникам чата, кроме отправителя
+        var recipientTokens = _db.ChatMembers
+            .Where(m => m.ChatId == chatId && m.UserId != userId)
+            .Select(m => m.User.FcmToken)
+            .Where(t => t != null)
+            .Cast<string>()
+            .ToList();
+        var senderDisplayName = sender.DisplayName ?? sender.Name;
+        await _fcm.SendMessageNotificationAsync(recipientTokens, senderDisplayName, message.Text, chatId);
+
         return Ok(new
         {
             message.Id,

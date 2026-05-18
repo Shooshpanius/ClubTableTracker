@@ -12,6 +12,7 @@ import '../models/membership.dart';
 import '../models/club_event.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/fcm_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String token;
@@ -158,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = await _api.googleLogin(idToken);
       final token = data['token'] as String;
       await AuthService.saveToken(token);
+      FcmService.init(token);
       widget.onTokenChanged(token);
     } catch (e) {
       if (e is PlatformException &&
@@ -216,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
+    await FcmService.clearToken(_token);
     await _googleSignIn.signOut();
     await AuthService.clearToken();
     widget.onTokenChanged('');

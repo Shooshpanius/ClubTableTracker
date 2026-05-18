@@ -355,6 +355,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      // Отключаем автоматический сдвиг тела Scaffold при появлении клавиатуры,
+      // чтобы поле ввода само управляло отступом через viewInsets.bottom.
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         title: Row(
