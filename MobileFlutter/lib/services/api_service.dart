@@ -269,6 +269,15 @@ class ApiService {
     _checkStatus(res);
   }
 
+  Future<void> updateFcmToken(String? fcmToken, String token) async {
+    final res = await _client.put(
+      Uri.parse('$_base/api/user/fcm-token'),
+      headers: _headers(token),
+      body: jsonEncode({'fcmToken': fcmToken}),
+    );
+    _checkStatus(res);
+  }
+
   // ─── Авторизация ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> googleLogin(String credential) async {

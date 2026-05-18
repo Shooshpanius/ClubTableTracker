@@ -109,6 +109,24 @@ public class UserController : ControllerBase
 
         return Ok(new { user.City });
     }
+
+    [HttpPut("fcm-token")]
+    public IActionResult UpdateFcmToken([FromBody] UpdateFcmTokenRequest req)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = _db.Users.Find(userId);
+        if (user == null) return NotFound();
+
+        var token = req.FcmToken?.Trim();
+        if (token != null && token.Length > 300)
+            return BadRequest("FCM token must not exceed 300 characters");
+        user.FcmToken = string.IsNullOrEmpty(token) ? null : token;
+        _db.SaveChanges();
+
+        return NoContent();
+    }
 }
 
 public record UpdateDisplayNameRequest(string? DisplayName);
@@ -116,3 +134,4 @@ public record UpdateGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateBookingColorsRequest(string? BookingColors);
 public record UpdateBioRequest(string? Bio);
 public record UpdateCityRequest(string? City);
+public record UpdateFcmTokenRequest(string? FcmToken);

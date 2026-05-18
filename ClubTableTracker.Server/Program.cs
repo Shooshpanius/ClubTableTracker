@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
+using ClubTableTracker.Server.Services;
 using static ClubTableTracker.Server.Models.JwtConstants;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<FcmService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
