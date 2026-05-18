@@ -1,3 +1,3 @@
 // Номер и дата последнего принятого пулл реквеста
-export const LAST_PR_NUMBER = 240;
-export const LAST_PR_DATE = '17.05.2026';
+export const LAST_PR_NUMBER = 241;
+export const LAST_PR_DATE = '18.05.2026';
