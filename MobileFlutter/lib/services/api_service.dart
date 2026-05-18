@@ -77,6 +77,15 @@ class ApiService {
     return jsonDecode(res.body) as List<dynamic>;
   }
 
+  Future<List<dynamic>> getClubGallery(int clubId, String token) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/club/$clubId/gallery'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
   // ─── Бронирования ────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getBookings(int clubId, String token) async {

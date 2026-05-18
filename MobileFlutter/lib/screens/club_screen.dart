@@ -38,6 +38,7 @@ class _ClubScreenState extends State<ClubScreen>
   List<ClubEvent> _events = [];
   List<ClubMember> _members = [];
   List<UpcomingBooking> _myUpcoming = [];
+  List<Map<String, dynamic>> _gallery = [];
   bool _loading = true;
   String? _error;
 
@@ -56,12 +57,13 @@ class _ClubScreenState extends State<ClubScreen>
     Tab(text: 'Игры'),
     Tab(text: 'События'),
     Tab(text: 'Игроки'),
+    Tab(text: 'Фото'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _loadAll();
@@ -86,6 +88,7 @@ class _ClubScreenState extends State<ClubScreen>
         _loadEvents(),
         _loadMembers(),
         _loadMyUpcoming(),
+        _loadGallery(),
       ]);
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
@@ -150,6 +153,19 @@ class _ClubScreenState extends State<ClubScreen>
     if (mounted) {
       setState(() =>
           _myUpcoming = data.map((b) => UpcomingBooking.fromJson(b as Map<String, dynamic>)).toList());
+    }
+  }
+
+  Future<void> _loadGallery() async {
+    try {
+      final data = await _api.getClubGallery(widget.clubId, _token);
+      if (mounted) {
+        setState(() => _gallery = data
+            .map((p) => p as Map<String, dynamic>)
+            .toList());
+      }
+    } catch (_) {
+      // Галерея необязательна — ошибку игнорируем
     }
   }
 
@@ -315,6 +331,7 @@ class _ClubScreenState extends State<ClubScreen>
                     _buildGamesTab(),
                     _buildEventsTab(),
                     _buildPlayersTab(),
+                    _buildGalleryTab(),
                   ],
                 ),
     );
@@ -1178,6 +1195,75 @@ class _ClubScreenState extends State<ClubScreen>
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ─── Вкладка: Фото ──────────────────────────────────────────────────────
+
+  Widget _buildGalleryTab() {
+    if (_gallery.isEmpty) {
+      return const Center(
+        child: Text('Нет фотографий',
+            style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadGallery,
+      color: AppColors.accent,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(8),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 4 / 3,
+        ),
+        itemCount: _gallery.length,
+        itemBuilder: (_, i) {
+          final url = _gallery[i]['url'] as String? ?? '';
+          return GestureDetector(
+            onTap: () => _showPhotoViewer(url),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: AppColors.cardBg,
+                  child: const Icon(Icons.broken_image,
+                      color: AppColors.textMuted),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPhotoViewer(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: InteractiveViewer(
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.broken_image,
+                color: Colors.white54,
+                size: 64,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
