@@ -311,9 +311,8 @@ class ApiService {
   }
 
   Future<List<dynamic>> getChatMessages(int chatId, String token,
-      {int? before, int limit = 50}) async {
-    var url = '$_base/api/messenger/chats/$chatId/messages?limit=$limit';
-    if (before != null) url += '&before=$before';
+      {int skip = 0, int take = 50}) async {
+    var url = '$_base/api/messenger/chats/$chatId/messages?skip=$skip&take=$take';
     final res = await _client.get(Uri.parse(url), headers: _headers(token));
     _checkStatus(res);
     return jsonDecode(res.body) as List<dynamic>;

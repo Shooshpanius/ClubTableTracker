@@ -53,8 +53,8 @@ namespace ClubTableTracker.Server.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("FcmToken")
-                        .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
 
                     b.Property<string>("GoogleId")
                         .IsRequired()

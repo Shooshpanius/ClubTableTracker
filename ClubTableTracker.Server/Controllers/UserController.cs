@@ -120,8 +120,8 @@ public class UserController : ControllerBase
         if (user == null) return NotFound();
 
         var token = req.FcmToken?.Trim();
-        if (token != null && token.Length > 300)
-            return BadRequest("FCM token must not exceed 300 characters");
+        if (token != null && token.Length > 1024)
+            return BadRequest("FCM token must not exceed 1024 characters");
         user.FcmToken = string.IsNullOrEmpty(token) ? null : token;
         _db.SaveChanges();
 
