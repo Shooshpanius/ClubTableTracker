@@ -15,11 +15,13 @@ public class MessengerController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly FcmService _fcm;
+    private readonly ILogger<MessengerController> _logger;
 
-    public MessengerController(AppDbContext db, FcmService fcm)
+    public MessengerController(AppDbContext db, FcmService fcm, ILogger<MessengerController> logger)
     {
         _db = db;
         _fcm = fcm;
+        _logger = logger;
     }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -303,12 +305,20 @@ public class MessengerController : ControllerBase
             : null;
 
         // Отправляем push-уведомления всем участникам чата, кроме отправителя
-        var recipientTokens = _db.ChatMembers
+        var allMembers = _db.ChatMembers
             .Where(m => m.ChatId == chatId && m.UserId != userId)
-            .Select(m => m.User.FcmToken)
-            .Where(t => t != null)
-            .Cast<string>()
+            .Select(m => new { m.UserId, m.User.FcmToken })
             .ToList();
+
+        var recipientTokens = allMembers
+            .Where(m => m.FcmToken != null)
+            .Select(m => m.FcmToken!)
+            .ToList();
+
+        _logger.LogInformation(
+            "FCM[chatId={ChatId}] Получателей в чате: {Total}, из них с FCM-токеном: {WithToken}.",
+            chatId, allMembers.Count, recipientTokens.Count);
+
         var senderDisplayName = sender.DisplayName ?? sender.Name;
         await _fcm.SendMessageNotificationAsync(recipientTokens, senderDisplayName, message.Text, chatId);
 

@@ -11,8 +11,13 @@ namespace ClubTableTracker.Server.Controllers;
 public class UserController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<UserController> _logger;
 
-    public UserController(AppDbContext db) => _db = db;
+    public UserController(AppDbContext db, ILogger<UserController> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -124,6 +129,12 @@ public class UserController : ControllerBase
             return BadRequest("FCM token must not exceed 1024 characters");
         user.FcmToken = string.IsNullOrEmpty(token) ? null : token;
         _db.SaveChanges();
+
+        if (string.IsNullOrEmpty(token))
+            _logger.LogInformation("FCM токен сброшен для пользователя {UserId}.", userId);
+        else
+            _logger.LogInformation("FCM токен зарегистрирован для пользователя {UserId} (…{TokenHint}).",
+                userId, token.Length >= 8 ? token[^8..] : token);
 
         return NoContent();
     }
