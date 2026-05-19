@@ -349,6 +349,17 @@ class ApiService {
     _checkStatus(res);
   }
 
+  Future<Map<String, dynamic>> createDirectChat(
+      String otherUserId, String token) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/messenger/chats/direct'),
+      headers: _headers(token),
+      body: jsonEncode({'otherUserId': otherUserId}),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
   // ─── Вспомогательное ─────────────────────────────────────────────────────
 
   void _checkStatus(http.Response res) {

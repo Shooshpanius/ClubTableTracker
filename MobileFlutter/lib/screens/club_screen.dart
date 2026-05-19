@@ -8,10 +8,12 @@ import '../models/game_table.dart';
 import '../models/booking.dart';
 import '../models/club_event.dart';
 import '../models/club_member.dart';
+import '../models/chat.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/booking_dialog.dart';
 import '../widgets/user_avatar.dart';
+import 'messenger_screen.dart';
 
 class ClubScreen extends StatefulWidget {
   final int clubId;
@@ -145,6 +147,29 @@ class _ClubScreenState extends State<ClubScreen>
     if (mounted) {
       setState(() =>
           _members = data.map((m) => ClubMember.fromJson(m as Map<String, dynamic>)).toList());
+    }
+  }
+
+  Future<void> _openDirectChat(ClubMember member) async {
+    try {
+      final data = await _api.createDirectChat(member.id, _token);
+      if (!mounted) return;
+      final chatSummary = ChatSummary.fromJson(data);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chat: chatSummary,
+            token: _token,
+            api: _api,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть чат: $e')),
+      );
     }
   }
 
@@ -1143,6 +1168,17 @@ class _ClubScreenState extends State<ClubScreen>
                           if (member.hasKey)
                             const Text('🔑',
                                 style: TextStyle(fontSize: 12)),
+                          if (!member.isManualEntry) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _openDirectChat(member),
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: AppColors.textBlue,
+                                size: 18,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       if (member.city != null) ...[

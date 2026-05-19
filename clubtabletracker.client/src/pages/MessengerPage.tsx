@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { isTokenExpired } from '../utils/auth'
 
 interface ChatSummary {
@@ -97,6 +97,7 @@ const MAX_TEXTAREA_HEIGHT = 120
 
 export default function MessengerPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const token = localStorage.getItem('token') || ''
   const myId = token ? parseToken(token)?.id ?? '' : ''
 
@@ -186,6 +187,32 @@ export default function MessengerPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadChats()
   }, [loadChats])
+
+  // Автооткрытие личного чата если переходим с другой страницы (state.openDirectWithUserId)
+  const pendingDirectUserRef = useRef<string | null>(
+    (location.state as { openDirectWithUserId?: string } | null)?.openDirectWithUserId ?? null
+  )
+  useEffect(() => {
+    if (!pendingDirectUserRef.current) return
+    const userId = pendingDirectUserRef.current
+    pendingDirectUserRef.current = null
+    // Очищаем state чтобы при повторном визите не открывалось снова
+    window.history.replaceState({}, '')
+    void (async () => {
+      const res = await fetch('/api/messenger/chats/direct', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otherUserId: userId })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        await loadChats()
+        setActiveChatId(data.id)
+        if (window.innerWidth < 640) setMobileView('chat')
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, loadChats])
 
   const loadMessages = useCallback(async (chatId: number) => {
     const res = await fetch(`/api/messenger/chats/${chatId}/messages`, { headers: { Authorization: `Bearer ${token}` } })

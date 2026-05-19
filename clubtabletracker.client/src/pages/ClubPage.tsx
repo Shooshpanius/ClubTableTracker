@@ -1256,6 +1256,7 @@ export default function ClubPage() {
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Дата вступления</th>
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Информация</th>
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Системы</th>
+                          <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Чат</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1273,6 +1274,17 @@ export default function ClubPage() {
                               >
                                 Системы
                               </button>
+                            </td>
+                            <td style={{ padding: "6px 8px" }}>
+                              {!m.isManualEntry && (
+                                <button
+                                  onClick={() => navigate('/messages', { state: { openDirectWithUserId: m.id } })}
+                                  title="Написать сообщение"
+                                  style={{ background: "#0f3460", color: "#4a9eff", border: "1px solid #1a4a8a", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                                >
+                                  💬
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -1688,6 +1700,7 @@ export default function ClubPage() {
                           <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Дата вступления</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Информация</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Системы</th>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Чат</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1705,6 +1718,17 @@ export default function ClubPage() {
                               >
                                 Системы
                               </button>
+                            </td>
+                            <td style={{ padding: '8px 12px' }}>
+                              {!m.isManualEntry && (
+                                <button
+                                  onClick={() => navigate('/messages', { state: { openDirectWithUserId: m.id } })}
+                                  title='Написать сообщение'
+                                  style={{ background: '#0f3460', color: '#4a9eff', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}
+                                >
+                                  💬
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
