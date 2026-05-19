@@ -5,6 +5,7 @@ import '../constants.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'notification_debug_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String token;
@@ -209,6 +210,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildPreviewCard(),
                       const SizedBox(height: 12),
                       _buildGameSystemsCard(),
+                      const SizedBox(height: 12),
+                      _buildNotificationDebugCard(),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -470,6 +473,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: AppColors.statusApproved, fontSize: 13)),
           ],
         ],
+      );
+
+  Widget _buildNotificationDebugCard() => _buildCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '🔔 Отладка уведомлений',
+              style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Лог входящих FCM push-сообщений: когда пришло,\n'
+              'откуда (FG/BG/TAP), показано ли оповещение.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentBlue,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const NotificationDebugScreen()),
+              ),
+              icon: const Icon(Icons.notifications_active_outlined, size: 18),
+              label: const Text('Открыть лог'),
+            ),
+          ],
+        ),
       );
 
   InputDecoration _inputDecoration({String? hintText}) => InputDecoration(

@@ -17,6 +17,7 @@ services:
       Google__ClientId: ${VITE_GOOGLE_CLIENT_ID}
       Jwt__Secret: ${JWT_SECRET}
       MasterKey: ${MASTER_KEY}
+      Firebase__ServiceAccountJson: ${Firebase__ServiceAccountJson}
     volumes:
       - /opt/docker/data/_wh40k_club/club_uploads:/app/uploads
     depends_on:
