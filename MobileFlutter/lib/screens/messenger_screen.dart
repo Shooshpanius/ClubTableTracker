@@ -392,10 +392,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ─── Контекстное меню сообщения ─────────────────────────────────────────
 
+  static const _msgPreviewLen = 80;
+
   void _showMessageMenu(ChatMessage msg) {
     final isMe = msg.sender.id == _myId;
-    final preview = msg.text.length > 80
-        ? '${msg.text.substring(0, 80)}…'
+    final preview = msg.text.length > _msgPreviewLen
+        ? '${msg.text.substring(0, _msgPreviewLen)}…'
         : msg.text;
 
     showModalBottomSheet<void>(
@@ -483,11 +485,11 @@ class _ChatScreenState extends State<ChatScreen> {
     List<dynamic> chatsRaw;
     try {
       chatsRaw = await widget.api.getChats(widget.token);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Не удалось загрузить список чатов'),
+        SnackBar(
+          content: Text('Не удалось загрузить список чатов: $e'),
           backgroundColor: AppColors.accent,
         ),
       );
@@ -496,7 +498,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
 
     final preview =
-        text.length > 60 ? '«${text.substring(0, 60)}…»' : '«$text»';
+        text.length > _msgPreviewLen
+            ? '«${text.substring(0, _msgPreviewLen)}…»'
+            : '«$text»';
 
     await showDialog<void>(
       context: context,
@@ -584,7 +588,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _confirmDelete(int messageId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dlgCtx) => AlertDialog(
         backgroundColor: AppColors.cardBg,
         title: const Text('Удалить сообщение',
             style: TextStyle(color: AppColors.textPrimary)),
@@ -594,11 +598,11 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dlgCtx, false),
             child: const Text('Отмена'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dlgCtx, true),
             child: const Text('Удалить',
                 style: TextStyle(color: AppColors.accent)),
           ),
