@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../app_colors.dart';
@@ -303,6 +304,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _listItems = [];
   bool _loading = true;
   bool _sending = false;
+  bool _deleting = false;
   ChatMessage? _replyTo;
   Timer? _pollTimer;
 
@@ -386,6 +388,248 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
+  }
+
+  // ─── Контекстное меню сообщения ─────────────────────────────────────────
+
+  void _showMessageMenu(ChatMessage msg) {
+    final isMe = msg.sender.id == _myId;
+    final preview = msg.text.length > 80
+        ? '${msg.text.substring(0, 80)}…'
+        : msg.text;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E2D4A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Превью сообщения
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+              child: Text(
+                preview,
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 13),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Divider(color: Color(0xFF2A3A5E), height: 1),
+            _menuItem('↩  Ответить', () {
+              Navigator.pop(context);
+              setState(() => _replyTo = msg);
+            }),
+            _menuItem('↗  Переслать', () {
+              Navigator.pop(context);
+              _showForwardDialog(msg.text);
+            }),
+            _menuItem('📋  Скопировать', () {
+              Navigator.pop(context);
+              _copyMessage(msg.text);
+            }),
+            if (isMe)
+              _menuItem('🗑  Удалить', () {
+                Navigator.pop(context);
+                _confirmDelete(msg.id);
+              }, danger: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItem(String label, VoidCallback onTap, {bool danger = false}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFF1A2A40))),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: danger ? AppColors.accent : AppColors.textPrimary,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _copyMessage(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Скопировано'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Color(0xFF4A9EFF),
+      ),
+    );
+  }
+
+  Future<void> _showForwardDialog(String text) async {
+    // Загружаем список чатов
+    List<dynamic> chatsRaw;
+    try {
+      chatsRaw = await widget.api.getChats(widget.token);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Не удалось загрузить список чатов'),
+          backgroundColor: AppColors.accent,
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    final preview =
+        text.length > 60 ? '«${text.substring(0, 60)}…»' : '«$text»';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: const Text('Переслать в чат',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                preview,
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: chatsRaw.length,
+                  itemBuilder: (_, i) {
+                    final c = chatsRaw[i] as Map<String, dynamic>;
+                    final name = c['name'] as String? ?? '';
+                    final isGroup = c['isGroup'] as bool? ?? false;
+                    final isPublic = c['isPublic'] as bool? ?? false;
+                    final chatId = c['id'] as int;
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: UserAvatar(name: name, size: 32),
+                      title: Text(
+                        '${isGroup ? (isPublic ? '🌐 ' : '🔒 ') : ''}$name',
+                        style: const TextStyle(
+                            color: AppColors.textPrimary, fontSize: 13),
+                      ),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        await _forwardMessage(chatId, text);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _forwardMessage(int targetChatId, String text) async {
+    try {
+      await widget.api.sendMessage(targetChatId, text, widget.token);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Сообщение переслано'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Color(0xFF4A9EFF),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось переслать: $e'),
+          backgroundColor: AppColors.accent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete(int messageId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: const Text('Удалить сообщение',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text(
+          'Удалить сообщение? Это действие нельзя отменить.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Удалить',
+                style: TextStyle(color: AppColors.accent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _deleteMessage(messageId);
+  }
+
+  Future<void> _deleteMessage(int messageId) async {
+    if (_deleting) return;
+    setState(() => _deleting = true);
+    try {
+      await widget.api.deleteMessage(widget.chat.id, messageId, widget.token);
+      if (!mounted) return;
+      setState(() {
+        _messages = _messages.where((m) => m.id != messageId).toList();
+        _listItems = _buildListItems(_messages);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось удалить: $e'),
+          backgroundColor: AppColors.accent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 
   @override
@@ -493,9 +737,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final timeFmt = DateFormat('HH:mm');
 
     return GestureDetector(
-      onLongPress: () {
-        setState(() => _replyTo = msg);
-      },
+      onLongPress: () => _showMessageMenu(msg),
       child: Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
