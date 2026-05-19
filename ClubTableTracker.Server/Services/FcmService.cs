@@ -46,14 +46,25 @@ public class FcmService
         string messageText,
         int chatId)
     {
-        if (!_initialized) return;
+        if (!_initialized)
+        {
+            _logger.LogWarning("FCM[chatId={ChatId}] Firebase не инициализирован — уведомления отключены.", chatId);
+            return;
+        }
 
         var tokens = recipientTokens
             .Where(t => !string.IsNullOrWhiteSpace(t))
             .Distinct()
             .ToList();
 
-        if (tokens.Count == 0) return;
+        if (tokens.Count == 0)
+        {
+            _logger.LogInformation("FCM[chatId={ChatId}] Нет получателей с FCM-токеном — уведомления не отправляются.", chatId);
+            return;
+        }
+
+        _logger.LogInformation("FCM[chatId={ChatId}] Отправка уведомления от '{Sender}' — {Count} получател(ей).",
+            chatId, senderName, tokens.Count);
 
         var body = messageText.Length > 100
             ? messageText[..100] + "…"
@@ -82,23 +93,41 @@ public class FcmService
             }
         }).ToList();
 
+        var sent = 0;
+        var failed = 0;
+
         foreach (var msg in messages)
         {
+            // Показываем только последние 8 символов токена, чтобы можно было сопоставить с Flutter-логом
+            var tokenHint = msg.Token.Length >= 8 ? "…" + msg.Token[^8..] : msg.Token;
             try
             {
-                await FirebaseMessaging.DefaultInstance.SendAsync(msg);
+                var messageId = await FirebaseMessaging.DefaultInstance.SendAsync(msg);
+                sent++;
+                _logger.LogInformation(
+                    "FCM[chatId={ChatId}] ✓ Уведомление доставлено (токен={TokenHint}, fcmMessageId={MessageId}).",
+                    chatId, tokenHint, messageId);
             }
             catch (FirebaseMessagingException ex) when (
                 ex.MessagingErrorCode == MessagingErrorCode.Unregistered ||
                 ex.MessagingErrorCode == MessagingErrorCode.InvalidArgument)
             {
-                // Токен устарел или недействителен — не критично, логируем предупреждение
-                _logger.LogWarning("FCM token is no longer valid (chatId={ChatId}): {Error}", chatId, ex.Message);
+                failed++;
+                _logger.LogWarning(
+                    "FCM[chatId={ChatId}] ✗ Токен недействителен (токен={TokenHint}): {Error}",
+                    chatId, tokenHint, ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send FCM notification to token (chatId={ChatId})", chatId);
+                failed++;
+                _logger.LogError(ex,
+                    "FCM[chatId={ChatId}] ✗ Ошибка отправки (токен={TokenHint}).",
+                    chatId, tokenHint);
             }
         }
+
+        _logger.LogInformation(
+            "FCM[chatId={ChatId}] Итого: {Sent} доставлено, {Failed} ошибок из {Total}.",
+            chatId, sent, failed, tokens.Count);
     }
 }

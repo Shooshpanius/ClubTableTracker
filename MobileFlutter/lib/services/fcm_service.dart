@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,6 +18,9 @@ int _notificationId = 0;
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // При получении уведомления в фоне — ничего особенного делать не нужно,
   // Firebase сам показывает notification payload
+  debugPrint('[FCM] 📩 Фоновое уведомление получено: '
+      'title="${message.notification?.title}", '
+      'chatId=${message.data["chatId"]}');
 }
 
 class FcmService {
@@ -24,7 +28,10 @@ class FcmService {
 
   /// Инициализация FCM: запрос разрешений, получение токена, регистрация на сервере.
   static Future<void> init(String token) async {
-    if (token.isEmpty) return;
+    if (token.isEmpty) {
+      debugPrint('[FCM] init() пропущен: auth-токен пустой.');
+      return;
+    }
 
     await _initLocalNotifications();
 
@@ -35,21 +42,36 @@ class FcmService {
       sound: true,
     );
 
-    if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+    debugPrint('[FCM] Статус разрешения: ${settings.authorizationStatus}');
+
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      debugPrint('[FCM] Разрешение отклонено — уведомления не будут работать.');
+      return;
+    }
 
     // Получаем FCM токен
     final fcmToken = await _messaging.getToken();
-    if (fcmToken == null) return;
+    if (fcmToken == null) {
+      debugPrint('[FCM] Токен не получен (getToken() вернул null).');
+      return;
+    }
+
+    final hint = fcmToken.length >= 8 ? '…${fcmToken.substring(fcmToken.length - 8)}' : fcmToken;
+    debugPrint('[FCM] Токен получен ($hint).');
 
     await _saveFcmToken(fcmToken, token);
 
     // Обновляем токен при его обновлении Firebase
     _messaging.onTokenRefresh.listen((newToken) async {
+      final h = newToken.length >= 8 ? '…${newToken.substring(newToken.length - 8)}' : newToken;
+      debugPrint('[FCM] Токен обновлён Firebase ($h) — сохраняем на сервере.');
       await _saveFcmToken(newToken, token);
     });
 
     // Показываем уведомление при получении сообщения, когда приложение открыто
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+
+    debugPrint('[FCM] Инициализация завершена.');
   }
 
   /// Инициализация flutter_local_notifications и создание канала "messages"
@@ -77,8 +99,15 @@ class FcmService {
 
   /// Показ уведомления, когда приложение открыто (foreground)
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
+    debugPrint('[FCM] 📩 Foreground-уведомление получено: '
+        'title="${message.notification?.title}", '
+        'chatId=${message.data["chatId"]}');
+
     final notification = message.notification;
-    if (notification == null) return;
+    if (notification == null) {
+      debugPrint('[FCM] notification payload отсутствует — показ пропущен.');
+      return;
+    }
 
     const androidDetails = AndroidNotificationDetails(
       _kMessagesChannelId,
@@ -95,18 +124,25 @@ class FcmService {
       notification.body,
       details,
     );
+    debugPrint('[FCM] Foreground-уведомление показано (id=${_notificationId - 1}).');
   }
 
   static Future<void> _saveFcmToken(String fcmToken, String authToken) async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString('fcm_token');
-    if (stored == fcmToken) return; // токен не изменился
+    if (stored == fcmToken) {
+      debugPrint('[FCM] Токен не изменился — отправка на сервер пропущена.');
+      return;
+    }
 
     try {
       final api = ApiService();
       await api.updateFcmToken(fcmToken, authToken);
       await prefs.setString('fcm_token', fcmToken);
-    } catch (_) {
+      final hint = fcmToken.length >= 8 ? '…${fcmToken.substring(fcmToken.length - 8)}' : fcmToken;
+      debugPrint('[FCM] ✓ Токен успешно сохранён на сервере ($hint).');
+    } catch (e) {
+      debugPrint('[FCM] ✗ Не удалось сохранить токен на сервере: $e');
       // Не критично — при следующем запуске попробуем снова
     }
   }
@@ -115,12 +151,18 @@ class FcmService {
   static Future<void> clearToken(String authToken) async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString('fcm_token');
-    if (stored == null) return;
+    if (stored == null) {
+      debugPrint('[FCM] clearToken: токен не был сохранён локально.');
+      return;
+    }
 
     try {
       final api = ApiService();
       await api.updateFcmToken(null, authToken);
       await prefs.remove('fcm_token');
-    } catch (_) {}
+      debugPrint('[FCM] ✓ Токен сброшен на сервере.');
+    } catch (e) {
+      debugPrint('[FCM] ✗ Не удалось сбросить токен: $e');
+    }
   }
 }

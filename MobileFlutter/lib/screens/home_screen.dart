@@ -159,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = await _api.googleLogin(idToken);
       final token = data['token'] as String;
       await AuthService.saveToken(token);
-      FcmService.init(token);
+      await FcmService.init(token);
       widget.onTokenChanged(token);
     } catch (e) {
       if (e is PlatformException &&
