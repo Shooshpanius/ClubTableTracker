@@ -342,6 +342,14 @@ class ApiService {
     );
   }
 
+  Future<void> deleteMessage(int chatId, int messageId, String token) async {
+    final res = await _client.delete(
+      Uri.parse('$_base/api/messenger/chats/$chatId/messages/$messageId'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+  }
+
   // ─── Вспомогательное ─────────────────────────────────────────────────────
 
   void _checkStatus(http.Response res) {

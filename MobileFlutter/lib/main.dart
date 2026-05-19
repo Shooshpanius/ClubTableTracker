@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,14 +6,31 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'app_colors.dart';
+import 'constants.dart';
 import 'screens/home_screen.dart';
 import 'screens/club_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/messenger_screen.dart';
 import 'services/fcm_service.dart';
 
+/// Глобальный обход проверки SSL-сертификата для хоста API.
+/// Используется для загрузки изображений (Image.network / CachedNetworkImage),
+/// которые не проходят через кастомный IOClient из ApiService.
+/// Обход ограничен только хостом API (go40k.ru) — аналогично ApiService._buildClient().
+/// TODO: убрать после установки доверенного сертификата (Let's Encrypt / др.)
+class _AppHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final apiHost = Uri.parse(apiBaseUrl).host;
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => host == apiHost;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = _AppHttpOverrides();
   await initializeDateFormatting('ru', null);
   await Firebase.initializeApp();
   // Фоновый обработчик должен быть зарегистрирован до runApp()

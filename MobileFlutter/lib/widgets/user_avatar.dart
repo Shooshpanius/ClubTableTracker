@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_colors.dart';
+import '../constants.dart';
 
 /// Аватар пользователя: показывает инициалы или картинку
 class UserAvatar extends StatelessWidget {
@@ -27,7 +28,7 @@ class UserAvatar extends StatelessWidget {
         alignment: Alignment.center,
         child: url != null
             ? Image.network(
-                url!,
+                resolveMediaUrl(url!),
                 width: size,
                 height: size,
                 fit: BoxFit.cover,

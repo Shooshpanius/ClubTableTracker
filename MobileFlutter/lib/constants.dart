@@ -6,6 +6,18 @@ const int maxBookingDaysAhead = 30;
 /// При развёртывании замените на реальный адрес backend'а.
 const String apiBaseUrl = 'https://go40k.ru';
 
+/// Преобразует относительный URL в абсолютный, добавляя [apiBaseUrl].
+/// Абсолютные URL (начинающиеся с http:// или https://) возвращаются без изменений.
+/// Пустая строка возвращается без изменений.
+String resolveMediaUrl(String url) {
+  if (url.isEmpty) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Все медиа-URL сервера хранятся как относительные пути вида /uploads/...
+  // Убеждаемся, что путь начинается с '/', чтобы не получить невалидный URL.
+  final path = url.startsWith('/') ? url : '/$url';
+  return '$apiBaseUrl$path';
+}
+
 /// Web OAuth 2.0 Client ID для Google Sign-In.
 /// Подставляется CI через secrets.GOOGLE_CLIENT_ID.
 /// Вручную: замените на значение вида XXXXXXXX.apps.googleusercontent.com

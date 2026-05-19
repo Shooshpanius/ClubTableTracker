@@ -17,6 +17,8 @@ class ChatSummary {
   final int? clubId;
   final String name;
   final String? avatarUrl;
+  final String? clubShortName;
+  final String? clubBadgeColor;
   final LastMessage? lastMessage;
   final int unreadCount;
 
@@ -27,6 +29,8 @@ class ChatSummary {
     this.clubId,
     required this.name,
     this.avatarUrl,
+    this.clubShortName,
+    this.clubBadgeColor,
     this.lastMessage,
     this.unreadCount = 0,
   });
@@ -38,6 +42,8 @@ class ChatSummary {
         clubId: json['clubId'] as int?,
         name: json['name'] as String? ?? '',
         avatarUrl: json['avatarUrl'] as String?,
+        clubShortName: json['clubShortName'] as String?,
+        clubBadgeColor: json['clubBadgeColor'] as String?,
         lastMessage: json['lastMessage'] != null
             ? LastMessage.fromJson(
                 json['lastMessage'] as Map<String, dynamic>)
