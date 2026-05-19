@@ -16,6 +16,7 @@ import 'services/fcm_service.dart';
 /// Глобальный обход проверки SSL-сертификата для хоста API.
 /// Используется для загрузки изображений (Image.network / CachedNetworkImage),
 /// которые не проходят через кастомный IOClient из ApiService.
+/// Обход ограничен только хостом API (go40k.ru) — аналогично ApiService._buildClient().
 /// TODO: убрать после установки доверенного сертификата (Let's Encrypt / др.)
 class _AppHttpOverrides extends HttpOverrides {
   @override
