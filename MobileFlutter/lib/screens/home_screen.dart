@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: AppColors.darkBg,
                     child: club.logoUrl != null
                         ? CachedNetworkImage(
-                            imageUrl: club.logoUrl!,
+                            imageUrl: resolveMediaUrl(club.logoUrl!),
                             fit: BoxFit.cover,
                             placeholder: (_, __) => const Center(
                               child: Text('🎲', style: TextStyle(fontSize: 28)),

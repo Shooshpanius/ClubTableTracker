@@ -159,14 +159,40 @@ class _MessengerScreenState extends State<MessengerScreen> {
             ),
         ],
       ),
-      title: Text(
-        chat.name,
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: chat.unreadCount > 0
-              ? FontWeight.bold
-              : FontWeight.normal,
-        ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              chat.name,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: chat.unreadCount > 0
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (chat.isGroup && chat.clubShortName != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: _parseHexColor(
+                    chat.clubBadgeColor, AppColors.accentBlue),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                chat.clubShortName!,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ],
       ),
       subtitle: subtitle.isNotEmpty
           ? Text(
@@ -223,6 +249,17 @@ class _MessengerScreenState extends State<MessengerScreen> {
         _loadChats(silent: true);
       },
     );
+  }
+
+  /// Разбирает hex-цвет вида '#4a9eff' или '4a9eff' в [Color].
+  static Color _parseHexColor(String? hex, Color fallback) {
+    if (hex == null) return fallback;
+    try {
+      final v = hex.replaceAll('#', '');
+      return Color(0xFF000000 | int.parse(v, radix: 16));
+    } catch (_) {
+      return fallback;
+    }
   }
 
   String _fmtTime(String iso) {

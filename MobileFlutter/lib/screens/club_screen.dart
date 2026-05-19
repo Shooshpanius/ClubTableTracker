@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../app_colors.dart';
+import '../constants.dart';
 import '../models/club.dart';
 import '../models/game_table.dart';
 import '../models/booking.dart';
@@ -1222,7 +1223,7 @@ class _ClubScreenState extends State<ClubScreen>
         ),
         itemCount: _gallery.length,
         itemBuilder: (_, i) {
-          final url = _gallery[i]['url'] as String? ?? '';
+          final url = resolveMediaUrl(_gallery[i]['url'] as String? ?? '');
           return GestureDetector(
             onTap: () => _showPhotoViewer(url),
             child: ClipRRect(
