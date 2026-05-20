@@ -22,6 +22,8 @@ class BookingDialog extends StatefulWidget {
   final bool isModerator;
   final ApiService api;
   final VoidCallback onBookingCreated;
+  final DateTime? initialDate;
+  final int? initialStartMinutes; // минуты от полуночи
 
   const BookingDialog({
     super.key,
@@ -33,6 +35,8 @@ class BookingDialog extends StatefulWidget {
     required this.isModerator,
     required this.api,
     required this.onBookingCreated,
+    this.initialDate,
+    this.initialStartMinutes,
   });
 
   @override
@@ -53,6 +57,20 @@ class _BookingDialogState extends State<BookingDialog> {
   String? _error;
 
   static const _minutes = ['00', '15', '30', '45'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialDate != null) {
+      _selectedDate = widget.initialDate!;
+    }
+    if (widget.initialStartMinutes != null) {
+      _startHour =
+          (widget.initialStartMinutes! ~/ 60).toString().padLeft(2, '0');
+      _startMinute =
+          (widget.initialStartMinutes! % 60).toString().padLeft(2, '0');
+    }
+  }
 
   /// Количество слотов для приглашённых участников
   int get _inviteSlots =>

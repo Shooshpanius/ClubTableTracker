@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../app_colors.dart';
 import '../constants.dart';
@@ -9,10 +10,13 @@ import '../models/booking.dart';
 import '../models/club_event.dart';
 import '../models/club_member.dart';
 import '../models/chat.dart';
+import '../models/activity_log_entry.dart';
+import '../models/club_decoration.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/booking_dialog.dart';
 import '../widgets/user_avatar.dart';
+import 'campaign_map_screen.dart';
 import 'messenger_screen.dart';
 
 class ClubScreen extends StatefulWidget {
@@ -41,9 +45,15 @@ class _ClubScreenState extends State<ClubScreen>
   List<ClubEvent> _events = [];
   List<ClubMember> _members = [];
   List<UpcomingBooking> _myUpcoming = [];
+  List<UpcomingBooking> _allUpcoming = [];
+  List<ActivityLogEntry> _activityLog = [];
+  List<ClubDecoration> _decorations = [];
   List<Map<String, dynamic>> _gallery = [];
   bool _loading = true;
   String? _error;
+  bool _loadingAllUpcoming = false;
+  bool _loadingLog = false;
+  String _upcomingFilter = 'my'; // 'my' | 'all'
 
   // ─── Вкладка «Столы»: состояние аккордеонов ────────────────────────────
   int? _expandedTableId;
@@ -58,28 +68,45 @@ class _ClubScreenState extends State<ClubScreen>
   String get _myId => AuthService.getUserId(_token) ?? '';
 
   static const _tabs = [
-    Tab(text: 'Столы'),
-    Tab(text: 'Игры'),
-    Tab(text: 'События'),
-    Tab(text: 'Игроки'),
-    Tab(text: 'Фото'),
+    Tab(icon: Icon(Icons.table_bar, size: 18), text: 'Столы'),
+    Tab(icon: Icon(Icons.sports_esports, size: 18), text: 'Игры'),
+    Tab(icon: Icon(Icons.calendar_today, size: 18), text: 'Предстоящие'),
+    Tab(icon: Icon(Icons.history, size: 18), text: 'Лог'),
+    Tab(icon: Icon(Icons.emoji_events, size: 18), text: 'События'),
+    Tab(icon: Icon(Icons.people, size: 18), text: 'Игроки'),
+    Tab(icon: Icon(Icons.map, size: 18), text: 'Карта'),
+    Tab(icon: Icon(Icons.photo_library, size: 18), text: 'Фото'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _calViewYear = now.year;
     _calViewMonth = now.month;
+    _tabController.addListener(_onTabChanged);
     _loadAll();
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    // tab 2 = Предстоящие
+    if (_tabController.index == 2 && _allUpcoming.isEmpty) {
+      _loadAllUpcoming();
+    }
+    // tab 3 = Лог
+    if (_tabController.index == 3 && _activityLog.isEmpty) {
+      _loadActivityLog();
+    }
   }
 
   Future<void> _loadAll() async {
@@ -96,6 +123,7 @@ class _ClubScreenState extends State<ClubScreen>
         _loadMembers(),
         _loadMyUpcoming(),
         _loadGallery(),
+        _loadDecorations(),
       ]);
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
@@ -196,6 +224,55 @@ class _ClubScreenState extends State<ClubScreen>
       }
     } catch (_) {
       // Галерея необязательна — ошибку игнорируем
+    }
+  }
+
+  Future<void> _loadDecorations() async {
+    try {
+      final data =
+          await _api.getClubDecorations(widget.clubId, _token);
+      if (mounted) {
+        setState(() => _decorations = data
+            .map((d) =>
+                ClubDecoration.fromJson(d as Map<String, dynamic>))
+            .toList());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadAllUpcoming() async {
+    if (_loadingAllUpcoming) return;
+    setState(() => _loadingAllUpcoming = true);
+    try {
+      final data = await _api.getAllUpcomingBookings(
+          _token, clubId: widget.clubId);
+      if (mounted) {
+        setState(() => _allUpcoming = data
+            .map((b) =>
+                UpcomingBooking.fromJson(b as Map<String, dynamic>))
+            .toList());
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingAllUpcoming = false);
+    }
+  }
+
+  Future<void> _loadActivityLog() async {
+    if (_loadingLog) return;
+    setState(() => _loadingLog = true);
+    try {
+      final data =
+          await _api.getActivityLog(_token, clubId: widget.clubId);
+      if (mounted) {
+        setState(() => _activityLog = data
+            .map((e) => ActivityLogEntry.fromJson(
+                e as Map<String, dynamic>))
+            .toList());
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingLog = false);
     }
   }
 
@@ -328,9 +405,12 @@ class _ClubScreenState extends State<ClubScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: _tabs,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           labelColor: AppColors.accent,
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.accent,
+          labelStyle: const TextStyle(fontSize: 11),
         ),
       ),
       body: _loading
@@ -359,8 +439,11 @@ class _ClubScreenState extends State<ClubScreen>
                   children: [
                     _buildTablesTab(),
                     _buildGamesTab(),
+                    _buildUpcomingTab(),
+                    _buildLogTab(),
                     _buildEventsTab(),
                     _buildPlayersTab(),
+                    _buildMapTab(),
                     _buildGalleryTab(),
                   ],
                 ),
@@ -715,6 +798,175 @@ class _ClubScreenState extends State<ClubScreen>
     );
   }
 
+  // Вертикальный timeline занятости стола на выбранный день
+  Widget _buildTimeline(GameTable table) {
+    final club = _club;
+    if (club == null) return const SizedBox.shrink();
+
+    final openMin = _parseTimeToMinutes(club.openTime);
+    final closeMin = _parseTimeToMinutes(club.closeTime);
+    if (closeMin <= openMin) return const SizedBox.shrink();
+
+    final dayBookings = _bookings
+        .where((b) =>
+            b.tableId == table.id &&
+            _isSameDay(b.startDateTime, _selectedDate))
+        .toList()
+      ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
+
+    // Сегменты: (isFree, start, end, booking?)
+    final segs = <({bool isFree, int start, int end, Booking? booking})>[];
+    int cursor = openMin;
+    for (final b in dayBookings) {
+      final bStart = b.startDateTime.hour * 60 + b.startDateTime.minute;
+      final bEnd = b.endDateTime.hour * 60 + b.endDateTime.minute;
+      final sStart = bStart < openMin ? openMin : bStart;
+      final sEnd = bEnd > closeMin ? closeMin : bEnd;
+      if (sStart > cursor) segs.add((isFree: true, start: cursor, end: sStart, booking: null));
+      if (sEnd > sStart) segs.add((isFree: false, start: sStart, end: sEnd, booking: b));
+      cursor = sEnd > cursor ? sEnd : cursor;
+    }
+    if (cursor < closeMin) segs.add((isFree: true, start: cursor, end: closeMin, booking: null));
+
+    String fmtMin(int minutes) {
+      final h = minutes ~/ 60;
+      final m = minutes % 60;
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    }
+
+    const pixelsPerMinute = 1.6;
+    const minHeight = 28.0;
+
+    return Column(
+      children: segs.map((seg) {
+        final duration = seg.end - seg.start;
+        final height =
+            (duration * pixelsPerMinute).clamp(minHeight, double.infinity);
+        final isMe = !seg.isFree && seg.booking!.user.id == _myId;
+        final isParticipant = !seg.isFree &&
+            seg.booking!.participants.any((p) => p.id == _myId);
+
+        final Color bg;
+        final Color border;
+        if (seg.isFree) {
+          bg = AppColors.statusApproved.withOpacity(0.12);
+          border = AppColors.statusApproved.withOpacity(0.4);
+        } else if (isMe || isParticipant) {
+          bg = AppColors.accentOrange.withOpacity(0.2);
+          border = AppColors.accentOrange;
+        } else {
+          bg = AppColors.statusRejected.withOpacity(0.15);
+          border = AppColors.statusRejected.withOpacity(0.7);
+        }
+
+        return GestureDetector(
+          onTap: seg.isFree
+              ? () => _openBookingDialog(table,
+                  date: _selectedDate, startMin: seg.start)
+              : null,
+          child: Container(
+            height: height,
+            margin: const EdgeInsets.only(bottom: 2),
+            decoration: BoxDecoration(
+              color: bg,
+              border: Border.all(color: border, width: 0.8),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Метки времени
+                SizedBox(
+                  width: 46,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 3),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(fmtMin(seg.start),
+                            style: const TextStyle(
+                                fontSize: 9, color: AppColors.textMuted)),
+                        if (height >= 40)
+                          Text(fmtMin(seg.end),
+                              style: const TextStyle(
+                                  fontSize: 9, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                ),
+                // Разделитель
+                Container(
+                    width: 1,
+                    color: border.withOpacity(0.4),
+                    margin: const EdgeInsets.symmetric(vertical: 4)),
+                // Содержимое
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    child: seg.isFree
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              duration >= 30
+                                  ? '+ Забронировать  ${fmtMin(seg.start)}–${fmtMin(seg.end)}'
+                                  : '',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.statusApproved
+                                      .withOpacity(0.7)),
+                            ),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                seg.booking!.user.name,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (seg.booking!.participants.isNotEmpty &&
+                                  height >= 52)
+                                Text(
+                                  seg.booking!.participants
+                                      .map((p) => p.name)
+                                      .join(', '),
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              if (seg.booking!.gameSystem != null &&
+                                  height >= 52)
+                                Text(
+                                  seg.booking!.gameSystem!,
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.accentBlue,
+                                      fontStyle: FontStyle.italic),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   // Один элемент — аккордеон стола
   Widget _buildTableAccordionItem(GameTable table) {
     final now = DateTime.now();
@@ -842,43 +1094,14 @@ class _ClubScreenState extends State<ClubScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Кнопка «Забронировать»
-                  if (_token.isNotEmpty)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentPurple,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        icon: const Icon(Icons.add, size: 15,
-                            color: Colors.white),
-                        label: const Text('Забронировать',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 13)),
-                        onPressed: () => _openBookingDialog(table),
-                      ),
-                    ),
+                  // Timeline занятости
+                  _buildTimeline(table),
 
-                  const SizedBox(height: 10),
-
-                  // Бронирования на выбранный день
-                  if (dayBookings.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        'Нет бронирований на выбранный день',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
-                      ),
-                    )
-                  else
-                    ...dayBookings
-                        .map((b) => _buildBookingTile(b))
-                        .toList(),
+                  // Детали бронирований (действия: отменить, присоединиться и т.д.)
+                  if (dayBookings.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    ...dayBookings.map((b) => _buildBookingTile(b)).toList(),
+                  ],
                 ],
               ),
             ),
@@ -915,7 +1138,7 @@ class _ClubScreenState extends State<ClubScreen>
   bool get _isCurrentUserModerator =>
       _members.any((m) => m.id == _myId && m.isModerator);
 
-  void _openBookingDialog(GameTable table) {
+  void _openBookingDialog(GameTable table, {DateTime? date, int? startMin}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -935,6 +1158,8 @@ class _ClubScreenState extends State<ClubScreen>
           await _loadBookings();
           await _loadMyUpcoming();
         },
+        initialDate: date ?? _selectedDate,
+        initialStartMinutes: startMin,
       ),
     );
   }
@@ -1057,6 +1282,24 @@ class _ClubScreenState extends State<ClubScreen>
           onPressed: onTap,
           child: Text(label,
               style: TextStyle(color: color, fontSize: 11)),
+        ),
+      );
+
+  Widget _docLink(String label, String url) => GestureDetector(
+        onTap: () => launchUrl(Uri.parse(url),
+            mode: LaunchMode.externalApplication),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.panelBg,
+            border: Border.all(
+                color: AppColors.textBlue.withOpacity(0.5)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(label,
+              style: const TextStyle(
+                  color: AppColors.textBlue, fontSize: 11)),
         ),
       );
 
@@ -1241,6 +1484,12 @@ class _ClubScreenState extends State<ClubScreen>
             Text(event.gameSystem!,
                 style: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 11)),
+          if (event.gameMasterName != null) ...[
+            const SizedBox(height: 2),
+            Text('🎲 ГМ: ${event.gameMasterName!}',
+                style: const TextStyle(
+                    color: AppColors.textBlue, fontSize: 11)),
+          ],
           const SizedBox(height: 4),
           Text(
             'Участников: ${event.participants.length}'
@@ -1256,6 +1505,53 @@ class _ClubScreenState extends State<ClubScreen>
                   color: AppColors.textSecondary, fontSize: 11),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          // Документы и карты
+          if (event.regulationUrl != null ||
+              event.regulationUrl2 != null ||
+              event.missionMapUrl != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                if (event.regulationUrl != null)
+                  _docLink('📄 Регламент 1', event.regulationUrl!),
+                if (event.regulationUrl2 != null)
+                  _docLink('📄 Регламент 2', event.regulationUrl2!),
+                if (event.missionMapUrl != null)
+                  _docLink('🗺️ Карта миссий', event.missionMapUrl!),
+              ],
+            ),
+          ],
+          // Карта кампании
+          if (event.eventType.toLowerCase().contains('кампани') ||
+              event.eventType.toLowerCase().contains('campaign')) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CampaignMapScreen(
+                    eventId: event.id,
+                    eventTitle: event.title,
+                    token: _token,
+                    api: _api,
+                  ),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPurple.withOpacity(0.2),
+                  border: Border.all(color: AppColors.accentPurple),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('🗺️ Карта кампании',
+                    style: TextStyle(
+                        color: AppColors.textBlue, fontSize: 12)),
+              ),
             ),
           ],
           if (_token.isNotEmpty && event.isUpcoming) ...[
@@ -1395,6 +1691,408 @@ class _ClubScreenState extends State<ClubScreen>
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ─── Вкладка: Предстоящие ───────────────────────────────────────────────
+
+  Widget _buildUpcomingTab() {
+    final list =
+        _upcomingFilter == 'my' ? _myUpcoming : _allUpcoming;
+    final isLoading =
+        _upcomingFilter == 'all' && _loadingAllUpcoming;
+    final fmt = DateFormat('HH:mm');
+    final fmtDate =
+        DateFormat('d MMMM', 'ru');
+
+    // Группировка по дате
+    final grouped = <String, List<UpcomingBooking>>{};
+    for (final b in list) {
+      final local = b.startDateTime.toLocal();
+      final key = DateFormat(
+              'EEEE, d MMMM yyyy', 'ru')
+          .format(local);
+      grouped.putIfAbsent(key, () => []).add(b);
+    }
+
+    return Column(
+      children: [
+        // Переключатель
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              _filterBtn('Мои игры', 'my'),
+              const SizedBox(width: 8),
+              _filterBtn('Все игры', 'all'),
+            ],
+          ),
+        ),
+        // Список
+        Expanded(
+          child: isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.accent))
+              : list.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Нет предстоящих игр',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _upcomingFilter == 'my'
+                          ? _loadMyUpcoming
+                          : _loadAllUpcoming,
+                      color: AppColors.accent,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                            16, 0, 16, 16),
+                        itemCount: grouped.length,
+                        itemBuilder: (_, gi) {
+                          final dateLabel =
+                              grouped.keys.elementAt(gi);
+                          final items = grouped[dateLabel]!;
+                          return Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                        vertical: 8),
+                                child: Text(
+                                  _capitalize(dateLabel),
+                                  style: const TextStyle(
+                                      color: AppColors.accentYellow,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                              ),
+                              ...items.map((b) {
+                                final start =
+                                    b.startDateTime.toLocal();
+                                final end =
+                                    b.endDateTime.toLocal();
+                                final isMe =
+                                    b.user.id == _myId;
+                                return Container(
+                                  margin: const EdgeInsets.only(
+                                      bottom: 8),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cardBg,
+                                    border: Border.all(
+                                        color: AppColors.border),
+                                    borderRadius:
+                                        BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment
+                                                  .start,
+                                          children: [
+                                            Text(
+                                              'Стол №${b.tableNumber}',
+                                              style: const TextStyle(
+                                                  color: AppColors
+                                                      .textPrimary,
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .bold),
+                                            ),
+                                            Text(
+                                              '${fmt.format(start)} – ${fmt.format(end)}',
+                                              style: const TextStyle(
+                                                  color: AppColors
+                                                      .accentGreen,
+                                                  fontSize: 12),
+                                            ),
+                                            if (b.gameSystem !=
+                                                null)
+                                              Text(
+                                                b.gameSystem!,
+                                                style: const TextStyle(
+                                                    color: AppColors
+                                                        .accentBlue,
+                                                    fontSize: 11),
+                                              ),
+                                            Text(
+                                              b.user.name +
+                                                  (b.participants
+                                                          .isNotEmpty
+                                                      ? ' + ${b.participants.length}'
+                                                      : ''),
+                                              style: const TextStyle(
+                                                  color: AppColors
+                                                      .textSecondary,
+                                                  fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isMe)
+                                        const Text('⭐',
+                                            style: TextStyle(
+                                                fontSize: 14)),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filterBtn(String label, String value) => TextButton(
+        style: TextButton.styleFrom(
+          backgroundColor: _upcomingFilter == value
+              ? AppColors.accent
+              : AppColors.panelBg,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          minimumSize: Size.zero,
+        ),
+        onPressed: () {
+          setState(() => _upcomingFilter = value);
+          if (value == 'all' && _allUpcoming.isEmpty) {
+            _loadAllUpcoming();
+          }
+        },
+        child: Text(label,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12)),
+      );
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  // ─── Вкладка: Лог ───────────────────────────────────────────────────────
+
+  Widget _buildLogTab() {
+    if (_loadingLog) {
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.accent));
+    }
+    if (_activityLog.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Нет записей за последний месяц',
+                style: TextStyle(color: AppColors.textSecondary)),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _loadActivityLog,
+              child: const Text('Обновить',
+                  style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
+        ),
+      );
+    }
+    final fmtTs = DateFormat('dd.MM HH:mm');
+    final fmtTime = DateFormat('HH:mm');
+    return RefreshIndicator(
+      onRefresh: _loadActivityLog,
+      color: AppColors.accent,
+      child: ListView.builder(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: _activityLog.length,
+        itemBuilder: (_, i) {
+          final e = _activityLog[i];
+          final actionLabel =
+              logActionLabel[e.action] ?? e.action;
+          final actionColor =
+              Color(logActionColor[e.action] ?? 0xFFAAAAAA);
+          return Container(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            decoration: const BoxDecoration(
+              border: Border(
+                  bottom:
+                      BorderSide(color: AppColors.borderDark)),
+            ),
+            child: Wrap(
+              spacing: 4,
+              children: [
+                Text(
+                  fmtTs.format(e.timestampDateTime.toLocal()),
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 12),
+                ),
+                Text(
+                  e.userName,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                ),
+                Text(
+                  actionLabel,
+                  style: TextStyle(
+                      color: actionColor, fontSize: 12),
+                ),
+                const Text(
+                  'резерв стола',
+                  style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12),
+                ),
+                Text(
+                  '№${e.tableNumber}',
+                  style: const TextStyle(
+                      color: AppColors.accentYellow,
+                      fontSize: 12),
+                ),
+                const Text(
+                  'на',
+                  style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12),
+                ),
+                Text(
+                  '${DateFormat('dd.MM').format(e.bookingStart.toLocal())} '
+                  '${fmtTime.format(e.bookingStart.toLocal())}–'
+                  '${fmtTime.format(e.bookingEnd.toLocal())}',
+                  style: const TextStyle(
+                      color: AppColors.accentGreen, fontSize: 12),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── Вкладка: Карта ─────────────────────────────────────────────────────
+
+  Widget _buildMapTab() {
+    if (_tables.isEmpty) {
+      return const Center(
+        child: Text('Столы не настроены',
+            style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+
+    // Размер canvas по максимальным координатам столов + отступ
+    final maxX = _tables.fold<double>(
+        0,
+        (m, t) =>
+            (t.x + t.width).toDouble() > m
+                ? (t.x + t.width).toDouble()
+                : m);
+    final maxY = _tables.fold<double>(
+        0,
+        (m, t) =>
+            (t.y + t.height).toDouble() > m
+                ? (t.y + t.height).toDouble()
+                : m);
+    final canvasW = (maxX + 40).clamp(500.0, 1200.0);
+    final canvasH = (maxY + 40).clamp(300.0, 800.0);
+
+    // Карта количества игроков за каждым столом сегодня
+    final today = _selectedDate;
+    final bookingsToday = _bookings
+        .where((b) {
+          final d = b.startDateTime.toLocal();
+          return d.year == today.year &&
+              d.month == today.month &&
+              d.day == today.day;
+        })
+        .toList();
+    final countMap = <int, int>{};
+    for (final b in bookingsToday) {
+      countMap[b.tableId] =
+          (countMap[b.tableId] ?? 0) + 1 + b.participants.length;
+    }
+
+    return InteractiveViewer(
+      constrained: false,
+      minScale: 0.4,
+      maxScale: 3.0,
+      child: Container(
+        width: canvasW,
+        height: canvasH,
+        color: const Color(0xFF0A0A1A),
+        child: Stack(
+          children: [
+            // Декорации
+            ..._decorations.map((d) => Positioned(
+                  left: d.x.toDouble(),
+                  top: d.y.toDouble(),
+                  child: Container(
+                    width: d.width.toDouble(),
+                    height: d.height.toDouble(),
+                    decoration: BoxDecoration(
+                      color: d.fillColor,
+                      border: Border.all(
+                          color: d.borderColor, width: 2),
+                    ),
+                  ),
+                )),
+            // Столы
+            ..._tables.map((t) {
+              final cnt = countMap[t.id] ?? 0;
+              final bg = cnt == 0
+                  ? const Color(0xFF1A4A1A)
+                  : cnt >= 4
+                      ? const Color(0xFF4A1A1A)
+                      : const Color(0xFF4A4A1A);
+              return Positioned(
+                left: t.x.toDouble(),
+                top: t.y.toDouble(),
+                child: GestureDetector(
+                  onTap: () {
+                    // Перейти на вкладку «Столы» и открыть стол
+                    _tabController.animateTo(0);
+                    setState(() => _expandedTableId = t.id);
+                  },
+                  child: Container(
+                    width: t.width.toDouble(),
+                    height: t.height.toDouble(),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      border: Border.all(
+                          color: AppColors.panelBg, width: 2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '#${t.number}',
+                          style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11),
+                        ),
+                        Text(
+                          t.size,
+                          style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 9),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

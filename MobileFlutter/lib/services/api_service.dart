@@ -220,6 +220,36 @@ class ApiService {
     _checkStatus(res);
   }
 
+  Future<Map<String, dynamic>> getCampaignMap(
+      int eventId, String token) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/campaign-map/$eventId'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getActivityLog(String token, {int? clubId}) async {
+    final query = clubId != null ? '?clubId=$clubId' : '';
+    final res = await _client.get(
+      Uri.parse('$_base/api/booking/activity-log$query'),
+      headers: _headers(token),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getClubDecorations(int clubId, String token) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/club/$clubId/decorations'),
+      headers: _headers(token),
+    );
+    if (res.statusCode == 404) return [];
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
   // ─── Пользователь ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getMe(String token) async {
