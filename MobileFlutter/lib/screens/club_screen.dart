@@ -49,6 +49,8 @@ class _ClubScreenState extends State<ClubScreen>
   int? _expandedTableId;
   bool _calendarExpanded = false;
   late DateTime _selectedDate;
+  late int _calViewYear;
+  late int _calViewMonth;
 
   late TabController _tabController;
 
@@ -69,6 +71,8 @@ class _ClubScreenState extends State<ClubScreen>
     _tabController = TabController(length: 5, vsync: this);
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
+    _calViewYear = now.year;
+    _calViewMonth = now.month;
     _loadAll();
   }
 
@@ -381,10 +385,237 @@ class _ClubScreenState extends State<ClubScreen>
     return DateTime(date.year, date.month, date.day - (date.weekday - 1));
   }
 
-  // Аккордеон-календарь (текущая неделя)
+  // Аккордеон-календарь: свёрнуто — неделя, развёрнуто — месяц
   Widget _buildCalendarAccordion() {
-    final fmtFull = DateFormat('EEE, d MMM', 'ru');
     final monday = _weekMonday(_selectedDate);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Даты с бронированиями
+    final datesWithBookings = <String>{};
+    for (final b in _bookings) {
+      final d = b.startDateTime;
+      datesWithBookings.add('${d.year}-${d.month}-${d.day}');
+    }
+
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+    // ── Полоса текущей недели (всегда видна как «заголовок») ─────────
+    final weekRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: List.generate(7, (i) {
+        final day = monday.add(Duration(days: i));
+        final isSelected = _isSameDay(day, _selectedDate);
+        final isToday = _isSameDay(day, today);
+        final hasBookings =
+            datesWithBookings.contains('${day.year}-${day.month}-${day.day}');
+        return GestureDetector(
+          onTap: () => setState(() {
+            _selectedDate = day;
+            _expandedTableId = null;
+          }),
+          child: Container(
+            width: 38,
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            decoration: BoxDecoration(
+              color: isToday && !isSelected
+                  ? AppColors.panelBg
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: isSelected
+                  ? Border.all(color: AppColors.accent, width: 1.5)
+                  : isToday
+                      ? Border.all(color: AppColors.accentGreen.withOpacity(0.6))
+                      : null,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  dayNames[i],
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected ? AppColors.accent : AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected
+                        ? AppColors.accent
+                        : isToday
+                            ? AppColors.accentGreen
+                            : hasBookings
+                                ? AppColors.accentYellow
+                                : AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(
+                  height: 7,
+                  child: hasBookings && !isSelected
+                      ? Center(
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              color: AppColors.accentYellow,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+
+    // ── Полный месяц (тело аккордеона) ───────────────────────────────
+    final daysInMonth = DateTime(_calViewYear, _calViewMonth + 1, 0).day;
+    final startOffset =
+        DateTime(_calViewYear, _calViewMonth, 1).weekday - 1; // 0=Пн
+
+    final List<List<int?>> weeks = [];
+    int d = 1;
+    for (int w = 0; w < 6; w++) {
+      final List<int?> week = [];
+      for (int di = 0; di < 7; di++) {
+        final idx = w * 7 + di;
+        week.add(idx < startOffset || d > daysInMonth ? null : d++);
+      }
+      weeks.add(week);
+      if (d > daysInMonth) break;
+    }
+
+    const monthNames = [
+      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
+
+    final monthView = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+      child: Column(
+        children: [
+          // Навигация по месяцам
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left,
+                    color: AppColors.textSecondary, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() {
+                  if (_calViewMonth == 1) {
+                    _calViewMonth = 12;
+                    _calViewYear--;
+                  } else {
+                    _calViewMonth--;
+                  }
+                }),
+              ),
+              Text(
+                '${monthNames[_calViewMonth - 1]} $_calViewYear',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right,
+                    color: AppColors.textSecondary, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() {
+                  if (_calViewMonth == 12) {
+                    _calViewMonth = 1;
+                    _calViewYear++;
+                  } else {
+                    _calViewMonth++;
+                  }
+                }),
+              ),
+            ],
+          ),
+          // Заголовок дней недели
+          Row(
+            children: dayNames
+                .map((n) => Expanded(
+                      child: Text(
+                        n,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 10, color: AppColors.textMuted),
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 4),
+          // Сетка дней
+          ...weeks.map((week) => Row(
+                children: week.map((dayNum) {
+                  if (dayNum == null) {
+                    return const Expanded(child: SizedBox(height: 36));
+                  }
+                  final cellDate =
+                      DateTime(_calViewYear, _calViewMonth, dayNum);
+                  final isSelected = _isSameDay(cellDate, _selectedDate);
+                  final isTodayCell = _isSameDay(cellDate, today);
+                  final dateKey =
+                      '${cellDate.year}-${cellDate.month}-${cellDate.day}';
+                  final hasBookings = datesWithBookings.contains(dateKey);
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedDate = cellDate;
+                        _expandedTableId = null;
+                      }),
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: hasBookings && !isSelected
+                              ? AppColors.accentYellow
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                          border: isSelected
+                              ? Border.all(color: AppColors.accent, width: 1.5)
+                              : isTodayCell
+                                  ? Border.all(
+                                      color: AppColors.accentGreen, width: 1.5)
+                                  : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$dayNum',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isTodayCell || isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.accent
+                                : hasBookings
+                                    ? const Color(0xFF222222)
+                                    : isTodayCell
+                                        ? AppColors.accentGreen
+                                        : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              )),
+        ],
+      ),
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -395,27 +626,25 @@ class _ClubScreenState extends State<ClubScreen>
       ),
       child: Column(
         children: [
-          // Заголовок аккордеона
+          // Заголовок: полоса недели + стрелка
           InkWell(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-            onTap: () =>
-                setState(() => _calendarExpanded = !_calendarExpanded),
+            borderRadius: _calendarExpanded
+                ? const BorderRadius.vertical(top: Radius.circular(8))
+                : BorderRadius.circular(8),
+            onTap: () {
+              setState(() {
+                _calendarExpanded = !_calendarExpanded;
+                if (_calendarExpanded) {
+                  _calViewYear = _selectedDate.year;
+                  _calViewMonth = _selectedDate.month;
+                }
+              });
+            },
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
               child: Row(
                 children: [
-                  const Text('📅 ',
-                      style: TextStyle(fontSize: 15)),
-                  Expanded(
-                    child: Text(
-                      fmtFull.format(_selectedDate),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  Expanded(child: weekRow),
                   Icon(
                     _calendarExpanded
                         ? Icons.keyboard_arrow_up
@@ -427,77 +656,11 @@ class _ClubScreenState extends State<ClubScreen>
             ),
           ),
 
-          // Тело аккордеона — 7 дней текущей недели
-          if (_calendarExpanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(7, (i) {
-                  final day = monday.add(Duration(days: i));
-                  final isSelected = _isSameDay(day, _selectedDate);
-                  final isToday = _isSameDay(
-                      day, DateTime.now());
-                  const dayNames = [
-                    'Пн',
-                    'Вт',
-                    'Ср',
-                    'Чт',
-                    'Пт',
-                    'Сб',
-                    'Вс'
-                  ];
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      _selectedDate = day;
-                      _expandedTableId = null;
-                    }),
-                    child: Container(
-                      width: 38,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.accent
-                            : isToday
-                                ? AppColors.panelBg
-                                : Colors.transparent,
-                        borderRadius: BorderRadius.circular(6),
-                        border: isToday && !isSelected
-                            ? Border.all(
-                                color: AppColors.accent.withOpacity(0.5))
-                            : null,
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            dayNames[i],
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.textMuted,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? Colors.white
-                                  : isToday
-                                      ? AppColors.accent
-                                      : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
+          // Тело: полный месяц
+          if (_calendarExpanded) ...[
+            const Divider(height: 1, color: AppColors.border),
+            monthView,
+          ],
         ],
       ),
     );
