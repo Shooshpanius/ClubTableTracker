@@ -43,6 +43,22 @@ jobs:
             echo "export const LAST_PR_DATE = '${PR_DATE}';"
           } > clubtabletracker.client/src/version.ts
 
+      - name: Синхронизация web-версии в version.dart
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
+        run: |
+          set -e
+          PR_DATE=$(date -d "$MERGED_AT" '+%d.%m.%Y')
+          MOBILE_BUILD=$(cat MobileFlutter/mobile_build_number.txt | tr -d '[:space:]')
+
+          sed -i "s|const String _rawWebVersion = '.*';|const String _rawWebVersion = '${PR_NUMBER}';|" MobileFlutter/lib/version.dart
+          sed -i "s|const String _rawBuildNumber = '.*';|const String _rawBuildNumber = '${MOBILE_BUILD}';|" MobileFlutter/lib/version.dart
+          sed -i "s|const String _rawBuildDate = '.*';|const String _rawBuildDate = '${PR_DATE}';|" MobileFlutter/lib/version.dart
+
+          # Обновляем версию в pubspec.yaml: major.minor = PR_NUMBER.MOBILE_BUILD, build = MOBILE_BUILD
+          sed -i "s|^version: .*|version: ${PR_NUMBER}.${MOBILE_BUILD}+${MOBILE_BUILD}|" MobileFlutter/pubspec.yaml
+
       - name: Коммит и публикация изменений
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -50,6 +66,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add clubtabletracker.client/src/version.ts
+          git add MobileFlutter/lib/version.dart
+          git add MobileFlutter/pubspec.yaml
           git diff --cached --quiet || git commit -m "chore: обновление версии — PR #${PR_NUMBER}"
           git push
 

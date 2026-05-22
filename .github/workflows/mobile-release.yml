@@ -1,0 +1,83 @@
+name: Выпуск мобильной сборки
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: 'Краткое описание изменений (необязательно)'
+        required: false
+        default: ''
+
+jobs:
+  bump-mobile-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Получение кода
+        uses: actions/checkout@v6
+        with:
+          ref: master
+
+      - name: Инкремент номера мобильного билда
+        id: bump
+        run: |
+          set -e
+          CURRENT=$(cat MobileFlutter/mobile_build_number.txt | tr -d '[:space:]')
+          NEW_BUILD=$((CURRENT + 1))
+          echo "$NEW_BUILD" > MobileFlutter/mobile_build_number.txt
+          echo "mobile_build=$NEW_BUILD" >> "$GITHUB_OUTPUT"
+          echo "Новый номер мобильного билда: $NEW_BUILD"
+
+      - name: Получение текущей web-версии из version.ts
+        id: webver
+        run: |
+          set -e
+          PR_NUMBER=$(grep 'LAST_PR_NUMBER' clubtabletracker.client/src/version.ts | grep -o '[0-9]*')
+          PR_DATE=$(grep 'LAST_PR_DATE' clubtabletracker.client/src/version.ts | grep -oP "'\K[^']+")
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr_date=$PR_DATE"     >> "$GITHUB_OUTPUT"
+
+      - name: Обновление version.dart и pubspec.yaml
+        env:
+          PR_NUMBER: ${{ steps.webver.outputs.pr_number }}
+          PR_DATE: ${{ steps.webver.outputs.pr_date }}
+          MOBILE_BUILD: ${{ steps.bump.outputs.mobile_build }}
+        run: |
+          set -e
+          sed -i "s|const String _rawWebVersion = '.*';|const String _rawWebVersion = '${PR_NUMBER}';|" MobileFlutter/lib/version.dart
+          sed -i "s|const String _rawBuildNumber = '.*';|const String _rawBuildNumber = '${MOBILE_BUILD}';|" MobileFlutter/lib/version.dart
+          sed -i "s|const String _rawBuildDate = '.*';|const String _rawBuildDate = '${PR_DATE}';|" MobileFlutter/lib/version.dart
+
+          # pubspec.yaml: version: PR_NUMBER.MOBILE_BUILD+MOBILE_BUILD
+          sed -i "s|^version: .*|version: ${PR_NUMBER}.${MOBILE_BUILD}+${MOBILE_BUILD}|" MobileFlutter/pubspec.yaml
+
+      - name: Коммит и публикация изменений
+        env:
+          MOBILE_BUILD: ${{ steps.bump.outputs.mobile_build }}
+          PR_NUMBER: ${{ steps.webver.outputs.pr_number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add MobileFlutter/mobile_build_number.txt
+          git add MobileFlutter/lib/version.dart
+          git add MobileFlutter/pubspec.yaml
+          git diff --cached --quiet || git commit -m "chore: мобильная сборка v${PR_NUMBER}.${MOBILE_BUILD}"
+          git push
+
+      - name: Создание GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mobile-v${{ steps.webver.outputs.pr_number }}.${{ steps.bump.outputs.mobile_build }}
+          name: "Mobile v${{ steps.webver.outputs.pr_number }}.${{ steps.bump.outputs.mobile_build }}"
+          body: |
+            Версия мобильного приложения: **${{ steps.webver.outputs.pr_number }}.${{ steps.bump.outputs.mobile_build }}**
+            Веб-версия (PR): ${{ steps.webver.outputs.pr_number }}
+            Мобильный билд: ${{ steps.bump.outputs.mobile_build }}
+
+            ${{ github.event.inputs.notes }}
+          draft: false
+          prerelease: false
