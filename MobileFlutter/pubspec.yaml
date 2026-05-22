@@ -1,6 +1,6 @@
 name: club_table_tracker
 description: Mobile app for Club Table Tracker - table booking system for wargaming clubs.
-version: 1.0.0+1
+version: 1.0.4+4
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -9,30 +9,30 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # HTTP запросы
+  # HTTP Р В·Р В°Р С—РЎР‚Р С•РЎРѓРЎвЂ№
   http: ^1.2.1
 
-  # Локальное хранилище (JWT токен, настройки)
+  # Р вЂєР С•Р С”Р В°Р В»РЎРЉР Р…Р С•Р Вµ РЎвЂ¦РЎР‚Р В°Р Р…Р С‘Р В»Р С‘РЎвЂ°Р Вµ (JWT РЎвЂљР С•Р С”Р ВµР Р…, Р Р…Р В°РЎРѓРЎвЂљРЎР‚Р С•Р в„–Р С”Р С‘)
   shared_preferences: ^2.3.1
 
   # Google Sign-In
   google_sign_in: ^6.2.1
 
-  # Форматирование дат
+  # Р В¤Р С•РЎР‚Р СР В°РЎвЂљР С‘РЎР‚Р С•Р Р†Р В°Р Р…Р С‘Р Вµ Р Т‘Р В°РЎвЂљ
   intl: ^0.19.0
 
-  # Кеширование сетевых изображений
+  # Р С™Р ВµРЎв‚¬Р С‘РЎР‚Р С•Р Р†Р В°Р Р…Р С‘Р Вµ РЎРѓР ВµРЎвЂљР ВµР Р†РЎвЂ№РЎвЂ¦ Р С‘Р В·Р С•Р В±РЎР‚Р В°Р В¶Р ВµР Р…Р С‘Р в„–
   cached_network_image: ^3.4.0
 
-  # Открытие URL в браузере / файловом просмотрщике
+  # Р С›РЎвЂљР С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ URL Р Р† Р В±РЎР‚Р В°РЎС“Р В·Р ВµРЎР‚Р Вµ / РЎвЂћР В°Р в„–Р В»Р С•Р Р†Р С•Р С Р С—РЎР‚Р С•РЎРѓР СР С•РЎвЂљРЎР‚РЎвЂ°Р С‘Р С”Р Вµ
   url_launcher: ^6.3.0
 
-  # Firebase (push-уведомления)
+  # Firebase (push-РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘РЎРЏ)
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3
   flutter_local_notifications: ^18.0.0
 
-  # Иконки
+  # Р ВР С”Р С•Р Р…Р С”Р С‘
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

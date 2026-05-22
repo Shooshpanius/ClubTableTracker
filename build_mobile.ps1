@@ -1,36 +1,46 @@
 #!/usr/bin/env pwsh
-# Локальная сборка Flutter APK с подстановкой версии
+# Локальная сборка Flutter APK с автоинкрементом версии
+# Версия 1.0.{BUILD_NUMBER} синхронизируется между pubspec.yaml и отображением в приложении
+#
+# Использование:
+#   .\build_mobile.ps1            # инкрементирует билд-номер и собирает
+#   .\build_mobile.ps1 -NoIncrement  # пересборка без инкремента
+param(
+    [switch]$NoIncrement
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = $PSScriptRoot
-$versionDartPath = Join-Path $repoRoot 'MobileFlutter\lib\version.dart'
-$mobileBuildNumberPath = Join-Path $repoRoot 'MobileFlutter\mobile_build_number.txt'
-$webVersionTsPath = Join-Path $repoRoot 'clubtabletracker.client\src\version.ts'
+$pubspecPath     = Join-Path $repoRoot 'MobileFlutter\pubspec.yaml'
+$buildNumberPath = Join-Path $repoRoot 'MobileFlutter\mobile_build_number.txt'
 
-# Читаем значения
-$buildNumber = (Get-Content $mobileBuildNumberPath -Raw).Trim()
-$webVersionTs = Get-Content $webVersionTsPath -Raw
-$webVersion = [regex]::Match($webVersionTs, 'LAST_PR_NUMBER\s*=\s*(\d+)').Groups[1].Value
-$buildDate = (Get-Date).ToString('yyyy-MM-dd')
+# Читаем и (при необходимости) инкрементируем билд-номер
+$buildNumber = [int](Get-Content $buildNumberPath -Raw).Trim()
+if (-not $NoIncrement) {
+    $buildNumber++
+    Set-Content $buildNumberPath $buildNumber -NoNewline -Encoding UTF8
+}
 
-Write-Host "Версия: $webVersion.$buildNumber от $buildDate"
+$buildDate   = (Get-Date).ToString('yyyy-MM-dd')
+$versionName = "1.0.$buildNumber"   # отображается в настройках Android
+$versionCode = $buildNumber         # целое число для Google Play
 
-# Бэкап и замена
-$originalContent = Get-Content $versionDartPath -Raw
-$updatedContent = $originalContent `
-    -replace "= 'WEB_VERSION'", "= '$webVersion'" `
-    -replace "= 'BUILD_NUMBER'", "= '$buildNumber'" `
-    -replace "= 'BUILD_DATE'", "= '$buildDate'"
+Write-Host "Версия: $versionName (code $versionCode) от $buildDate"
 
-Set-Content $versionDartPath $updatedContent -NoNewline -Encoding UTF8
+# Обновляем pubspec.yaml: строка вида  version: 1.0.X+X
+$pubspecContent = [System.IO.File]::ReadAllText($pubspecPath, [System.Text.UTF8Encoding]::new($false))
+$pubspecUpdated = $pubspecContent -replace '(?m)^version:.*$', "version: $versionName+$versionCode"
+[System.IO.File]::WriteAllText($pubspecPath, $pubspecUpdated, [System.Text.UTF8Encoding]::new($false))
 
+# Сборка — версия передаётся через --dart-define (version.dart использует String.fromEnvironment)
+Push-Location (Join-Path $repoRoot 'MobileFlutter')
 try {
-    Push-Location (Join-Path $repoRoot 'MobileFlutter')
-    & D:\flutter\flutter\bin\flutter.bat build apk
-    if ($LASTEXITCODE -ne 0) { throw "flutter build apk failed" }
+    & D:\flutter\flutter\bin\flutter.bat build apk `
+        --dart-define=BUILD_NUMBER=$buildNumber `
+        --dart-define=BUILD_DATE=$buildDate
+    if ($LASTEXITCODE -ne 0) { throw "flutter build apk завершился с ошибкой" }
     Write-Host "`nAPK: MobileFlutter\build\app\outputs\flutter-apk\app-release.apk"
 } finally {
-    # Восстанавливаем version.dart
-    Set-Content $versionDartPath $originalContent -NoNewline -Encoding UTF8
     Pop-Location
 }

@@ -399,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Beta v0.0.$appBuildNumber от $appBuildDate',
+                        'Beta v$appVersion от $appBuildDate',
                         style: const TextStyle(
                           color: AppColors.textBlue,
                           fontSize: 11,
