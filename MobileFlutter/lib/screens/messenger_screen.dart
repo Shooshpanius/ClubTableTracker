@@ -821,12 +821,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputArea() {
+    final mq = MediaQuery.of(context);
     return Container(
       padding: EdgeInsets.only(
         left: 12,
         right: 8,
         top: 8,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 8,
+        // viewInsets.bottom  — высота клавиатуры
+        // viewPadding.bottom — высота навигационной панели Android (жесты / кнопки)
+        bottom: mq.viewInsets.bottom + mq.viewPadding.bottom + 8,
       ),
       decoration: const BoxDecoration(
         color: AppColors.cardBg,
