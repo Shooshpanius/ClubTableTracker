@@ -1,6 +1,6 @@
 name: club_table_tracker
 description: Mobile app for Club Table Tracker - table booking system for wargaming clubs.
-version: 1.0.5+5
+version: 1.0.6+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
