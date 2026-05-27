@@ -1621,6 +1621,9 @@ class _ClubScreenState extends State<ClubScreen>
                                   fontSize: 13),
                             ),
                           ),
+                          if (member.isAdmin)
+                            const Text('👑',
+                                style: TextStyle(fontSize: 12)),
                           if (member.isModerator)
                             const Text('⚙️',
                                 style: TextStyle(fontSize: 12)),

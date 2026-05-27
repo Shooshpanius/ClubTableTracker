@@ -26,7 +26,7 @@ export interface BookingBase { id: number; user: { id: string; name: string }; o
 export interface Booking extends BookingBase { tableId: number; startTime: string; endTime: string; gameSystem?: string }
 export interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 export interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
-export interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; city?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isManualEntry?: boolean }
+export interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; city?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isAdmin?: boolean; isManualEntry?: boolean }
 export interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
 export interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 export interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
@@ -439,6 +439,7 @@ export default function ClubPage() {
   }
 
   const isModerator = user != null && members.some(m => m.id === user.id && m.isModerator)
+  const isAdmin = user != null && members.some(m => m.id === user.id && m.isAdmin)
 
    
   const joinBooking = async (booking: Booking) => {
@@ -831,6 +832,14 @@ export default function ClubPage() {
             <img src={club.logoUrl} alt="Лого" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, background: '#0f3460' }} />
           )}
           <h2 style={{ color: '#e94560', margin: 0 }}>{club.name}</h2>
+          {isAdmin && (
+            <button
+              onClick={() => navigate(`/clubAdmin?clubId=${club.id}`)}
+              style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            >
+              Админ
+            </button>
+          )}
         </div>
 
         {/* === ТЕЛО АККОРДЕОНА === */}
@@ -1262,7 +1271,7 @@ export default function ClubPage() {
                       <tbody>
                         {filteredMembers.map(m => (
                           <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
-                            <td style={{ padding: "6px 8px" }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
+                            <td style={{ padding: "6px 8px" }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
                             <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
                             <td style={{ padding: "6px 8px" }}>{m.city || <span style={{ color: "#666" }}>—</span>}</td>
                             <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
@@ -1706,7 +1715,7 @@ export default function ClubPage() {
                       <tbody>
                         {filteredMembers.map(m => (
                           <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
-                            <td style={{ padding: '8px 12px' }}>{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
+                            <td style={{ padding: '8px 12px' }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
                             <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
                             <td style={{ padding: '8px 12px' }}>{m.city || <span style={{ color: '#666' }}>—</span>}</td>
                             <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>

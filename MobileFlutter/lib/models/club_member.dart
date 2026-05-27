@@ -9,6 +9,7 @@ class ClubMember {
   final String? joinedAt;
   final bool isModerator;
   final bool hasKey;
+  final bool isAdmin;
   final bool isManualEntry;
 
   const ClubMember({
@@ -22,6 +23,7 @@ class ClubMember {
     this.joinedAt,
     this.isModerator = false,
     this.hasKey = false,
+    this.isAdmin = false,
     this.isManualEntry = false,
   });
 
@@ -45,6 +47,7 @@ class ClubMember {
         joinedAt: json['joinedAt'] as String?,
         isModerator: json['isModerator'] as bool? ?? false,
         hasKey: json['hasKey'] as bool? ?? false,
+        isAdmin: json['isAdmin'] as bool? ?? false,
         isManualEntry: json['isManualEntry'] as bool? ?? false,
       );
 }

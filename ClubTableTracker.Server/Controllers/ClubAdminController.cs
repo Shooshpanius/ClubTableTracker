@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using ClubTableTracker.Server.Data;
 using ClubTableTracker.Server.Models;
 
@@ -22,8 +23,25 @@ public class ClubAdminController : ControllerBase
 
     private Club? GetAuthorizedClub()
     {
-        if (!Request.Headers.TryGetValue("X-Club-Key", out var key)) return null;
-        return _db.Clubs.FirstOrDefault(c => c.AccessKey == key.ToString());
+        // 1. Try key-based auth
+        if (Request.Headers.TryGetValue("X-Club-Key", out var key) && !string.IsNullOrEmpty(key))
+        {
+            return _db.Clubs.FirstOrDefault(c => c.AccessKey == key.ToString());
+        }
+        // 2. Try admin-role-based auth (JWT + X-Club-Id)
+        if (Request.Headers.TryGetValue("X-Club-Id", out var clubIdStr) && int.TryParse(clubIdStr, out var clubId))
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null)
+            {
+                var isAdmin = _db.Memberships.Any(m => m.UserId == userId && m.ClubId == clubId && m.Status == "Approved" && m.IsAdmin);
+                if (isAdmin)
+                {
+                    return _db.Clubs.Find(clubId);
+                }
+            }
+        }
+        return null;
     }
 
     private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -208,6 +226,7 @@ public class ClubAdminController : ControllerBase
                 m.Status,
                 m.IsModerator,
                 m.HasKey,
+                m.IsAdmin,
                 m.AppliedAt,
                 m.IsManualEntry,
                 m.UserId,
@@ -228,6 +247,7 @@ public class ClubAdminController : ControllerBase
                 m.Status,
                 m.IsModerator,
                 m.HasKey,
+                m.IsAdmin,
                 m.AppliedAt,
                 m.IsManualEntry,
                 User = new
@@ -265,6 +285,7 @@ public class ClubAdminController : ControllerBase
             membership.Status,
             membership.IsModerator,
             membership.HasKey,
+            membership.IsAdmin,
             membership.AppliedAt,
             membership.IsManualEntry,
             User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
@@ -289,6 +310,7 @@ public class ClubAdminController : ControllerBase
             membership.Status,
             membership.IsModerator,
             membership.HasKey,
+            membership.IsAdmin,
             membership.AppliedAt,
             membership.IsManualEntry,
             User = new { Id = "", Name = membership.ManualName, Email = membership.ManualEmail ?? "", EnabledGameSystems = (string?)null }
@@ -317,6 +339,18 @@ public class ClubAdminController : ControllerBase
         membership.HasKey = req.HasKey;
         _db.SaveChanges();
         return Ok(new { membership.Id, membership.HasKey });
+    }
+
+    [HttpPost("memberships/{id}/set-admin")]
+    public IActionResult SetAdmin(int id, [FromBody] SetAdminRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var membership = _db.Memberships.FirstOrDefault(m => m.Id == id && m.ClubId == club.Id && m.Status == "Approved");
+        if (membership == null) return NotFound();
+        membership.IsAdmin = req.IsAdmin;
+        _db.SaveChanges();
+        return Ok(new { membership.Id, membership.IsAdmin });
     }
 
     [HttpPost("memberships/{id}/approve")]
@@ -1207,6 +1241,7 @@ public record UpdateEventTitleRequest(string Title);
 public record UpdateEventDescriptionRequest(string? Description);
 public record SetModeratorRequest(bool IsModerator);
 public record SetKeyRequest(bool HasKey);
+public record SetAdminRequest(bool IsAdmin);
 public record UpdateMemberGameSystemsRequest(List<string>? EnabledGameSystems);
 public record UpdateMemberCityRequest(string? City);
 public record DecorationRequest(string Type, double X, double Y, double Width, double Height);

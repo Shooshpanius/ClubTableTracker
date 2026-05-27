@@ -118,6 +118,7 @@ public class ClubController : ControllerBase
                 JoinedAt = m.AppliedAt,
                 m.IsModerator,
                 m.HasKey,
+                m.IsAdmin,
                 m.IsManualEntry
             });
         return Ok(members);

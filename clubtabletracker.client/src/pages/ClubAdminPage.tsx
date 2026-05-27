@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ClubMapEditor from '../components/ClubMapEditor'
 import CampaignMapEditor from '../components/CampaignMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
+import { isTokenExpired } from '../utils/auth'
 
 interface ClubInfo {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string; shortName?: string; badgeColor?: string;
 }
-interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
+interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; isAdmin: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
 interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
+  const [searchParams] = useSearchParams()
+  const urlClubId = searchParams.get('clubId')
   const [clubKey, setClubKey] = useState(sessionStorage.getItem('clubKey') || '')
+  const [adminClubId, setAdminClubId] = useState<number | null>(urlClubId ? parseInt(urlClubId) : null)
+  const [token] = useState(() => {
+    const stored = localStorage.getItem('token') || ''
+    if (stored && isTokenExpired(stored)) {
+      localStorage.removeItem('token')
+      return ''
+    }
+    return stored
+  })
   const [club, setClub] = useState<ClubInfo | null>(null)
   const [tables, setTables] = useState<GameTable[]>([])
   const [decorations, setDecorations] = useState<ClubDecoration[]>([])
@@ -72,9 +85,36 @@ export default function ClubAdminPage() {
   const [addMemberChatId, setAddMemberChatId] = useState<number | null>(null)
   const [addMemberUserId, setAddMemberUserId] = useState('')
 
+  // Helper: returns auth headers based on current mode (key-based or admin-role-based)
+  const authH = (): Record<string, string> => {
+    if (adminClubId && token) {
+      return { 'Authorization': `Bearer ${token}`, 'X-Club-Id': String(adminClubId) }
+    }
+    return { 'X-Club-Key': clubKey }
+  }
+
   const login = async () => {
+    // Admin-role-based login
+    if (adminClubId && token) {
+      const res = await fetch('/api/clubadmin/me', { headers: authH() })
+      if (res.ok) {
+        const data = await res.json()
+        setClub(data)
+        setOpenTime(data.openTime || '10:00')
+        setCloseTime(data.closeTime || '22:00')
+        setShortName(data.shortName || '')
+        setBadgeColor(data.badgeColor || '#4a9eff')
+        setError('')
+        loadData()
+      } else {
+        setError('Нет прав администратора')
+        setAdminClubId(null)
+      }
+      return
+    }
+    // Key-based login
     sessionStorage.setItem('clubKey', clubKey)
-    const res = await fetch('/api/clubadmin/me', { headers: { 'X-Club-Key': clubKey } })
+    const res = await fetch('/api/clubadmin/me', { headers: authH() })
     if (res.ok) {
       const data = await res.json()
       setClub(data)
@@ -83,20 +123,21 @@ export default function ClubAdminPage() {
       setShortName(data.shortName || '')
       setBadgeColor(data.badgeColor || '#4a9eff')
       setError('')
-      loadData(clubKey)
+      loadData()
     } else {
       setError('Invalid club key')
     }
   }
 
-  const loadData = async (key: string) => {
+  const loadData = async () => {
+    const h = authH()
     const [tablesRes, membRes, eventsRes, decorationsRes, galleryRes, chatsRes] = await Promise.all([
-      fetch('/api/clubadmin/tables', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/memberships', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/events', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/decorations', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/gallery', { headers: { 'X-Club-Key': key } }),
-      fetch('/api/clubadmin/chats', { headers: { 'X-Club-Key': key } })
+      fetch('/api/clubadmin/tables', { headers: h }),
+      fetch('/api/clubadmin/memberships', { headers: h }),
+      fetch('/api/clubadmin/events', { headers: h }),
+      fetch('/api/clubadmin/decorations', { headers: h }),
+      fetch('/api/clubadmin/gallery', { headers: h }),
+      fetch('/api/clubadmin/chats', { headers: h })
     ])
     if (tablesRes.ok) setTables(await tablesRes.json())
     if (membRes.ok) setMemberships(await membRes.json())
@@ -107,7 +148,11 @@ export default function ClubAdminPage() {
   }
 
   useEffect(() => {
-    if (clubKey) login()
+    if (adminClubId && token) {
+      login()
+    } else if (clubKey) {
+      login()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -125,13 +170,13 @@ export default function ClubAdminPage() {
     }
     if (editingTable.id) {
       const res = await fetch(`/api/clubadmin/tables/${editingTable.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+        method: 'PUT', headers: { 'Content-Type': 'application/json', ...authH() },
         body: JSON.stringify(body)
       })
       if (res.ok) { const t = await res.json(); setTables(tables.map(x => x.id === t.id ? t : x)) }
     } else {
       const res = await fetch('/api/clubadmin/tables', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authH() },
         body: JSON.stringify(body)
       })
       if (res.ok) { setTables([...tables, await res.json()]) }
@@ -141,25 +186,25 @@ export default function ClubAdminPage() {
   }
 
   const deleteTable = async (id: number) => {
-    await fetch(`/api/clubadmin/tables/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    await fetch(`/api/clubadmin/tables/${id}`, { method: 'DELETE', headers: authH() })
     setTables(tables.filter(t => t.id !== id))
   }
 
   const copyTable = async (id: number) => {
-    const res = await fetch(`/api/clubadmin/tables/${id}/copy`, { method: 'POST', headers: { 'X-Club-Key': clubKey } })
+    const res = await fetch(`/api/clubadmin/tables/${id}/copy`, { method: 'POST', headers: authH() })
     if (res.ok) { setTables([...tables, await res.json()]) }
   }
 
   const updateMembership = async (id: number, action: 'approve' | 'reject') => {
     const res = await fetch(`/api/clubadmin/memberships/${id}/${action}`, {
-      method: 'POST', headers: { 'X-Club-Key': clubKey }
+      method: 'POST', headers: authH()
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: action === 'approve' ? 'Approved' : 'Rejected' } : m))
   }
 
   const kickMember = async (id: number) => {
     const res = await fetch(`/api/clubadmin/memberships/${id}/kick`, {
-      method: 'POST', headers: { 'X-Club-Key': clubKey }
+      method: 'POST', headers: authH()
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, status: 'Kicked', isModerator: false } : m))
   }
@@ -167,7 +212,7 @@ export default function ClubAdminPage() {
   const toggleModerator = async (id: number, currentValue: boolean) => {
     const res = await fetch(`/api/clubadmin/memberships/${id}/set-moderator`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ isModerator: !currentValue })
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, isModerator: !currentValue } : m))
@@ -176,10 +221,19 @@ export default function ClubAdminPage() {
   const toggleKey = async (id: number, currentValue: boolean) => {
     const res = await fetch(`/api/clubadmin/memberships/${id}/set-key`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ hasKey: !currentValue })
     })
     if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, hasKey: !currentValue } : m))
+  }
+
+  const toggleAdmin = async (id: number, currentValue: boolean) => {
+    const res = await fetch(`/api/clubadmin/memberships/${id}/set-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authH() },
+      body: JSON.stringify({ isAdmin: !currentValue })
+    })
+    if (res.ok) setMemberships(memberships.map(m => m.id === id ? { ...m, isAdmin: !currentValue } : m))
   }
 
   const toggleGsEditor = (m: Membership) => {
@@ -206,7 +260,7 @@ export default function ClubAdminPage() {
     const systems = memberGameSystems[memberId] || []
     const res = await fetch(`/api/clubadmin/memberships/${memberId}/game-systems`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ enabledGameSystems: systems })
     })
     if (res.ok) {
@@ -232,7 +286,7 @@ export default function ClubAdminPage() {
     setCityError('')
     const res = await fetch(`/api/clubadmin/memberships/${memberId}/city`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ city: editingCityValue.trim() || null })
     })
     if (res.ok) {
@@ -250,7 +304,7 @@ export default function ClubAdminPage() {
     if (!manualName.trim()) { setAddManualError('Имя не может быть пустым'); return }
     const res = await fetch('/api/clubadmin/memberships/manual', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ name: manualName.trim(), email: manualEmail.trim() || null })
     })
     if (res.ok) {
@@ -277,7 +331,7 @@ export default function ClubAdminPage() {
     if (!editingManualName.trim()) { setEditingManualError('Имя не может быть пустым'); return }
     const res = await fetch(`/api/clubadmin/memberships/${id}/manual`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ name: editingManualName.trim(), email: editingManualEmail.trim() || null })
     })
     if (res.ok) {
@@ -294,7 +348,7 @@ export default function ClubAdminPage() {
   const saveSettings = async () => {
     const res = await fetch('/api/clubadmin/settings', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({
         openTime, closeTime,
         shortName: shortName.trim() || null,
@@ -327,7 +381,7 @@ export default function ClubAdminPage() {
     }
     const res = await fetch('/api/clubadmin/events', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify(body)
     })
     if (res.ok) {
@@ -347,7 +401,7 @@ export default function ClubAdminPage() {
 
   const deleteEvent = async (id: number) => {
     if (!confirm('Удалить событие?')) return
-    const res = await fetch(`/api/clubadmin/events/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    const res = await fetch(`/api/clubadmin/events/${id}`, { method: 'DELETE', headers: authH() })
     if (res.ok) setEvents(events.filter(e => e.id !== id))
   }
 
@@ -369,7 +423,7 @@ export default function ClubAdminPage() {
     const isoEnd = editingEventEndTime.length === 16 ? editingEventEndTime + ':00' : editingEventEndTime
     const res = await fetch(`/api/clubadmin/events/${id}/date`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ startTime: isoStart, endTime: isoEnd })
     })
     if (res.ok) {
@@ -386,7 +440,7 @@ export default function ClubAdminPage() {
   const inviteParticipant = async (eventId: number) => {
     if (!inviteUserId) return
     const res = await fetch(`/api/clubadmin/events/${eventId}/participants/${encodeURIComponent(inviteUserId)}`, {
-      method: 'POST', headers: { 'X-Club-Key': clubKey }
+      method: 'POST', headers: authH()
     })
     if (res.ok) {
       const participant = await res.json()
@@ -401,7 +455,7 @@ export default function ClubAdminPage() {
 
   const removeParticipant = async (eventId: number, userId: string) => {
     const res = await fetch(`/api/clubadmin/events/${eventId}/participants/${encodeURIComponent(userId)}`, {
-      method: 'DELETE', headers: { 'X-Club-Key': clubKey }
+      method: 'DELETE', headers: authH()
     })
     if (res.ok) {
       setEvents(events.map(e => e.id === eventId ? { ...e, participants: e.participants.filter(p => p.id !== userId) } : e))
@@ -413,7 +467,7 @@ export default function ClubAdminPage() {
     if (!trimmed) return
     const res = await fetch(`/api/clubadmin/events/${id}/title`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ title: trimmed })
     })
     if (res.ok) {
@@ -426,7 +480,7 @@ export default function ClubAdminPage() {
   const saveEventDescription = async (id: number) => {
     const res = await fetch(`/api/clubadmin/events/${id}/description`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ description: editingDescValue.trim() || null })
     })
     if (res.ok) {
@@ -442,7 +496,7 @@ export default function ClubAdminPage() {
     formData.append('file', file)
     const res = await fetch(`/api/clubadmin/events/${id}/regulation`, {
       method: 'POST',
-      headers: { 'X-Club-Key': clubKey },
+      headers: authH(),
       body: formData
     })
     if (res.ok) {
@@ -455,7 +509,7 @@ export default function ClubAdminPage() {
   const deleteRegulation = async (id: number) => {
     const res = await fetch(`/api/clubadmin/events/${id}/regulation`, {
       method: 'DELETE',
-      headers: { 'X-Club-Key': clubKey }
+      headers: authH()
     })
     if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, regulationUrl: undefined } : e))
   }
@@ -466,7 +520,7 @@ export default function ClubAdminPage() {
     formData.append('file', file)
     const res = await fetch(`/api/clubadmin/events/${id}/regulation2`, {
       method: 'POST',
-      headers: { 'X-Club-Key': clubKey },
+      headers: authH(),
       body: formData
     })
     if (res.ok) {
@@ -479,7 +533,7 @@ export default function ClubAdminPage() {
   const deleteRegulation2 = async (id: number) => {
     const res = await fetch(`/api/clubadmin/events/${id}/regulation2`, {
       method: 'DELETE',
-      headers: { 'X-Club-Key': clubKey }
+      headers: authH()
     })
     if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, regulationUrl2: undefined } : e))
   }
@@ -490,7 +544,7 @@ export default function ClubAdminPage() {
     formData.append('file', file)
     const res = await fetch(`/api/clubadmin/events/${id}/missionmap`, {
       method: 'POST',
-      headers: { 'X-Club-Key': clubKey },
+      headers: authH(),
       body: formData
     })
     if (res.ok) {
@@ -503,7 +557,7 @@ export default function ClubAdminPage() {
   const deleteMissionMap = async (id: number) => {
     const res = await fetch(`/api/clubadmin/events/${id}/missionmap`, {
       method: 'DELETE',
-      headers: { 'X-Club-Key': clubKey }
+      headers: authH()
     })
     if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, missionMapUrl: undefined } : e))
   }
@@ -512,7 +566,7 @@ export default function ClubAdminPage() {
     const table = tables.find(t => t.id === id)
     if (!table) return
     const res = await fetch(`/api/clubadmin/tables/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ ...table, x, y, eventsOnly: table.eventsOnly })
     })
     if (res.ok) { const t = await res.json(); setTables(tables.map(x => x.id === t.id ? t : x)) }
@@ -520,7 +574,7 @@ export default function ClubAdminPage() {
 
   const addDecoration = async (type: 'wall' | 'window' | 'door', x: number, y: number, width: number, height: number) => {
     const res = await fetch('/api/clubadmin/decorations', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ type, x, y, width, height })
     })
     if (res.ok) { const d = await res.json(); setDecorations(prev => [...prev, d]) }
@@ -530,14 +584,14 @@ export default function ClubAdminPage() {
     const deco = decorations.find(d => d.id === id)
     if (!deco) return
     const res = await fetch(`/api/clubadmin/decorations/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+      method: 'PUT', headers: { 'Content-Type': 'application/json', ...authH() },
       body: JSON.stringify({ ...deco, x, y })
     })
     if (res.ok) { const d = await res.json(); setDecorations(decorations.map(x => x.id === d.id ? d : x)) }
   }
 
   const deleteDecoration = async (id: number) => {
-    await fetch(`/api/clubadmin/decorations/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    await fetch(`/api/clubadmin/decorations/${id}`, { method: 'DELETE', headers: authH() })
     setDecorations(decorations.filter(d => d.id !== id))
   }
 
@@ -548,7 +602,7 @@ export default function ClubAdminPage() {
     formData.append('file', file)
     const res = await fetch('/api/clubadmin/logo', {
       method: 'POST',
-      headers: { 'X-Club-Key': clubKey },
+      headers: authH(),
       body: formData
     })
     if (res.ok) {
@@ -562,7 +616,7 @@ export default function ClubAdminPage() {
   }
 
   const deleteLogo = async () => {
-    const res = await fetch('/api/clubadmin/logo', { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    const res = await fetch('/api/clubadmin/logo', { method: 'DELETE', headers: authH() })
     if (res.ok) setClub(prev => prev ? { ...prev, logoUrl: undefined } : prev)
   }
 
@@ -573,7 +627,7 @@ export default function ClubAdminPage() {
     formData.append('file', file)
     const res = await fetch('/api/clubadmin/gallery', {
       method: 'POST',
-      headers: { 'X-Club-Key': clubKey },
+      headers: authH(),
       body: formData
     })
     if (res.ok) {
@@ -587,7 +641,7 @@ export default function ClubAdminPage() {
   }
 
   const deleteGalleryPhoto = async (id: number) => {
-    const res = await fetch(`/api/clubadmin/gallery/${id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+    const res = await fetch(`/api/clubadmin/gallery/${id}`, { method: 'DELETE', headers: authH() })
     if (res.ok) setGalleryPhotos(prev => prev.filter(p => p.id !== id))
   }
 
@@ -618,6 +672,22 @@ export default function ClubAdminPage() {
   const tdStyle: React.CSSProperties = { padding: '8px 12px', fontSize: 13, borderBottom: '1px solid #16213e', verticalAlign: 'middle' }
 
   if (!club) {
+    // Admin-role-based access: auto-login in progress or failed
+    if (adminClubId && token) {
+      return (
+        <div style={{ padding: 40 }}>
+          <h1 style={{ color: '#e94560' }}>🎲 Club Admin</h1>
+          {error
+            ? <div style={cardStyle}>
+                <p style={{ color: '#e94560' }}>{error}</p>
+                <button style={btnStyle} onClick={() => { setAdminClubId(null); setError('') }}>Войти по ключу</button>
+              </div>
+            : <p style={{ color: '#aaa' }}>Авторизация...</p>
+          }
+        </div>
+      )
+    }
+    // Key-based login form
     return (
       <div style={{ padding: 40 }}>
         <h1 style={{ color: '#e94560' }}>🎲 Club Admin</h1>
@@ -754,6 +824,7 @@ export default function ClubAdminPage() {
                     <th style={thStyle}>Статус</th>
                     <th style={thStyle}>Модератор</th>
                     <th style={thStyle}>Ключ</th>
+                    <th style={thStyle}>Админ</th>
                     <th style={thStyle}>Действия</th>
                   </tr>
                 </thead>
@@ -779,6 +850,13 @@ export default function ClubAdminPage() {
                         {m.status === 'Approved' && (
                           <span style={{ color: m.hasKey ? '#ffd700' : '#555', fontSize: 16 }} title={m.hasKey ? 'С ключом' : 'Без ключа'}>
                             {m.hasKey ? '🗝️' : '—'}
+                          </span>
+                        )}
+                      </td>
+                      <td style={tdStyle}>
+                        {m.status === 'Approved' && (
+                          <span style={{ color: m.isAdmin ? '#e94560' : '#555', fontSize: 16 }} title={m.isAdmin ? 'Админ' : 'Не админ'}>
+                            {m.isAdmin ? '👑' : '—'}
                           </span>
                         )}
                       </td>
@@ -823,6 +901,15 @@ export default function ClubAdminPage() {
                               title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
                               aria-label={m.hasKey ? 'Снять статус «С ключом»' : 'Назначить статус «С ключом»'}
                             ><span aria-hidden="true">{m.hasKey ? '🗝️ Снять' : '🗝️ Ключ'}</span></button>
+                            {!m.isManualEntry && (
+                              <button
+                                style={{ ...btnStyle, background: m.isAdmin ? '#7b1a3a' : '#3a1a4a' }}
+                                onClick={() => toggleAdmin(m.id, m.isAdmin)}
+                                title={m.isAdmin ? 'Снять роль админа' : 'Назначить админом'}
+                              >
+                                {m.isAdmin ? '👑 Снять' : '👑 Админ'}
+                              </button>
+                            )}
                             <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
                           </>
                         )}
@@ -830,7 +917,7 @@ export default function ClubAdminPage() {
                     </tr>
                     {editingManualMemberId === m.id && m.isManualEntry && (
                       <tr>
-                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                             <input style={inputStyle} placeholder="Имя игрока *" value={editingManualName}
                               onChange={e => { setEditingManualName(e.target.value); setEditingManualError('') }} />
@@ -845,7 +932,7 @@ export default function ClubAdminPage() {
                     )}
                     {expandedGsMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                             <button
                               style={{ ...btnStyle, background: '#1a5a3c', fontSize: 12, padding: '4px 12px' }}
@@ -892,7 +979,7 @@ export default function ClubAdminPage() {
                     )}
                     {expandedCityMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={7} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
+                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ color: '#aaa', fontSize: 13 }}>Город:</span>
                             <input
@@ -1363,13 +1450,13 @@ export default function ClubAdminPage() {
                   if (!newChatName.trim()) { setChatError('Введите название'); return }
                   const res = await fetch('/api/clubadmin/chats', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+                    headers: { 'Content-Type': 'application/json', ...authH() },
                     body: JSON.stringify({ name: newChatName.trim(), isPublic: newChatIsPublic })
                   })
                   if (res.ok) {
                     setNewChatName('')
                     setNewChatIsPublic(false)
-                    const chatsRes = await fetch('/api/clubadmin/chats', { headers: { 'X-Club-Key': clubKey } })
+                    const chatsRes = await fetch('/api/clubadmin/chats', { headers: authH() })
                     if (chatsRes.ok) setGroupChats(await chatsRes.json())
                   } else {
                     setChatError(await res.text())
@@ -1401,7 +1488,7 @@ export default function ClubAdminPage() {
                     style={{ ...btnStyle, background: '#e94560' }}
                     onClick={async () => {
                       if (!confirm(`Удалить чат «${chat.name}»?`)) return
-                      const res = await fetch(`/api/clubadmin/chats/${chat.id}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                      const res = await fetch(`/api/clubadmin/chats/${chat.id}`, { method: 'DELETE', headers: authH() })
                       if (res.ok) setGroupChats(groupChats.filter(c => c.id !== chat.id))
                     }}
                   >Удалить</button>
@@ -1415,7 +1502,7 @@ export default function ClubAdminPage() {
                       if (!file) return
                       const fd = new FormData()
                       fd.append('file', file)
-                      const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'POST', headers: { 'X-Club-Key': clubKey }, body: fd })
+                      const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'POST', headers: authH(), body: fd })
                       if (res.ok) {
                         const data = await res.json()
                         setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: data.logoUrl } : c))
@@ -1427,7 +1514,7 @@ export default function ClubAdminPage() {
                     <button
                       style={{ ...btnStyle, background: '#555', padding: '4px 10px', fontSize: 12 }}
                       onClick={async () => {
-                        const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                        const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'DELETE', headers: authH() })
                         if (res.ok) setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: undefined } : c))
                       }}
                     >🗑 Удалить лого</button>
@@ -1443,7 +1530,7 @@ export default function ClubAdminPage() {
                           style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', padding: 0, fontSize: 13 }}
                           title="Удалить из чата"
                           onClick={async () => {
-                            const res = await fetch(`/api/clubadmin/chats/${chat.id}/members/${m.userId}`, { method: 'DELETE', headers: { 'X-Club-Key': clubKey } })
+                            const res = await fetch(`/api/clubadmin/chats/${chat.id}/members/${m.userId}`, { method: 'DELETE', headers: authH() })
                             if (res.ok) {
                               setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, members: c.members.filter(x => x.userId !== m.userId) } : c))
                             }
@@ -1475,7 +1562,7 @@ export default function ClubAdminPage() {
                           if (!addMemberUserId) return
                           const res = await fetch(`/api/clubadmin/chats/${chat.id}/members`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-Club-Key': clubKey },
+                            headers: { 'Content-Type': 'application/json', ...authH() },
                             body: JSON.stringify({ userId: addMemberUserId })
                           })
                           if (res.ok) {
