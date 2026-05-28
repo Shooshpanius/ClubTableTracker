@@ -24,6 +24,11 @@ String resolveMediaUrl(String url) {
 /// из Google Cloud Console → APIs & Services → Credentials → Web client.
 const String googleServerClientId = '864128408339-d7j3k1852l3ksiadpnnhbmfo3v50s8e0.apps.googleusercontent.com';
 
+/// API-ключ Яндекс AppMetrica.
+/// Получите ключ в кабинете AppMetrica: https://appmetrica.yandex.ru/
+/// При развёртывании замените на реальный ключ приложения.
+const String appmetricaApiKey = 'd2e19719-de5b-40d1-ac56-79bb770dbc45';
+
 /// Основные игровые системы (отображаются первыми в настройках)
 const List<String> gameSystemsMain = [
   'Warhammer 40,000',

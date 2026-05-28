@@ -35,6 +35,9 @@ dependencies:
   # Р ВР С”Р С•Р Р…Р С”Р С‘
   cupertino_icons: ^1.0.8
 
+  # Yandex AppMetrica
+  appmetrica_plugin: ^2.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

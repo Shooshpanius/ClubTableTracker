@@ -74,5 +74,9 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com</string>
+	<!-- SETUP REQUIRED: Replace YOUR_APPMETRICA_API_KEY with your actual AppMetrica API key
+	     from https://appmetrica.yandex.ru/ dashboard. -->
+	<key>appmetrica_api_key</key>
+	<string>d2e19719-de5b-40d1-ac56-79bb770dbc45</string>
 </dict>
 </plist>

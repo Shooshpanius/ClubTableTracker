@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:appmetrica_plugin/appmetrica_plugin.dart';
 
 import 'app_colors.dart';
 import 'constants.dart';
@@ -31,6 +32,12 @@ class _AppHttpOverrides extends HttpOverrides {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = _AppHttpOverrides();
+
+  // Инициализация Яндекс AppMetrica
+  await AppMetrica.activate(
+    AppMetricaConfig(appmetricaApiKey),
+  );
+
   await initializeDateFormatting('ru', null);
   await Firebase.initializeApp();
   // Фоновый обработчик должен быть зарегистрирован до runApp()

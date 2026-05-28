@@ -6,6 +6,11 @@
         android:label="Club Table Tracker"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- SETUP REQUIRED: Replace YOUR_APPMETRICA_API_KEY with your actual AppMetrica API key
+             from https://appmetrica.yandex.ru/ dashboard. -->
+        <meta-data
+            android:name="appmetrica.api_key"
+            android:value="d2e19719-de5b-40d1-ac56-79bb770dbc45"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
