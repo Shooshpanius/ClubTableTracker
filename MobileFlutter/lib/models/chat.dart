@@ -88,6 +88,7 @@ class ChatMessage {
   final String sentAt;
   final MessageSender sender;
   final ReplyInfo? replyTo;
+  final String status; // "Sent", "Delivered", "Read"
 
   const ChatMessage({
     required this.id,
@@ -96,6 +97,7 @@ class ChatMessage {
     required this.sentAt,
     required this.sender,
     this.replyTo,
+    this.status = 'Sent',
   });
 
   DateTime get sentAtDateTime => DateTime.parse(sentAt);
@@ -110,5 +112,6 @@ class ChatMessage {
         replyTo: json['replyTo'] != null
             ? ReplyInfo.fromJson(json['replyTo'] as Map<String, dynamic>)
             : null,
+        status: json['status'] as String? ?? 'Sent',
       );
 }

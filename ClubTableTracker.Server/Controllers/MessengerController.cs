@@ -145,6 +145,17 @@ public class MessengerController : ControllerBase
         }
 
         member.LastReadAt = DateTime.UtcNow;
+
+        // Помечаем все сообщения от других участников как «Read»
+        var msgsToRead = _db.ChatMessages
+            .Where(m => m.ChatId == chatId && m.SenderId != userId && m.Status != MessageStatus.Read)
+            .ToList();
+        if (msgsToRead.Count > 0)
+        {
+            foreach (var m in msgsToRead)
+                m.Status = MessageStatus.Read;
+        }
+
         _db.SaveChanges();
         return NoContent();
     }
@@ -223,6 +234,17 @@ public class MessengerController : ControllerBase
             }
         }
 
+        // Помечаем сообщения от других участников как «Delivered»
+        var msgsToDeliver = _db.ChatMessages
+            .Where(m => m.ChatId == chatId && m.SenderId != userId && m.Status == MessageStatus.Sent)
+            .ToList();
+        if (msgsToDeliver.Count > 0)
+        {
+            foreach (var m in msgsToDeliver)
+                m.Status = MessageStatus.Delivered;
+            _db.SaveChanges();
+        }
+
         var messages = _db.ChatMessages
             .Include(m => m.Sender)
             .Include(m => m.ReplyTo).ThenInclude(r => r!.Sender)
@@ -237,6 +259,7 @@ public class MessengerController : ControllerBase
                 m.ChatId,
                 m.Text,
                 m.SentAt,
+                m.Status,
                 Sender = new { m.Sender.Id, Name = m.Sender.DisplayName ?? m.Sender.Name, AvatarUrl = m.Sender.AvatarUrl },
                 ReplyTo = m.ReplyTo == null ? null : new
                 {
@@ -328,6 +351,7 @@ public class MessengerController : ControllerBase
             message.ChatId,
             message.Text,
             message.SentAt,
+            message.Status,
             Sender = new { sender.Id, Name = sender.DisplayName ?? sender.Name, AvatarUrl = sender.AvatarUrl },
             ReplyTo = replyMsg == null ? null : new
             {

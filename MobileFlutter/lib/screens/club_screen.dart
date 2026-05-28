@@ -16,6 +16,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/booking_dialog.dart';
 import '../widgets/user_avatar.dart';
+import 'club_admin_screen.dart';
 import 'campaign_map_screen.dart';
 import 'messenger_screen.dart';
 
@@ -402,6 +403,24 @@ class _ClubScreenState extends State<ClubScreen>
           club?.name ?? 'Загрузка...',
           style: const TextStyle(color: AppColors.accent),
         ),
+        actions: [
+          if (_isCurrentUserAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings, color: AppColors.accent),
+              tooltip: 'Админ',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClubAdminScreen(
+                      clubId: widget.clubId,
+                      token: _token,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: _tabs,
@@ -798,8 +817,50 @@ class _ClubScreenState extends State<ClubScreen>
     );
   }
 
+  /// Проверяет, есть ли доступные действия для бронирования
+  bool _bookingHasActions(Booking booking) {
+    final isMe = booking.user.id == _myId;
+    final myEntry = booking.participants.where((p) => p.id == _myId).firstOrNull;
+    final isParticipant = myEntry != null;
+    final isInvited = myEntry?.status == 'Invited';
+    final acceptedCount = booking.participants.where((p) => p.status != 'Invited').length;
+    final maxPlayers = booking.isDoubles ? 4 : 2;
+    final canJoin = !isMe && !isParticipant && acceptedCount < maxPlayers - 1;
+    final canLeave = isParticipant && !isInvited;
+    final canAcceptInvite = isInvited;
+    final canCancel = isMe;
+    return canJoin || canLeave || canAcceptInvite || canCancel;
+  }
+
+  /// Строит список кнопок управления бронированием (для встраивания в timeline)
+  List<Widget> _buildBookingActions(Booking booking) {
+    final isMe = booking.user.id == _myId;
+    final myEntry = booking.participants.where((p) => p.id == _myId).firstOrNull;
+    final isParticipant = myEntry != null;
+    final isInvited = myEntry?.status == 'Invited';
+    final acceptedCount = booking.participants.where((p) => p.status != 'Invited').length;
+    final maxPlayers = booking.isDoubles ? 4 : 2;
+    final canJoin = !isMe && !isParticipant && acceptedCount < maxPlayers - 1;
+    final canLeave = isParticipant && !isInvited;
+    final canAcceptInvite = isInvited;
+    final canCancel = isMe;
+
+    return [
+      if (canCancel)
+        _actionBtn('Отменить', AppColors.statusRejected, () => _cancelBooking(booking)),
+      if (canJoin)
+        _actionBtn('Присоединиться', AppColors.statusApproved, () => _joinBooking(booking)),
+      if (canLeave)
+        _actionBtn('Покинуть', AppColors.accentYellow, () => _leaveBooking(booking)),
+      if (canAcceptInvite) ...[
+        _actionBtn('✓ Принять', AppColors.statusApproved, () => _acceptInvite(booking)),
+        _actionBtn('✗ Отклонить', AppColors.statusRejected, () => _declineInvite(booking)),
+      ],
+    ];
+  }
+
   // Вертикальный timeline занятости стола на выбранный день
-  Widget _buildTimeline(GameTable table) {
+  Widget _buildTimeline(GameTable table, {double maxHeight = double.infinity}) {
     final club = _club;
     if (club == null) return const SizedBox.shrink();
 
@@ -834,8 +895,12 @@ class _ClubScreenState extends State<ClubScreen>
       return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
     }
 
-    const pixelsPerMinute = 1.6;
-    const minHeight = 28.0;
+    final totalMinutes = closeMin - openMin;
+    // Динамический масштаб: подгоняем под доступную высоту
+    final pixelsPerMinute = totalMinutes > 0
+        ? (maxHeight / totalMinutes).clamp(0.25, 1.6)
+        : 1.6;
+    const minHeight = 16.0;
 
     return Column(
       children: segs.map((seg) {
@@ -932,8 +997,7 @@ class _ClubScreenState extends State<ClubScreen>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (seg.booking!.participants.isNotEmpty &&
-                                  height >= 52)
+                              if (seg.booking!.participants.isNotEmpty)
                                 Text(
                                   seg.booking!.participants
                                       .map((p) => p.name)
@@ -944,8 +1008,7 @@ class _ClubScreenState extends State<ClubScreen>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              if (seg.booking!.gameSystem != null &&
-                                  height >= 52)
+                              if (seg.booking!.gameSystem != null)
                                 Text(
                                   seg.booking!.gameSystem!,
                                   style: const TextStyle(
@@ -955,6 +1018,15 @@ class _ClubScreenState extends State<ClubScreen>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                              // Кнопки управления бронированием
+                              if (_bookingHasActions(seg.booking!)) ...[
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 2,
+                                  children: _buildBookingActions(seg.booking!),
+                                ),
+                              ],
                             ],
                           ),
                   ),
@@ -1089,22 +1161,40 @@ class _ClubScreenState extends State<ClubScreen>
 
           // ─── Тело аккордеона ─────────────────────────────────────────
           if (isExpanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Timeline занятости
-                  _buildTimeline(table),
+            _buildAccordionBody(table, dayBookings),
+        ],
+      ),
+    );
+  }
 
-                  // Детали бронирований (действия: отменить, присоединиться и т.д.)
-                  if (dayBookings.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ...dayBookings.map((b) => _buildBookingTile(b)).toList(),
-                  ],
-                ],
-              ),
-            ),
+  /// Тело раскрытого аккордеона стола с ограничением по высоте.
+  /// В портретной ориентации — вписывается в экран, в ландшафтной —
+  /// используется высота как при портретной.
+  Widget _buildAccordionBody(GameTable table, List<Booking> dayBookings) {
+    final mq = MediaQuery.of(context);
+    // Портретная высота = большая из сторон экрана
+    final portraitHeight =
+        mq.size.height > mq.size.width ? mq.size.height : mq.size.width;
+
+    // Вычитаем: status bar, AppBar, TabBar, календарь, заголовок стола, отступы
+    final overhead = mq.padding.top +
+        kToolbarHeight + // AppBar
+        48 + // TabBar
+        80 + // Календарь (свёрнутый)
+        60 + // Заголовок аккордеона стола
+        32; // padding
+
+    final timelineMaxHeight =
+        (portraitHeight - overhead - 22).clamp(120.0, 600.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Timeline занятости — масштабируется по доступной высоте,
+          // кнопки управления встроены в каждый блок бронирования
+          _buildTimeline(table, maxHeight: timelineMaxHeight),
         ],
       ),
     );
@@ -1138,6 +1228,9 @@ class _ClubScreenState extends State<ClubScreen>
   bool get _isCurrentUserModerator =>
       _members.any((m) => m.id == _myId && m.isModerator);
 
+  bool get _isCurrentUserAdmin =>
+      _members.any((m) => m.id == _myId && m.isAdmin);
+
   void _openBookingDialog(GameTable table, {DateTime? date, int? startMin}) {
     showModalBottomSheet(
       context: context,
@@ -1160,111 +1253,6 @@ class _ClubScreenState extends State<ClubScreen>
         },
         initialDate: date ?? _selectedDate,
         initialStartMinutes: startMin,
-      ),
-    );
-  }
-
-  Widget _buildBookingTile(Booking booking) {
-    final isMe = booking.user.id == _myId;
-    final myParticipantEntry =
-        booking.participants.where((p) => p.id == _myId).firstOrNull;
-    final isParticipant = myParticipantEntry != null;
-    final isInvited = myParticipantEntry?.status == 'Invited';
-    final acceptedCount =
-        booking.participants.where((p) => p.status != 'Invited').length;
-    final maxPlayers = booking.isDoubles ? 4 : 2;
-    final canJoin = !isMe && !isParticipant && acceptedCount < maxPlayers - 1;
-    final canLeave = isParticipant && !isInvited;
-    final canAcceptInvite = isInvited;
-    final canCancel = isMe;
-
-    final fmt = DateFormat('HH:mm');
-    final dateFmt = DateFormat('dd.MM', 'ru');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isMe
-            ? AppColors.accentOrange.withOpacity(0.15)
-            : AppColors.darkBg,
-        border: Border.all(
-          color: isMe ? AppColors.accentOrange : AppColors.border,
-        ),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '${dateFmt.format(booking.startDateTime)} '
-                '${fmt.format(booking.startDateTime)}–${fmt.format(booking.endDateTime)}',
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              if (booking.gameSystem != null)
-                Text(
-                  booking.gameSystem!,
-                  style: const TextStyle(
-                      color: AppColors.accentBlue, fontSize: 11),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '👤 ${booking.user.name}',
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 12),
-          ),
-          if (booking.participants.isNotEmpty)
-            Text(
-              '+ ${booking.participants.map((p) => p.name).join(', ')}',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11),
-            ),
-          if (canJoin || canLeave || canAcceptInvite || canCancel) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                if (canCancel)
-                  _actionBtn(
-                    'Отменить',
-                    AppColors.statusRejected,
-                    () => _cancelBooking(booking),
-                  ),
-                if (canJoin)
-                  _actionBtn(
-                    'Присоединиться',
-                    AppColors.statusApproved,
-                    () => _joinBooking(booking),
-                  ),
-                if (canLeave)
-                  _actionBtn(
-                    'Покинуть',
-                    AppColors.accentYellow,
-                    () => _leaveBooking(booking),
-                  ),
-                if (canAcceptInvite) ...[
-                  _actionBtn(
-                    '✓ Принять',
-                    AppColors.statusApproved,
-                    () => _acceptInvite(booking),
-                  ),
-                  _actionBtn(
-                    '✗ Отклонить',
-                    AppColors.statusRejected,
-                    () => _declineInvite(booking),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ],
       ),
     );
   }

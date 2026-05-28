@@ -808,16 +808,38 @@ class _ChatScreenState extends State<ChatScreen> {
                     color: AppColors.textPrimary, fontSize: 13),
               ),
               const SizedBox(height: 2),
-              Text(
-                timeFmt.format(msg.sentAtDateTime.toLocal()),
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 9),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    timeFmt.format(msg.sentAtDateTime.toLocal()),
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 9),
+                  ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    _buildStatusIcon(msg.status),
+                  ],
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Иконка статуса сообщения: ✓ (Sent), ✓✓ (Delivered), ✓✓ blue (Read)
+  Widget _buildStatusIcon(String status) {
+    switch (status) {
+      case 'Read':
+        return const Icon(Icons.done_all, size: 14, color: AppColors.accentBlue);
+      case 'Delivered':
+        return const Icon(Icons.done_all, size: 14, color: AppColors.textMuted);
+      case 'Sent':
+      default:
+        return const Icon(Icons.check, size: 14, color: AppColors.textMuted);
+    }
   }
 
   Widget _buildInputArea() {

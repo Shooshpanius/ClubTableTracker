@@ -390,6 +390,186 @@ class ApiService {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
+  // ─── Club Admin API ──────────────────────────────────────────────────────
+
+  Map<String, String> _adminHeaders(String token, {int? clubId}) {
+    final h = <String, String>{
+      'Authorization': 'Bearer $token',
+      if (clubId != null) 'X-Club-Id': '$clubId',
+    };
+    return h;
+  }
+
+  /// Получить информацию о клубе через админский доступ
+  Future<Map<String, dynamic>> adminGetClub(String token, int clubId) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/clubadmin/me'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Получить столы клуба (админ)
+  Future<List<dynamic>> adminGetTables(String token, int clubId) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/clubadmin/tables'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  /// Создать стол (админ)
+  Future<Map<String, dynamic>> adminCreateTable(
+      String token, int clubId, Map<String, dynamic> data) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/tables'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Обновить стол (админ)
+  Future<Map<String, dynamic>> adminUpdateTable(
+      String token, int clubId, int tableId, Map<String, dynamic> data) async {
+    final res = await _client.put(
+      Uri.parse('$_base/api/clubadmin/tables/$tableId'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Удалить стол (админ)
+  Future<void> adminDeleteTable(String token, int clubId, int tableId) async {
+    final res = await _client.delete(
+      Uri.parse('$_base/api/clubadmin/tables/$tableId'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+  }
+
+  /// Получить участников клуба (админ)
+  Future<List<dynamic>> adminGetMemberships(
+      String token, int clubId) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/clubadmin/memberships'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  /// Одобрить заявку (админ)
+  Future<void> adminApproveMembership(
+      String token, int clubId, int membershipId) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/approve'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+  }
+
+  /// Отклонить заявку (админ)
+  Future<void> adminRejectMembership(
+      String token, int clubId, int membershipId) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/reject'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+  }
+
+  /// Исключить участника (админ)
+  Future<void> adminKickMember(
+      String token, int clubId, int membershipId) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/kick'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+  }
+
+  /// Переключить модератора (админ)
+  Future<void> adminSetModerator(
+      String token, int clubId, int membershipId, bool value) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/set-moderator'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode({'isModerator': value}),
+    );
+    _checkStatus(res);
+  }
+
+  /// Переключить ключ (админ)
+  Future<void> adminSetKey(
+      String token, int clubId, int membershipId, bool value) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/set-key'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode({'hasKey': value}),
+    );
+    _checkStatus(res);
+  }
+
+  /// Переключить админа (админ)
+  Future<void> adminSetAdmin(
+      String token, int clubId, int membershipId, bool value) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/memberships/$membershipId/set-admin'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode({'isAdmin': value}),
+    );
+    _checkStatus(res);
+  }
+
+  /// Получить события клуба (админ)
+  Future<List<dynamic>> adminGetEvents(String token, int clubId) async {
+    final res = await _client.get(
+      Uri.parse('$_base/api/clubadmin/events'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as List<dynamic>;
+  }
+
+  /// Создать событие (админ)
+  Future<Map<String, dynamic>> adminCreateEvent(
+      String token, int clubId, Map<String, dynamic> data) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/clubadmin/events'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Удалить событие (админ)
+  Future<void> adminDeleteEvent(
+      String token, int clubId, int eventId) async {
+    final res = await _client.delete(
+      Uri.parse('$_base/api/clubadmin/events/$eventId'),
+      headers: _adminHeaders(token, clubId: clubId),
+    );
+    _checkStatus(res);
+  }
+
+  /// Обновить настройки клуба (админ)
+  Future<void> adminUpdateSettings(
+      String token, int clubId, Map<String, dynamic> data) async {
+    final res = await _client.put(
+      Uri.parse('$_base/api/clubadmin/settings'),
+      headers: {..._adminHeaders(token, clubId: clubId), 'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    _checkStatus(res);
+  }
+
   // ─── Вспомогательное ─────────────────────────────────────────────────────
 
   void _checkStatus(http.Response res) {

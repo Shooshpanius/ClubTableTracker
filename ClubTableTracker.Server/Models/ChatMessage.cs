@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ClubTableTracker.Server.Models;
 
 public class ChatMessage
@@ -12,4 +14,20 @@ public class ChatMessage
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public int? ReplyToId { get; set; }
     public ChatMessage? ReplyTo { get; set; }
+
+    /// <summary>
+    /// Статус сообщения: Sent, Delivered, Read.
+    /// </summary>
+    [Column("Status")]
+    public string Status { get; set; } = MessageStatus.Sent;
+}
+
+/// <summary>
+/// Возможные статусы сообщения.
+/// </summary>
+public static class MessageStatus
+{
+    public const string Sent = "Sent";
+    public const string Delivered = "Delivered";
+    public const string Read = "Read";
 }
