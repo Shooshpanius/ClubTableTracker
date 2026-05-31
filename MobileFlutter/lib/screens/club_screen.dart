@@ -1274,7 +1274,7 @@ class _ClubScreenState extends State<ClubScreen>
       );
 
   Widget _docLink(String label, String url) => GestureDetector(
-        onTap: () => launchUrl(Uri.parse(url),
+        onTap: () => launchUrl(Uri.parse(resolveMediaUrl(url)),
             mode: LaunchMode.externalApplication),
         child: Container(
           padding:
