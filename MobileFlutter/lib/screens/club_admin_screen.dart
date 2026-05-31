@@ -376,7 +376,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: eventType,
+                    initialValue: eventType,
                     dropdownColor: AppColors.cardBg,
                     style: const TextStyle(color: AppColors.textPrimary),
                     items: const [
