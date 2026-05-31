@@ -279,13 +279,27 @@ export default function HomePage() {
             <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
               Бронирование игровых столов для варгеймерских клубов
             </div>
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <span style={{
                 background: '#0f3460', color: '#7eb8f7', fontSize: 11,
                 padding: '2px 8px', borderRadius: 12, fontWeight: 600
               }}>
                 Beta v0.0.{LAST_PR_NUMBER} от {LAST_PR_DATE}
               </span>
+              <a
+                href="https://www.rustore.ru/catalog/app/com.example.club_table_tracker"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: '#1a1a2e', border: '1px solid #533483',
+                  color: '#c49eff', fontSize: 11, fontWeight: 600,
+                  padding: '2px 10px', borderRadius: 12, textDecoration: 'none',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                📱 Скачать в RuStore
+              </a>
             </div>
           </div>
           {user ? (
