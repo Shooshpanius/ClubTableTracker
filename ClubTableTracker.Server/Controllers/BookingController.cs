@@ -288,10 +288,10 @@ public class BookingController : ControllerBase
             if (req.InvitedUserIds == null || req.InvitedUserIds.Count == 0)
                 return BadRequest("В режиме «Для других» необходимо выбрать хотя бы одного участника");
 
-            // Первый реальный (не __RESERVED__) участник становится владельцем бронирования.
-            // Если все слоты — __RESERVED__, владельцем становится модератор.
+            // Первый реальный (не __RESERVED__ и не manual:...) участник становится владельцем бронирования.
+            // Если все слоты — __RESERVED__ или ручные игроки, владельцем становится модератор.
             var firstReal = req.InvitedUserIds.FirstOrDefault(id =>
-                !string.IsNullOrEmpty(id) && id != BookingConstants.ReservedUserId);
+                !string.IsNullOrEmpty(id) && id != BookingConstants.ReservedUserId && !id.StartsWith("manual:"));
             bool allReserved = firstReal == null;
             string ownerId = firstReal ?? userId;
 
@@ -340,6 +340,34 @@ public class BookingController : ControllerBase
                         UserId = inviteeId,
                         Status = "Accepted"
                     });
+                    continue;
+                }
+
+                // Ручной (безаккаунтный) участник — id имеет вид "manual:{membershipId}"
+                if (inviteeId.StartsWith("manual:") && int.TryParse(inviteeId[7..], out var manualMembershipId2))
+                {
+                    var manualMembership = _db.Memberships.Find(manualMembershipId2);
+                    if (manualMembership == null || !manualMembership.IsManualEntry ||
+                        manualMembership.ClubId != table.ClubId || manualMembership.Status != "Approved") continue;
+
+                    bool canAddManual = true;
+                    if (!string.IsNullOrEmpty(req.GameSystem))
+                    {
+                        var manualSystems = manualMembership.ManualEnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                        canAddManual = manualSystems.Contains(req.GameSystem);
+                    }
+
+                    if (canAddManual)
+                    {
+                        _db.BookingParticipants.Add(new BookingParticipant
+                        {
+                            BookingId = booking.Id,
+                            UserId = null,
+                            ManualMembershipId = manualMembershipId2,
+                            ManualName = manualMembership.ManualName,
+                            Status = "Accepted"
+                        });
+                    }
                     continue;
                 }
 
@@ -426,6 +454,35 @@ public class BookingController : ControllerBase
                         UserId = inviteeId,
                         Status = "Accepted"
                     });
+                    continue;
+                }
+
+                // Ручной (безаккаунтный) участник — id имеет вид "manual:{membershipId}"
+                if (inviteeId.StartsWith("manual:") && int.TryParse(inviteeId[7..], out var manualId))
+                {
+                    var manualMembership = _db.Memberships.Find(manualId);
+                    if (manualMembership == null || !manualMembership.IsManualEntry ||
+                        manualMembership.ClubId != table.ClubId || manualMembership.Status != "Approved") continue;
+
+                    bool canInviteManual = true;
+                    if (!string.IsNullOrEmpty(req.GameSystem))
+                    {
+                        var manualSystems = manualMembership.ManualEnabledGameSystems?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                        canInviteManual = manualSystems.Contains(req.GameSystem);
+                    }
+
+                    if (canInviteManual)
+                    {
+                        // Ручной игрок не может принять приглашение сам — сразу Accepted
+                        _db.BookingParticipants.Add(new BookingParticipant
+                        {
+                            BookingId = normalBooking.Id,
+                            UserId = null,
+                            ManualMembershipId = manualId,
+                            ManualName = manualMembership.ManualName,
+                            Status = "Accepted"
+                        });
+                    }
                     continue;
                 }
 
