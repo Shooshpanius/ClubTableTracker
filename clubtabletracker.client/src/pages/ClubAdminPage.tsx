@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import ClubMapEditor from '../components/ClubMapEditor'
 import CampaignMapEditor from '../components/CampaignMapEditor'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
@@ -15,6 +15,7 @@ interface ClubEventData { id: number; title: string; startTime: string; endTime:
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const urlClubId = searchParams.get('clubId')
   const [clubKey, setClubKey] = useState(sessionStorage.getItem('clubKey') || '')
@@ -706,7 +707,15 @@ export default function ClubAdminPage() {
   return (
     <>
     <div style={{ padding: 40 }}>
-      <h1 style={{ color: '#e94560' }}>🎲 {club.name} — Club Admin</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <h1 style={{ color: '#e94560' }}>🎲 {club.name} — Club Admin</h1>
+        <button
+          onClick={() => navigate(`/club/${club.id}`)}
+          style={{ background: '#0f3460', color: '#4a9eff', border: '1px solid #4a9eff', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+        >
+          ← К клубу
+        </button>
+      </div>
       <div style={tabBarStyle}>
         <button style={tabStyle(tab === 'map')} onClick={() => setTab('map')}>Map Editor</button>
         <button style={tabStyle(tab === 'members')} onClick={() => setTab('members')}>

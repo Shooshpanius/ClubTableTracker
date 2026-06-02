@@ -512,6 +512,13 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
           '👑 ${_clubName ?? 'Админка'}',
           style: const TextStyle(color: AppColors.accent),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.casino, color: AppColors.accent),
+            tooltip: 'К клубу',
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: _tabs,
