@@ -5,6 +5,7 @@ import ClubAdminPage from './pages/ClubAdminPage'
 import SettingsPage from './pages/SettingsPage'
 import ClubPage from './pages/ClubPage'
 import MessengerPage from './pages/MessengerPage'
+import OAuthCallbackPage from './pages/OAuthCallbackPage'
 
 function App() {
   return (
@@ -16,6 +17,8 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/club/:clubId" element={<ClubPage />} />
         <Route path="/messages" element={<MessengerPage />} />
+        <Route path="/auth/yandex/callback" element={<OAuthCallbackPage provider="yandex" />} />
+        <Route path="/auth/vk/callback" element={<OAuthCallbackPage provider="vk" />} />
       </Routes>
     </div>
   )

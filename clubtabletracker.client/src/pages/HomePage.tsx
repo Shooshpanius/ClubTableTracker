@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
 import { useNavigate } from 'react-router-dom'
-import { isGoogleConfigured } from '../googleConfig'
+import { isGoogleConfigured, isYandexConfigured, isVkConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import useIsMobile from '../utils/useIsMobile'
 import { isTokenExpired } from '../utils/auth'
@@ -266,6 +266,16 @@ export default function HomePage() {
     )
   }
 
+  const startYandexLogin = () => {
+    const url = buildOAuthAuthorizeUrl('yandex')
+    if (url) window.location.href = url
+  }
+
+  const startVkLogin = () => {
+    const url = buildOAuthAuthorizeUrl('vk')
+    if (url) window.location.href = url
+  }
+
   return (
     <div style={{ padding: isMobile ? 16 : 40 }}>
 
@@ -316,9 +326,26 @@ export default function HomePage() {
               <button style={{ ...btnStyle, background: '#555' }} onClick={logout}>Выйти</button>
             </div>
           ) : (
-            isGoogleConfigured
-              ? <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
-              : <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>⚠️ Google login is not configured. Set <code>VITE_GOOGLE_CLIENT_ID</code> in your <code>.env</code> file.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
+              {isGoogleConfigured && (
+                <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
+              )}
+              {isYandexConfigured && (
+                <button onClick={startYandexLogin} style={{ ...btnStyle, background: '#FC3F1D', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span aria-hidden>Я</span> Войти через Яндекс
+                </button>
+              )}
+              {isVkConfigured && (
+                <button onClick={startVkLogin} style={{ ...btnStyle, background: '#0077FF', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span aria-hidden>VK</span> Войти через ВКонтакте
+                </button>
+              )}
+              {!isGoogleConfigured && !isYandexConfigured && !isVkConfigured && (
+                <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>
+                  ⚠️ Login is not configured. Set client IDs (<code>VITE_GOOGLE_CLIENT_ID</code>/<code>VITE_YANDEX_CLIENT_ID</code>/<code>VITE_VK_CLIENT_ID</code>) in your <code>.env</code>.
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>

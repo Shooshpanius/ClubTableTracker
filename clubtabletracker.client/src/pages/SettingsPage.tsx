@@ -243,7 +243,7 @@ export default function SettingsPage() {
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Имя из Google-аккаунта
+            Имя из аккаунта (Google/Яндекс/VK)
           </label>
           <div style={{ color: '#eee', fontSize: 15, padding: '8px 0' }}>{googleName || '—'}</div>
         </div>

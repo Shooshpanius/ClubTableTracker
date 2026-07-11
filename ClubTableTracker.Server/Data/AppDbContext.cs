@@ -29,6 +29,14 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AppUser>().HasKey(u => u.Id);
+        modelBuilder.Entity<AppUser>()
+            .HasIndex(u => u.YandexId)
+            .IsUnique()
+            .HasFilter("`YandexId` IS NOT NULL");
+        modelBuilder.Entity<AppUser>()
+            .HasIndex(u => u.VkId)
+            .IsUnique()
+            .HasFilter("`VkId` IS NOT NULL");
         modelBuilder.Entity<Club>().HasKey(c => c.Id);
         modelBuilder.Entity<GameTable>().HasKey(t => t.Id);
         modelBuilder.Entity<ClubMembership>().HasKey(m => m.Id);

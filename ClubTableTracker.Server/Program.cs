@@ -20,6 +20,8 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<FcmService>();
+builder.Services.AddHttpClient<YandexAuthService>();
+builder.Services.AddHttpClient<VkAuthService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {

@@ -15,6 +15,10 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__Default: Server=mariadb40club;Port=3306;Database=clubtracker;User=${DB_USER};Password=${DB_PASSWORD};
       Google__ClientId: ${VITE_GOOGLE_CLIENT_ID}
+      Yandex__ClientId: ${YANDEX_CLIENT_ID:-}
+      Yandex__ClientSecret: ${YANDEX_CLIENT_SECRET:-}
+      Vk__ClientId: ${VK_CLIENT_ID:-}
+      Vk__ClientSecret: ${VK_CLIENT_SECRET:-}
       Jwt__Secret: ${JWT_SECRET}
       MasterKey: ${MASTER_KEY}
       Firebase__ServiceAccountJson: ${Firebase__ServiceAccountJson}
@@ -26,11 +30,13 @@ services:
 
 
   front40club:
-    container_name: front40club
-    image: front40club:local
-    environment:
-      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-      YANDEX_METRIKA_ID: ${YANDEX_METRIKA_ID:-0}
+  container_name: front40club
+  image: front40club:local
+  environment:
+    VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    VITE_YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
+    VITE_VK_CLIENT_ID: ${VK_CLIENT_ID:-}
+    YANDEX_METRIKA_ID: ${YANDEX_METRIKA_ID:-0}
     ports:
       - "85:80"
     restart: always
