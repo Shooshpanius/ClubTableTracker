@@ -30,7 +30,10 @@ public class UserController : ControllerBase
         var user = _db.Users.Find(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors, user.Bio, user.City });
+        return Ok(new { user.Id, user.Email, user.Name, user.DisplayName, user.EnabledGameSystems, user.BookingColors, user.Bio, user.City,
+            googleLinked = !string.IsNullOrEmpty(user.GoogleId),
+            yandexLinked = !string.IsNullOrEmpty(user.YandexId),
+            vkLinked = !string.IsNullOrEmpty(user.VkId) });
     }
 
     [HttpPut("display-name")]

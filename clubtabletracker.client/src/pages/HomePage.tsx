@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
 import { useNavigate } from 'react-router-dom'
-import { isGoogleConfigured, isYandexConfigured, isVkConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
+import { isGoogleConfigured, isYandexConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import useIsMobile from '../utils/useIsMobile'
 import { isTokenExpired } from '../utils/auth'
@@ -271,11 +271,6 @@ export default function HomePage() {
     if (url) window.location.href = url
   }
 
-  const startVkLogin = () => {
-    const url = buildOAuthAuthorizeUrl('vk')
-    if (url) window.location.href = url
-  }
-
   return (
     <div style={{ padding: isMobile ? 16 : 40 }}>
 
@@ -335,12 +330,7 @@ export default function HomePage() {
                   <span aria-hidden>Я</span> Войти через Яндекс
                 </button>
               )}
-              {isVkConfigured && (
-                <button onClick={startVkLogin} style={{ ...btnStyle, background: '#0077FF', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden>VK</span> Войти через ВКонтакте
-                </button>
-              )}
-              {!isGoogleConfigured && !isYandexConfigured && !isVkConfigured && (
+              {!isGoogleConfigured && !isYandexConfigured && (
                 <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>
                   ⚠️ Login is not configured. Set client IDs (<code>VITE_GOOGLE_CLIENT_ID</code>/<code>VITE_YANDEX_CLIENT_ID</code>/<code>VITE_VK_CLIENT_ID</code>) in your <code>.env</code>.
                 </span>

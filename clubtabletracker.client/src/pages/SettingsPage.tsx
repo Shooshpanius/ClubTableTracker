@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, DEFAULT_BOOKING_COLORS, BOOKING_COLORS_LABELS } from '../constants'
 import type { BookingColors } from '../constants'
 import { isTokenExpired } from '../utils/auth'
+import { GoogleLogin } from '@react-oauth/google'
+import { isGoogleConfigured } from '../oauthConfig'
 
 const cardStyle: React.CSSProperties = {
   background: '#16213e',
@@ -68,6 +70,12 @@ export default function SettingsPage() {
   const [savedCity, setSavedCity] = useState(false)
   const [errorCity, setErrorCity] = useState('')
 
+  const [googleLinked, setGoogleLinked] = useState(false)
+  const [yandexLinked, setYandexLinked] = useState(false)
+  const [linking, setLinking] = useState(false)
+  const [linkError, setLinkError] = useState('')
+  const [linkSuccess, setLinkSuccess] = useState('')
+
   useEffect(() => {
     if (!token || isTokenExpired(token)) {
       localStorage.removeItem('token')
@@ -78,6 +86,8 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(data => {
         setGoogleName(data.name || '')
+        setGoogleLinked(!!data.googleLinked)
+        setYandexLinked(!!data.yandexLinked)
         const dn = data.displayName || ''
         setDisplayName(dn)
         setInputValue(dn)
@@ -119,6 +129,33 @@ export default function SettingsPage() {
       setError('Ошибка при сохранении')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleLinkGoogle = async (credential: string) => {
+    setLinking(true)
+    setLinkError('')
+    setLinkSuccess('')
+    try {
+      const res = await fetch('/api/auth/link-google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ credential }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.token) localStorage.setItem('token', data.token)
+        setGoogleLinked(true)
+        if (data.user?.name) setGoogleName(data.user.name)
+        setLinkSuccess('Google-аккаунт привязан')
+      } else {
+        const text = await res.text()
+        setLinkError(text || 'Не удалось привязать Google-аккаунт')
+      }
+    } catch {
+      setLinkError('Сетевая ошибка при привязке')
+    } finally {
+      setLinking(false)
     }
   }
 
@@ -276,6 +313,36 @@ export default function SettingsPage() {
           {saved && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
           {error && <span style={{ color: '#e94560', fontSize: 14 }}>{error}</span>}
         </div>
+      </div>
+
+      <div style={cardStyle}>
+        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>Способы входа</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          <span style={{ background: googleLinked ? '#1a6e3c' : '#333', color: '#eee', padding: '4px 12px', borderRadius: 12, fontSize: 13 }}>
+            {googleLinked ? '✓ Google' : '✗ Google'}
+          </span>
+          <span style={{ background: yandexLinked ? '#1a6e3c' : '#333', color: '#eee', padding: '4px 12px', borderRadius: 12, fontSize: 13 }}>
+            {yandexLinked ? '✓ Яндекс' : '✗ Яндекс'}
+          </span>
+        </div>
+        {!googleLinked && isGoogleConfigured && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            <GoogleLogin
+              onSuccess={cred => { if (cred.credential) handleLinkGoogle(cred.credential) }}
+              onError={() => setLinkError('Не удалось получить Google-креденшал')}
+              text="continue_with"
+              width={280}
+            />
+            {linking && <span style={{ color: '#aaa', fontSize: 13 }}>Привязываем…</span>}
+            {linkSuccess && <span style={{ color: '#4caf50', fontSize: 13 }}>{linkSuccess}</span>}
+            {linkError && <span style={{ color: '#e94560', fontSize: 13 }}>{linkError}</span>}
+          </div>
+        )}
+        {googleLinked && (
+          <div style={{ color: '#aaa', fontSize: 13 }}>
+            Google-аккаунт привязан. Вход доступен и по Google, и по Яндексу.
+          </div>
+        )}
       </div>
 
       <div style={cardStyle}>

@@ -14,6 +14,7 @@
 | 6 | Мобайл (Flutter) — `flutter_web_auth_2` + deep links | ⬜ Не начат |
 | 7b | Инфра — README, `build_mobile.ps1` secrets | ⬜ Не начат |
 | 8 | Тестирование | ⬜ Не начат |
+| 9 | Связка/объединение аккаунтов (link/merge Google) | 🔧 Код готов (тест на dev-БД) |
 
 ---
 
@@ -260,6 +261,50 @@ sequenceDiagram
 6. **Edge-кейсы**: протухший/невалидный `code` → `400` с понятным сообщением; несоответствие `state` (CSRF) — отклонение на клиенте; неверный `redirect_uri` (не совпадает с кабинетом провайдера) — ошибка обмена.
 
 ---
+
+## ⬜ Шаг 9 — Связка/объединение аккаунтов (link/merge)
+
+**Цель:** в профиле ([`SettingsPage.tsx`](../clubtabletracker.client/src/pages/SettingsPage.tsx:241)) для пользователя, залогиненного НЕ через Google, показать кнопку «Объединить с профилем Google». По клику — Google One Tap → проверка креденшала → привязка или объединение, чтобы входить и по Google, и по Яндексу. В профиле показаны оба способа авторизации.
+
+### Контракт
+- [`GET /api/user/me`](../ClubTableTracker.Server/Controllers/UserController.cs:24): добавить флаги `googleLinked`/`yandexLinked`/`vkLinked` (по наличию `GoogleId`/`YandexId`/`VkId`) — чтобы UI знал, что привязано.
+- Новый `POST /api/auth/link-google` (авторизован, текущий JWT): тело `{ credential: string }` (Google ID-token). Валидация как в [`GoogleLogin`](../ClubTableTracker.Server/Controllers/AuthController.cs:36) → `sub` + `email`.
+- Ответ: `{ token, user }`; `token` перевыпускается (при merge — для выжившего аккаунта).
+
+### Логика (два случая)
+1. **Google-аккаунта ещё нет в БД** → простая привязка: `currentUser.GoogleId = sub`, дозаполнить пустые email/name. Без merge, сессия сохраняется.
+2. **Google-аккаунт уже есть** (`other`, `other.GoogleId == sub`, `other != currentUser`) → **merge**.
+
+### Merge — выживший = текущий аккаунт (Яндекс); `source` = Google-дубль
+> ✅ **РЕШЕНО:** выживает текущий аккаунт (Id не меняется, сессия валидна). Google-дубль (`source`) удаляется после переноса его данных в текущий (`survivor`); добавляется Google-вход.
+
+Транзакция, `survivor = currentUser`, `source = other` (Google-дубль):
+- **Дедуп** (где у survivor уже есть запись — иначе конфликт уникальности/логический дубль):
+  - `ChatMembers` (DB-unique `(ChatId,UserId)`) — удалить строки source, где survivor уже участник.
+  - `ClubMembership` — слить `IsModerator`/`IsAdmin` в запись survivor, удалить дубль source.
+  - `EventParticipants` — удалить дубль source.
+  - `BookingParticipants` — удалить дубль source.
+- **Переназначение FK** `source.Id → survivor.Id`: `Bookings.UserId`, `BookingParticipants.UserId`, `BookingLogs.UserId`, `ClubMembership.UserId`, `EventParticipants.UserId`, `ChatMembers.UserId`, `ChatMessage.SenderId`.
+- **Provider IDs:** `survivor.GoogleId = source.GoogleId` (GoogleId без unique-индекса — безопасно). `source.YandexId/VkId` (если есть) переносим в survivor, если пусто; иначе конфликт → `400`. Порядок из-за unique-индексов `YandexId/VkId`: сначала `source.YandexId/VkId = null` (SaveChanges #1), затем проставить survivor и удалить source (SaveChanges #2).
+- **Профиль:** дозаполнить пустые `Email/Name/DisplayName/AvatarUrl/Bio/City/EnabledGameSystems/FcmToken` survivor из source.
+- `ClubEvent.GameMasterId` → `SetNull` (если source был ведущим) — допустимо.
+- Удалить `source`. Вернуть `{ token, user }` для `survivor` (текущий аккаунт — сессия валидна, переключения нет).
+
+### Фронтенд
+- [`SettingsPage.tsx`](../clubtabletracker.client/src/pages/SettingsPage.tsx:281): блок «Способы входа» — бейджи Google ✓ / Яндекс ✓. Если `!googleLinked && isGoogleConfigured` — `<GoogleLogin>` «Объединить с профилем Google». On success → `POST /api/auth/link-google { credential }` → обновить `localStorage.token` и флаги (`googleLinked=true`). Переключения сессии нет (выживший = текущий).
+
+### Реализовано
+- [`AuthController.LinkGoogle()`](../ClubTableTracker.Server/Controllers/AuthController.cs:155) — `POST /api/auth/link-google` (`[Authorize]`): валидирует Google-креденшал; если дубля нет — привязка, если есть — `MergeGoogleUser()`.
+- [`AuthController.MergeGoogleUser()`](../ClubTableTracker.Server/Controllers/AuthController.cs:228) — транзакция: дедуп (ChatMembers/ClubMembership/EventParticipants/BookingParticipants), перенос 7 FK-таблиц, дозаполнение профиля, двухфазный SaveChanges (unique `YandexId/VkId`), удаление дубля.
+- [`UserController.GetMe()`](../ClubTableTracker.Server/Controllers/UserController.cs:33): добавлены `googleLinked`/`yandexLinked`/`vkLinked`.
+- [`SettingsPage.tsx`](../clubtabletracker.client/src/pages/SettingsPage.tsx:281): блок «Способы входа» + кнопка «Объединить с профилем Google» для не-Google-пользователей.
+- **Сборка:** `dotnet build` — 0 ошибок; `tsc -b` + `eslint` — 0 ошибок.
+- ⚠️ Merge трогает 7 таблиц — **обязательно протестировать на dev-БД** перед продом (два аккаунта с разными email, общие клубы/чаты/бронирования).
+
+### Риски/тестирование
+- Merge трогает 7 таблиц — обязательно тестировать на dev-БД (два аккаунта с разными email, бронирования/членства в общих клубах/чатах).
+- Идемпотентность: повторный клик тем же Google → «уже привязан».
+- Конфликт: Google-аккаунт уже привязан к другому Яндексу → `400` с понятным сообщением.
 
 ## Риски / заметки
 
