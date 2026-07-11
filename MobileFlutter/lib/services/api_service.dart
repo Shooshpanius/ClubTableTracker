@@ -329,6 +329,28 @@ class ApiService {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> yandexLogin(String code, String redirectUri) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/auth/yandex'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'code': code, 'redirectUri': redirectUri}),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Привязка Google-аккаунта к текущему пользователю (link/merge, Шаг 9).
+  /// Требует авторизационный JWT текущего пользователя.
+  Future<Map<String, dynamic>> linkGoogle(String credential, String token) async {
+    final res = await _client.post(
+      Uri.parse('$_base/api/auth/link-google'),
+      headers: _headers(token),
+      body: jsonEncode({'credential': credential}),
+    );
+    _checkStatus(res);
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
   // ─── Мессенджер ──────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getChats(String token) async {

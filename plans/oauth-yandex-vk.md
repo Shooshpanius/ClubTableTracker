@@ -11,7 +11,7 @@
 | 4 | Backend — эндпоинты `/api/auth/yandex`, `/api/auth/vk` | ✅ Готово |
 | 7a | Инфра — env-переменные и docker-compose | ✅ Готово |
 | 5 | Сайт (React) — кнопки + callback-роуты + конфиг | ✅ Готово |
-| 6 | Мобайл (Flutter) — `flutter_web_auth_2` + deep links | ⬜ Не начат |
+| 6 | Мобайл (Flutter) — `flutter_web_auth_2` + deep links | 🔧 Код готов (тест на устройстве) |
 | 7b | Инфра — README, `build_mobile.ps1` secrets | ⬜ Не начат |
 | 8 | Тестирование | ⬜ Не начат |
 | 9 | Связка/объединение аккаунтов (link/merge Google) | 🔧 Код готов (тест на dev-БД) |
@@ -186,9 +186,21 @@ sequenceDiagram
 
 ---
 
-## ⬜ Шаг 6 — Мобайл (Flutter)
+## 🔧 Шаг 6 — Мобайл (Flutter) — код готов
 
-Цель: на экране входа добавить кнопки Яндекс/VK, открыть системный браузер/вкладку, поймать редирект с `code`, обменять через бэкенд.
+> **Скоуп изменён:** на экране входа — только **Яндекс** (прямой вход Google/VK убран). Привязка Google — из профиля (аналог Шага 9).
+
+### Реализовано
+- [`pubspec.yaml`](../MobileFlutter/pubspec.yaml:31): `flutter_web_auth_2: ^5.0.3`.
+- [`constants.dart`](../MobileFlutter/lib/constants.dart:27): `yandexClientId` (плейсхолдер — подставить реальный), `oauthCallbackScheme = 'ru.clubtabletracker'`.
+- [`api_service.dart`](../MobileFlutter/lib/services/api_service.dart:332): `yandexLogin(code, redirectUri)` → `POST /api/auth/yandex`; `linkGoogle(credential, token)` → `POST /api/auth/link-google`.
+- [`home_screen.dart`](../MobileFlutter/lib/screens/home_screen.dart:149): `_handleYandexLogin()` (flutter_web_auth_2 → deep link `ru.clubtabletracker://oauth/yandex` + state/CSRF), кнопка «Войти через Яндекс». Прямой Google-вход и SHA-1 диалог убраны.
+- [`settings_screen.dart`](../MobileFlutter/lib/screens/settings_screen.dart): блок «Способы входа» (бейджи Google/Яндекс) + «Привязать Google» (`google_sign_in` → `/api/auth/link-google`).
+- **Native:** [`AndroidManifest.xml`](../MobileFlutter/android/app/src/main/AndroidManifest.xml:40) — intent-filter `ru.clubtabletracker`; [`Info.plist`](../MobileFlutter/ios/Runner/Info.plist:75) — URL scheme `ru.clubtabletracker`.
+- **Сборка:** `flutter pub get` OK, `flutter analyze` — 0 ошибок в изменённых файлах.
+- ⚠️ Перед сборкой: вписать реальный `yandexClientId` в `constants.dart` и зарегистрировать в кабинете Яндекса redirect URI `ru.clubtabletracker://oauth/yandex` (мобильная платформа).
+
+Цель (исходная): на экране входа добавить кнопки Яндекс/VK, открыть системный браузер/вкладку, поймать редирект с `code`, обменять через бэкенд.
 
 ### 6.1. Зависимость
 - [`pubspec.yaml`](../MobileFlutter/pubspec.yaml:1): добавить `flutter_web_auth_2: ^<latest>` (кросс-платформенное открытие браузера и перехват редиректа).

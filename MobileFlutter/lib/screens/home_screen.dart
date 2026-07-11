@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../app_colors.dart';
 import '../constants.dart';
@@ -29,9 +29,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _signingChannel =
-      MethodChannel('com.example.club_table_tracker/signing');
-
   final _api = ApiService();
   final _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
@@ -146,74 +143,34 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
-  Future<void> _handleGoogleLogin() async {
+  Future<void> _handleYandexLogin() async {
     try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) return;
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
-      if (idToken == null) {
-        _showSnack('Не удалось получить токен Google');
+      final redirectUri = '$oauthCallbackScheme://oauth/yandex';
+      final state = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
+      final authUrl = Uri.https('oauth.yandex.ru', '/authorize', {
+        'response_type': 'code',
+        'client_id': yandexClientId,
+        'redirect_uri': redirectUri,
+        'state': state,
+      }).toString();
+
+      final resultUrl = await FlutterWebAuth2.authenticate(
+        url: authUrl,
+        callbackUrlScheme: oauthCallbackScheme,
+      );
+      final code = Uri.parse(resultUrl).queryParameters['code'];
+      final returnedState = Uri.parse(resultUrl).queryParameters['state'];
+      if (code == null || returnedState != state) {
+        _showSnack('Не удалось получить код авторизации');
         return;
       }
-      final data = await _api.googleLogin(idToken);
+      final data = await _api.yandexLogin(code, redirectUri);
       final token = data['token'] as String;
       await AuthService.saveToken(token);
       await FcmService.init(token);
       widget.onTokenChanged(token);
     } catch (e) {
-      if (e is PlatformException &&
-          e.code == 'sign_in_failed' &&
-          (e.message?.contains(': 10:') ?? false)) {
-        String sha1Info = 'не удалось получить';
-        try {
-          final sha1 = await _signingChannel.invokeMethod<String>('getSha1');
-          if (sha1 != null) sha1Info = sha1;
-        } catch (_) {}
-        if (!mounted) return;
-        showDialog<void>(
-          context: context,
-          builder: (_) => AlertDialog(
-            backgroundColor: AppColors.cardBg,
-            title: const Text(
-              'Google Sign-In: ошибка 10',
-              style: TextStyle(color: AppColors.accent),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'SHA-1 этой сборки не зарегистрирован в Google Cloud Console.',
-                  style: TextStyle(color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'SHA-1 подписи:',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                SelectableText(
-                  sha1Info,
-                  style: const TextStyle(
-                    color: AppColors.accentBlue,
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK', style: TextStyle(color: AppColors.accent)),
-              ),
-            ],
-          ),
-        );
-      } else {
-        _showSnack('Ошибка входа: $e');
-      }
+      _showSnack('Ошибка входа: $e');
     }
   }
 
@@ -423,12 +380,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!isLoggedIn) {
       return ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.panelBg,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: const Color(0xFFFC3F1D),
+          foregroundColor: Colors.white,
         ),
-        icon: const Text('G', style: TextStyle(fontWeight: FontWeight.bold)),
-        label: const Text('Войти'),
-        onPressed: _handleGoogleLogin,
+        icon: const Text('Я', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Войти через Яндекс'),
+        onPressed: _handleYandexLogin,
       );
     }
     return Row(

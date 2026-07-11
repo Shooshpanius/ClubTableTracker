@@ -71,6 +71,17 @@
 				<string>com.googleusercontent.apps.YOUR_CLIENT_ID</string>
 			</array>
 		</dict>
+		<!-- OAuth deep link для входа через Яндекс (flutter_web_auth_2) -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>ru.clubtabletracker.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ru.clubtabletracker</string>
+			</array>
+		</dict>
 	</array>
 	<key>GIDClientID</key>
 	<string>YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com</string>

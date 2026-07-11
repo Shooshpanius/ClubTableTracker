@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../app_colors.dart';
 import '../constants.dart';
@@ -47,6 +48,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _gsExpanded = false;
 
+  bool _googleLinked = false;
+  bool _yandexLinked = false;
+  bool _linking = false;
+  String? _linkError;
+  String? _linkSuccess;
+  final _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: googleServerClientId,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +89,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _bioCtrl.text = user.bio ?? '';
         _cityCtrl.text = user.city ?? '';
         _selectedSystems = Set.from(user.enabledGameSystems);
+        _googleLinked = data['googleLinked'] == true;
+        _yandexLinked = data['yandexLinked'] == true;
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -94,6 +107,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _error = e.toString();
         _loading = false;
+      });
+    }
+  }
+
+  Future<void> _linkGoogle() async {
+    setState(() {
+      _linking = true;
+      _linkError = null;
+      _linkSuccess = null;
+    });
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        setState(() => _linking = false);
+        return;
+      }
+      final idToken = (await account.authentication).idToken;
+      if (idToken == null) {
+        setState(() {
+          _linking = false;
+          _linkError = 'Не удалось получить токен Google';
+        });
+        return;
+      }
+      final data = await _api.linkGoogle(idToken, widget.token);
+      final newToken = data['token'] as String?;
+      if (newToken != null && newToken.isNotEmpty) {
+        await AuthService.saveToken(newToken);
+      }
+      setState(() {
+        _googleLinked = true;
+        _linking = false;
+        _linkSuccess = 'Google-аккаунт привязан';
+      });
+    } on ApiException catch (e) {
+      setState(() {
+        _linking = false;
+        _linkError = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _linking = false;
+        _linkError = 'Ошибка привязки: $e';
       });
     }
   }
@@ -202,6 +258,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       _buildDisplayNameCard(),
                       const SizedBox(height: 12),
+                      _buildAuthMethodsCard(),
+                      const SizedBox(height: 12),
                       _buildBioCard(),
                       const SizedBox(height: 12),
                       _buildCityCard(),
@@ -279,6 +337,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
             saved: _savedName,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAuthMethodsCard() {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Способы входа',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _chip('Google', _googleLinked),
+              _chip('Яндекс', _yandexLinked),
+            ],
+          ),
+          if (!_googleLinked) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.panelBg,
+                foregroundColor: AppColors.textPrimary,
+              ),
+              icon: const Text('G', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text('Привязать Google'),
+              onPressed: _linking ? null : _linkGoogle,
+            ),
+            if (_linking)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('Привязываем…',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              ),
+            if (_linkSuccess != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(_linkSuccess!,
+                    style: const TextStyle(color: Colors.green, fontSize: 13)),
+              ),
+            if (_linkError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(_linkError!,
+                    style: const TextStyle(color: AppColors.accent, fontSize: 13)),
+              ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Google-аккаунт привязан. Вход доступен и по Google, и по Яндексу.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool linked) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: linked ? const Color(0xFF1A6E3C) : const Color(0xFF333333),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        linked ? '✓ $label' : '✗ $label',
+        style: const TextStyle(color: Colors.white, fontSize: 13),
       ),
     );
   }

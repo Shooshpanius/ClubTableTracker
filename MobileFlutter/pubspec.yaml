@@ -27,6 +27,9 @@ dependencies:
   # Р С›РЎвЂљР С”РЎР‚РЎвЂ№РЎвЂљР С‘Р Вµ URL Р Р† Р В±РЎР‚Р В°РЎС“Р В·Р ВµРЎР‚Р Вµ / РЎвЂћР В°Р в„–Р В»Р С•Р Р†Р С•Р С Р С—РЎР‚Р С•РЎРѓР СР С•РЎвЂљРЎР‚РЎвЂ°Р С‘Р С”Р Вµ
   url_launcher: ^6.3.0
 
+  # OAuth Authorization Code flow: вход через Яндекс (браузер + перехват deep link)
+  flutter_web_auth_2: ^5.0.3
+
   # Firebase (push-РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘РЎРЏ)
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3

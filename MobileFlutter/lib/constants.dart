@@ -24,6 +24,15 @@ String resolveMediaUrl(String url) {
 /// из Google Cloud Console → APIs & Services → Credentials → Web client.
 const String googleServerClientId = '864128408339-d7j3k1852l3ksiadpnnhbmfo3v50s8e0.apps.googleusercontent.com';
 
+/// Yandex OAuth Client ID (тот же, что YANDEX_CLIENT_ID на сервере/вебе).
+/// Зарегистрируйте приложение на https://oauth.yandex.ru/client/new
+/// и для мобильной платформы укажите redirect URI: ru.clubtabletracker://oauth/yandex
+/// ЗАМЕНИТЕ на реальный ID перед сборкой (или подставьте через CI).
+const String yandexClientId = 'f22bad9ca9db40c9ab14c46d415f0121';
+
+/// Схема deep link для перехвата OAuth-редиректа (Яндекс).
+const String oauthCallbackScheme = 'ru.clubtabletracker';
+
 /// API-ключ Яндекс AppMetrica.
 /// Получите ключ в кабинете AppMetrica: https://appmetrica.yandex.ru/
 /// При развёртывании замените на реальный ключ приложения.
