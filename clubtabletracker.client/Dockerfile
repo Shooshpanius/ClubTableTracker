@@ -9,6 +9,8 @@ RUN npm cache clean --force
 RUN npm install  --force
 COPY . .
 ARG VITE_GOOGLE_CLIENT_ID=__VITE_GOOGLE_CLIENT_ID__
+ARG VITE_YANDEX_CLIENT_ID=__VITE_YANDEX_CLIENT_ID__
+ARG VITE_VK_CLIENT_ID=__VITE_VK_CLIENT_ID__
 RUN npm run build
 
 FROM nginx:alpine

@@ -9,6 +9,16 @@ ESCAPED_ID=$(printf '%s' "${VITE_GOOGLE_CLIENT_ID:-}" | sed 's/[|&\]/\\&/g')
 find /usr/share/nginx/html -name "*.js" \
   -exec sed -i "s|__VITE_GOOGLE_CLIENT_ID__|${ESCAPED_ID}|g" {} +
 
+# Replace Yandex and VK OAuth client ID placeholders at runtime (same mechanism as Google).
+# Vite inlines the build-time token __VITE_<PROVIDER>_CLIENT_ID__ into the bundle; here we
+# substitute it with the runtime value from docker-compose .env (VITE_YANDEX/VK_CLIENT_ID).
+ESCAPED_YANDEX_ID=$(printf '%s' "${VITE_YANDEX_CLIENT_ID:-}" | sed 's/[|&\]/\\&/g')
+find /usr/share/nginx/html -name "*.js" \
+  -exec sed -i "s|__VITE_YANDEX_CLIENT_ID__|${ESCAPED_YANDEX_ID}|g" {} +
+ESCAPED_VK_ID=$(printf '%s' "${VITE_VK_CLIENT_ID:-}" | sed 's/[|&\]/\\&/g')
+find /usr/share/nginx/html -name "*.js" \
+  -exec sed -i "s|__VITE_VK_CLIENT_ID__|${ESCAPED_VK_ID}|g" {} +
+
 # Replace Yandex.Metrika counter ID placeholder in index.html and *.js files at runtime.
 # Set YANDEX_METRIKA_ID in docker-compose .env to activate the counter without
 # storing the ID in the repository.

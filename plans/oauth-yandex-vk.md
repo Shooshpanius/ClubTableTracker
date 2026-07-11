@@ -88,9 +88,10 @@ sequenceDiagram
 
 - [`appsettings.json`](../ClubTableTracker.Server/appsettings.json:13): секции `Yandex` и `Vk` (`ClientId`/`ClientSecret`).
 - [`docker-compose.yml`](../docker-compose.yml:18): проброшены `Yandex__ClientId/Secret`, `Vk__ClientId/Secret` в backend; `VITE_YANDEX_CLIENT_ID`/`VITE_VK_CLIENT_ID` в frontend (общие с `YANDEX_CLIENT_ID`/`VK_CLIENT_ID` из `.env`).
+- [`Dockerfile`](../clubtabletracker.client/Dockerfile:11) + [`entrypoint.sh`](../clubtabletracker.client/entrypoint.sh:12) (frontend): добавлены `ARG VITE_YANDEX_CLIENT_ID`/`ARG VITE_VK_CLIENT_ID` (build-time токены `__VITE_*__`) и `sed`-подстановка в `entrypoint.sh` — по образцу Google. **Без этого** Vite вшивал бы `""` и кнопки Яндекс/VK не появились бы в production-сборке (именно это наблюдалось на go40k.ru).
 - [`.env.example`](../.env.example:7) и [`clubtabletracker.client/.env.example`](../clubtabletracker.client/.env.example:8): добавлены переменные с инструкциями.
 
-**Сборка:** `dotnet build ClubTableTracker.Server/ClubTableTracker.Server.csproj` — успех.
+**Сборка:** `dotnet build ClubTableTracker.Server/ClubTableTracker.Server.csproj` — успех. Фронтенд: `npm run build` с build-time токенами `__VITE_GOOGLE/YANDEX/VK_CLIENT_ID__` — успех; проверено, что все три токена присутствуют в `dist/*.js` (по 1 вхождению) → `entrypoint.sh` заменит их на runtime-значения из `.env`.
 
 ---
 
