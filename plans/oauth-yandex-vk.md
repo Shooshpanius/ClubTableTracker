@@ -128,7 +128,7 @@ sequenceDiagram
 - [`oauthConfig.ts`](../clubtabletracker.client/src/oauthConfig.ts:1) — единый конфиг: `googleClientId`/`yandexClientId`/`vkClientId`, флаги `is{Google,Yandex,Vk}Configured`, `buildOAuthAuthorizeUrl()` (генерит `state` → `sessionStorage`), `verifyOAuthState()` (одноразовая CSRF-проверка), `oauthRedirectUri()`.
 - [`googleConfig.ts`](../clubtabletracker.client/src/googleConfig.ts:1) — теперь реэкспортирует из `oauthConfig` (обратная совместимость).
 - [`main.tsx`](../clubtabletracker.client/src/main.tsx:6) и [`HomePage.tsx`](../clubtabletracker.client/src/pages/HomePage.tsx:4) — импорты переключены на `oauthConfig`.
-- [`HomePage.tsx`](../clubtabletracker.client/src/pages/HomePage.tsx:318): шапка входа переработана в flex-блок — Google One Tap + кнопки «Яндекс» (`#FC3F1D`) и «ВКонтакте» (`#0077FF`); кнопки показываются по `is*Configured`, при отсутствии всех трёх — предупреждение.
+- [`HomePage.tsx`](../clubtabletracker.client/src/pages/HomePage.tsx:318): шапка входа — единственная кнопка «Войти через Яндекс» (`#FC3F1D`, redirect-based). Кнопки Google и VK с главной убраны: вход только через Яндекс; Google привязывается позже из профиля (Шаг 9). При `!isYandexConfigured` — предупреждение.
 - [`OAuthCallbackPage.tsx`](../clubtabletracker.client/src/pages/OAuthCallbackPage.tsx:1) — приём `code`/`state`, проверка state, POST на `/api/auth/<provider>`, сохранение JWT в `localStorage`, редирект на `/`; обработка ошибок провайдера/сети/CSRF.
 - [`App.tsx`](../clubtabletracker.client/src/App.tsx:19): роуты `/auth/yandex/callback` и `/auth/vk/callback`.
 - [`SettingsPage.tsx`](../clubtabletracker.client/src/pages/SettingsPage.tsx:246): подписка «Имя из Google-аккаунта» → «Имя из аккаунта (Google/Яндекс/VK)».
