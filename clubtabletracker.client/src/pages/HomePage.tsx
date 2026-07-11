@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { GoogleLogin } from '@react-oauth/google'
 import { useNavigate } from 'react-router-dom'
-import { isGoogleConfigured, isYandexConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
+import { isYandexConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import useIsMobile from '../utils/useIsMobile'
 import { isTokenExpired } from '../utils/auth'
@@ -110,21 +109,6 @@ export default function HomePage() {
     const id = setInterval(fetchUnread, 15000)
     return () => clearInterval(id)
   }, [token])
-
-  const handleGoogleLogin = async (credentialResponse: { credential?: string }) => {
-    if (!credentialResponse.credential) return
-    const res = await fetch('/api/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential: credentialResponse.credential })
-    })
-    if (res.ok) {
-      const data = await res.json()
-      localStorage.setItem('token', data.token)
-      setToken(data.token)
-      setUser(data.user)
-    }
-  }
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -322,17 +306,13 @@ export default function HomePage() {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-              {isGoogleConfigured && (
-                <GoogleLogin onSuccess={handleGoogleLogin} onError={() => console.log('Login Failed')} />
-              )}
-              {isYandexConfigured && (
+              {isYandexConfigured ? (
                 <button onClick={startYandexLogin} style={{ ...btnStyle, background: '#FC3F1D', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span aria-hidden>Я</span> Войти через Яндекс
                 </button>
-              )}
-              {!isGoogleConfigured && !isYandexConfigured && (
+              ) : (
                 <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>
-                  ⚠️ Login is not configured. Set client IDs (<code>VITE_GOOGLE_CLIENT_ID</code>/<code>VITE_YANDEX_CLIENT_ID</code>/<code>VITE_VK_CLIENT_ID</code>) in your <code>.env</code>.
+                  ⚠️ Вход через Яндекс не настроен. Укажите <code>VITE_YANDEX_CLIENT_ID</code> в <code>.env</code>.
                 </span>
               )}
             </div>
@@ -344,7 +324,7 @@ export default function HomePage() {
       {!user && (
         <div style={{ ...cardStyle, marginBottom: 24 }}>
           <h2>Welcome to ClubTableTracker</h2>
-          <p style={{ color: '#aaa' }}>Track gaming tables at your local Warhammer and Games Workshop club. Sign in with Google to apply for club membership and book tables.</p>
+          <p style={{ color: '#aaa' }}>Track gaming tables at your local Warhammer and Games Workshop club. Sign in to apply for club membership and book tables.</p>
         </div>
       )}
 
