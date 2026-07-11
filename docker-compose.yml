@@ -30,18 +30,18 @@ services:
 
 
   front40club:
-  container_name: front40club
-  image: front40club:local
-  environment:
-    VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-    VITE_YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
-    VITE_VK_CLIENT_ID: ${VK_CLIENT_ID:-}
-    YANDEX_METRIKA_ID: ${YANDEX_METRIKA_ID:-0}
-    ports:
-      - "85:80"
-    restart: always
-    depends_on:
-      - back40club
+    container_name: front40club
+    image: front40club:local
+    environment:
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+      VITE_YANDEX_CLIENT_ID: ${YANDEX_CLIENT_ID:-}
+      VITE_VK_CLIENT_ID: ${VK_CLIENT_ID:-}
+      YANDEX_METRIKA_ID: ${YANDEX_METRIKA_ID:-0}
+      ports:
+        - "85:80"
+      restart: always
+      depends_on:
+        - back40club
 
 
   mariadb40club:
