@@ -8,6 +8,7 @@ public class CampaignMap
     public ClubEvent Event { get; set; } = null!;
     public int MaxInfluence { get; set; }
     public string Factions { get; set; } = "[]";
+    public string FactionColors { get; set; } = "[]";
     public List<CampaignMapBlock> Blocks { get; set; } = new();
     public List<CampaignMapLink> Links { get; set; } = new();
 }

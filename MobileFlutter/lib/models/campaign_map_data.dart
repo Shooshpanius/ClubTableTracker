@@ -75,6 +75,7 @@ class CampaignMapData {
   final int eventId;
   final int maxInfluence;
   final List<String> factions;
+  final List<String> factionColors;
   final List<CampaignMapBlock> blocks;
   final List<CampaignMapLink> links;
 
@@ -83,6 +84,7 @@ class CampaignMapData {
     required this.eventId,
     required this.maxInfluence,
     required this.factions,
+    required this.factionColors,
     required this.blocks,
     required this.links,
   });
@@ -91,11 +93,15 @@ class CampaignMapData {
     final factionsRaw = json['factions'] as String? ?? '[]';
     final factionsList =
         (jsonDecode(factionsRaw) as List<dynamic>).cast<String>();
+    final factionColorsRaw = json['factionColors'] as String? ?? '[]';
+    final factionColorsList =
+        (jsonDecode(factionColorsRaw) as List<dynamic>).cast<String>();
     return CampaignMapData(
       id: json['id'] as int,
       eventId: json['eventId'] as int,
       maxInfluence: json['maxInfluence'] as int? ?? 1,
       factions: factionsList,
+      factionColors: factionColorsList,
       blocks: (json['blocks'] as List<dynamic>?)
               ?.map((b) =>
                   CampaignMapBlock.fromJson(b as Map<String, dynamic>))

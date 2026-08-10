@@ -25,6 +25,18 @@ public class CampaignMapController : ControllerBase
     private bool IsAdminOrModerator(string userId, int clubId) =>
         _db.Memberships.Any(m => m.UserId == userId && m.ClubId == clubId && m.Status == "Approved" && m.IsModerator);
 
+    // Default faction color palette (kept in sync with the client FACTION_COLORS constant)
+    private static readonly string[] DefaultPalette =
+        { "#e94560", "#4caf50", "#2196f3", "#ff9800", "#9c27b0", "#00bcd4", "#f44336", "#8bc34a" };
+
+    private static List<string> DefaultFactionColors(int count)
+    {
+        var list = new List<string>(Math.Max(0, count));
+        for (var i = 0; i < count; i++)
+            list.Add(DefaultPalette[i % DefaultPalette.Length]);
+        return list;
+    }
+
     // GET /api/campaign-map/{eventId}
     [HttpGet("{eventId:int}")]
     public IActionResult GetMap(int eventId)
@@ -50,6 +62,7 @@ public class CampaignMapController : ControllerBase
             map.EventId,
             map.MaxInfluence,
             map.Factions,
+            map.FactionColors,
             Blocks = map.Blocks.Select(b => new
             {
                 b.Id,
@@ -78,16 +91,22 @@ public class CampaignMapController : ControllerBase
         if (_db.CampaignMaps.Any(m => m.EventId == eventId))
             return Conflict("Campaign map already exists for this event");
 
+        var factions = dto.Factions ?? new List<string>();
+        var colors = (dto.FactionColors != null && dto.FactionColors.Count == factions.Count)
+            ? dto.FactionColors
+            : DefaultFactionColors(factions.Count);
+
         var map = new CampaignMap
         {
             EventId = eventId,
             MaxInfluence = dto.MaxInfluence,
-            Factions = JsonSerializer.Serialize(dto.Factions)
+            Factions = JsonSerializer.Serialize(factions),
+            FactionColors = JsonSerializer.Serialize(colors)
         };
         _db.CampaignMaps.Add(map);
         _db.SaveChanges();
 
-        return Created($"/api/campaign-map/{eventId}", new { map.Id, map.EventId, map.MaxInfluence, map.Factions });
+        return Created($"/api/campaign-map/{eventId}", new { map.Id, map.EventId, map.MaxInfluence, map.Factions, map.FactionColors });
     }
 
     // PUT /api/campaign-map/{eventId}/settings
@@ -108,11 +127,51 @@ public class CampaignMapController : ControllerBase
         if (map.Blocks.Count > 0)
             return BadRequest("Cannot change settings when blocks already exist");
 
+        var factions = dto.Factions ?? new List<string>();
+        var colors = (dto.FactionColors != null && dto.FactionColors.Count == factions.Count)
+            ? dto.FactionColors
+            : DefaultFactionColors(factions.Count);
+
         map.MaxInfluence = dto.MaxInfluence;
-        map.Factions = JsonSerializer.Serialize(dto.Factions);
+        map.Factions = JsonSerializer.Serialize(factions);
+        map.FactionColors = JsonSerializer.Serialize(colors);
         _db.SaveChanges();
 
-        return Ok(new { map.Id, map.EventId, map.MaxInfluence, map.Factions });
+        return Ok(new { map.Id, map.EventId, map.MaxInfluence, map.Factions, map.FactionColors });
+    }
+
+    // PUT /api/campaign-map/{eventId}/colors
+    // Updates faction colors only. Allowed even when blocks already exist
+    // (colors do not affect block geometry, unlike N and the factions list).
+    [HttpPut("{eventId:int}/colors")]
+    public IActionResult UpdateColors(int eventId, [FromBody] UpdateColorsDto dto)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == eventId);
+        if (ev == null) return NotFound();
+
+        if (!IsAdminOrModerator(userId, ev.ClubId)) return Forbid();
+
+        var map = _db.CampaignMaps.FirstOrDefault(m => m.EventId == eventId);
+        if (map == null) return NotFound();
+
+        var factions = JsonSerializer.Deserialize<List<string>>(map.Factions) ?? new List<string>();
+        var colors = dto?.Colors ?? new List<string>();
+
+        if (colors.Count != factions.Count)
+            return BadRequest("Colors count must match factions count");
+
+        // Sanitize: never allow empty values
+        var sanitized = colors
+            .Select(c => string.IsNullOrWhiteSpace(c) ? "#888888" : c.Trim())
+            .ToList();
+
+        map.FactionColors = JsonSerializer.Serialize(sanitized);
+        _db.SaveChanges();
+
+        return Ok(new { map.Id, map.EventId, map.FactionColors });
     }
 
     // POST /api/campaign-map/{eventId}/blocks
@@ -285,7 +344,8 @@ public class CampaignMapController : ControllerBase
     }
 }
 
-public record MapSettingsDto(int MaxInfluence, List<string> Factions);
+public record MapSettingsDto(int MaxInfluence, List<string> Factions, List<string>? FactionColors = null);
+public record UpdateColorsDto(List<string> Colors);
 public record CreateBlockDto(string Title, double PosX, double PosY);
 public record UpdateBlockDto(string Title, double PosX, double PosY, List<FactionInfluenceDto>? Factions);
 public record FactionInfluenceDto(int FactionIndex, int Influence);

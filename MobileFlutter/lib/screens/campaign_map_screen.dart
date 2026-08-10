@@ -35,6 +35,26 @@ const _kFactionColors = [
   Color(0xFF9C27B0), Color(0xFF00BCD4), Color(0xFFF44336), Color(0xFF8BC34A),
 ];
 
+// Parses a "#RRGGBB" / "RRGGBB" hex string into a Color (falls back to grey).
+Color _colorFromHex(String hex) {
+  var h = hex.replaceAll('#', '');
+  if (h.length == 6) h = 'FF$h';
+  try {
+    return Color(int.parse(h, radix: 16));
+  } catch (_) {
+    return const Color(0xFF888888);
+  }
+}
+
+// Effective per-faction colors: stored value with fallback to the default palette.
+List<Color> _effectiveFactionColors(CampaignMapData data) {
+  return List.generate(data.factions.length, (i) {
+    final stored = i < data.factionColors.length ? data.factionColors[i] : '';
+    if (stored.isNotEmpty) return _colorFromHex(stored);
+    return _kFactionColors[i % _kFactionColors.length];
+  });
+}
+
 // ── Painter для стрелок-связей ───────────────────────────────────────────────
 class _LinksPainter extends CustomPainter {
   final CampaignMapData mapData;
@@ -218,7 +238,7 @@ class _CampaignMapScreenState extends State<CampaignMapScreen> {
                         top: block.posY,
                         width: bw,
                         height: bh,
-                        child: _buildBlock(block, n, fc, data.factions),
+                        child: _buildBlock(block, n, fc, _effectiveFactionColors(data)),
                       )),
                 ],
               ),
@@ -232,7 +252,7 @@ class _CampaignMapScreenState extends State<CampaignMapScreen> {
   }
 
   Widget _buildBlock(CampaignMapBlock block, int n, int fc,
-      List<String> factionNames) {
+      List<Color> factionColors) {
     return GestureDetector(
       onTap: () => setState(
           () => _tooltip = _tooltip?.id == block.id ? null : block),
@@ -283,8 +303,9 @@ class _CampaignMapScreenState extends State<CampaignMapScreen> {
                               .where((f) => f.factionIndex == fi)
                               .firstOrNull;
                           final influence = fd?.influence ?? 0;
-                          final color =
-                              _kFactionColors[fi % _kFactionColors.length];
+                          final color = fi < factionColors.length
+                              ? factionColors[fi]
+                              : _kFactionColors[fi % _kFactionColors.length];
                           return Container(
                             width: _kSegW,
                             height: _kSegH,
@@ -313,6 +334,7 @@ class _CampaignMapScreenState extends State<CampaignMapScreen> {
   }
 
   Widget _buildTooltip(CampaignMapBlock block, CampaignMapData data) {
+    final eff = _effectiveFactionColors(data);
     return Positioned(
       right: 12,
       bottom: 12,
@@ -344,7 +366,9 @@ class _CampaignMapScreenState extends State<CampaignMapScreen> {
                   .where((f) => f.factionIndex == fi)
                   .firstOrNull;
               final influence = fd?.influence ?? 0;
-              final color = _kFactionColors[fi % _kFactionColors.length];
+              final color = fi < eff.length
+                  ? eff[fi]
+                  : _kFactionColors[fi % _kFactionColors.length];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(

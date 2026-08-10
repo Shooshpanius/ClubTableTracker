@@ -21,6 +21,7 @@ interface CampaignMapBlockData {
 interface CampaignMapLinkData { id: number; fromBlockId: number; toBlockId: number }
 interface CampaignMapData {
   id: number; eventId: number; maxInfluence: number; factions: string
+  factionColors: string
   blocks: CampaignMapBlockData[]
   links: CampaignMapLinkData[]
 }
@@ -56,11 +57,13 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const [factionsRaw, setFactionsRaw] = useState<string[]>([''])
   const [settingsError, setSettingsError] = useState('')
   const [settingsSaving, setSettingsSaving] = useState(false)
+  const [factionColorsRaw, setFactionColorsRaw] = useState<string[]>([])
 
   // Block drag
   const [dragging, setDragging] = useState<{ id: number; ox: number; oy: number } | null>(null)
   const [localPos, setLocalPos] = useState<Record<number, { x: number; y: number }>>({})
   const containerRef = useRef<HTMLDivElement>(null)
+  const colorSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Modes
   type Mode = 'select' | 'connect'
@@ -79,6 +82,10 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const factions: string[] = mapData ? JSON.parse(mapData.factions) : []
   const N = mapData?.maxInfluence ?? maxInfluence
   const hasBlocks = (mapData?.blocks.length ?? 0) > 0
+
+  // Effective per-faction colors: stored value (with fallback to the default palette).
+  // Used for block-grid rendering and the edit-panel accents.
+  const factionColors: string[] = factions.map((_, i) => factionColorsRaw[i] || FACTION_COLORS[i % FACTION_COLORS.length])
 
   // ---- Load / create ----
   const loadMap = async () => {
@@ -106,9 +113,10 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
     const facs = factionsRaw.map(f => f.trim()).filter(f => f)
     if (facs.length === 0 || maxInfluence < 1) { setSettingsError('Укажите хотя бы одну фракцию и N ≥ 1'); return }
     setSettingsSaving(true)
+    const colors = facs.map((_, i) => factionColorsRaw[i] || FACTION_COLORS[i % FACTION_COLORS.length])
     const res = await fetch(`/api/campaign-map/${eventId}`, {
       method: 'POST', headers: authHeader,
-      body: JSON.stringify({ maxInfluence, factions: facs })
+      body: JSON.stringify({ maxInfluence, factions: facs, factionColors: colors })
     })
     if (res.ok) { await loadMap(); setSettingsError('') }
     else { setSettingsError((await res.json())?.title ?? 'Ошибка создания карты') }
@@ -120,13 +128,42 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
     const facs = factionsRaw.map(f => f.trim()).filter(f => f)
     if (facs.length === 0 || maxInfluence < 1) { setSettingsError('Укажите хотя бы одну фракцию и N ≥ 1'); return }
     setSettingsSaving(true)
+    const colors = facs.map((_, i) => factionColorsRaw[i] || FACTION_COLORS[i % FACTION_COLORS.length])
     const res = await fetch(`/api/campaign-map/${eventId}/settings`, {
       method: 'PUT', headers: authHeader,
-      body: JSON.stringify({ maxInfluence, factions: facs })
+      body: JSON.stringify({ maxInfluence, factions: facs, factionColors: colors })
     })
     if (res.ok) { await loadMap(); setSettingsError('') }
     else { setSettingsError('Нельзя менять настройки: на карте уже есть блоки.') }
     setSettingsSaving(false)
+  }
+
+  // Keep local color state in sync with the server whenever the map (re)loads.
+  useEffect(() => {
+    if (!mapData) return
+    const facs: string[] = JSON.parse(mapData.factions)
+    const stored: string[] = JSON.parse(mapData.factionColors || '[]')
+    setFactionColorsRaw(facs.map((_, i) => stored[i] || FACTION_COLORS[i % FACTION_COLORS.length]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapData?.factionColors, mapData?.factions])
+
+  // Save faction colors. Allowed even when blocks already exist (colors do not
+  // affect block geometry). Debounced: the native color picker emits changes while dragging.
+  const saveColors = (colors: string[]) => {
+    if (!mapData) return
+    if (colorSaveTimer.current) clearTimeout(colorSaveTimer.current)
+    colorSaveTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/campaign-map/${eventId}/colors`, {
+        method: 'PUT', headers: authHeader,
+        body: JSON.stringify({ colors })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setMapData(prev => prev ? { ...prev, factionColors: data.factionColors } : prev)
+      } else {
+        setSettingsError('Не удалось сохранить цвет фракции.')
+      }
+    }, 400)
   }
 
   // ---- Blocks ----
@@ -165,7 +202,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
       if (block) {
         const facs = block.factions
         const headers = { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }
-        await fetch(`/api/campaign-map/${block.mapId}/blocks/${dragging.id}`, {
+        await fetch(`/api/campaign-map/${eventId}/blocks/${dragging.id}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ title: block.title, posX: pos.x, posY: pos.y, factions: facs.map(f => ({ factionIndex: f.factionIndex, influence: f.influence })) })
         })
@@ -173,7 +210,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
       }
     }
     setDragging(null)
-  }, [dragging, localPos, mapData])
+  }, [dragging, localPos, mapData, eventId])
 
   const onBlockClick = (e: React.MouseEvent, block: CampaignMapBlockData) => {
     if (dragging) return
@@ -314,24 +351,38 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
           <div>
             <label style={{ color: '#aaa', fontSize: 12 }}>Фракции (M строк)</label>
             {factionsRaw.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+              <div key={i} style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+                <input type="color" aria-label="Цвет фракции" title="Цвет фракции"
+                  value={factionColorsRaw[i] || FACTION_COLORS[i % FACTION_COLORS.length]}
+                  onChange={e => {
+                    const next = factionsRaw.map((_, j) => j === i ? e.target.value : (factionColorsRaw[j] || FACTION_COLORS[j % FACTION_COLORS.length]))
+                    setFactionColorsRaw(next)
+                    saveColors(next)
+                  }}
+                  style={{ width: 30, height: 30, padding: 0, border: '1px solid #1a4a8a', borderRadius: 4, background: 'none', cursor: 'pointer', flexShrink: 0 }} />
                 <input value={f} disabled={hasBlocks}
                   onChange={e => setFactionsRaw(prev => prev.map((v, j) => j === i ? e.target.value : v))}
                   style={{ ...inputStyle, flex: 1, opacity: hasBlocks ? 0.5 : 1 }} />
                 {!hasBlocks && factionsRaw.length > 1 && (
-                  <button onClick={() => setFactionsRaw(prev => prev.filter((_, j) => j !== i))}
+                  <button onClick={() => {
+                    setFactionsRaw(prev => prev.filter((_, j) => j !== i))
+                    setFactionColorsRaw(prev => prev.filter((_, j) => j !== i))
+                  }}
                     style={{ ...btnStyle, background: '#c0392b', padding: '4px 8px' }}>×</button>
                 )}
               </div>
             ))}
             {!hasBlocks && (
-              <button onClick={() => setFactionsRaw(prev => [...prev, ''])}
+              <button onClick={() => {
+                setFactionsRaw(prev => [...prev, ''])
+                setFactionColorsRaw(prev => [...prev, FACTION_COLORS[factionsRaw.length % FACTION_COLORS.length]])
+              }}
                 style={{ ...btnStyle, background: '#1a5276', fontSize: 12, marginTop: 6, width: '100%' }}>+ Фракция</button>
             )}
           </div>
 
           {settingsError && <div style={{ color: '#e94560', fontSize: 12 }}>{settingsError}</div>}
-          {hasBlocks && <div style={{ color: '#888', fontSize: 11 }}>Настройки заблокированы: на карте есть блоки.</div>}
+          {hasBlocks && <div style={{ color: '#888', fontSize: 11 }}>N и список фракций заблокированы (есть блоки). Цвета фракций менять можно.</div>}
 
           {!mapData ? (
             <button style={{ ...btnStyle, background: '#4caf50', width: '100%' }} onClick={createMap} disabled={settingsSaving}>
@@ -431,7 +482,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                           {factions.map((__, fi) => {
                             const fdata = block.factions.find(f => f.factionIndex === fi)
                             const influence = fdata?.influence ?? 0
-                            const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                            const color = factionColors[fi] || FACTION_COLORS[fi % FACTION_COLORS.length]
                             return (
                               <div key={fi} style={{
                                 width: SEG_W, height: SEG_H,
@@ -475,10 +526,10 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
 
             {factions.map((name, i) => (
               <div key={i}>
-                <label style={{ color: FACTION_COLORS[i % FACTION_COLORS.length], fontSize: 12 }}>{name}: {editInfluences[i] ?? 0}/{N}</label>
+                <label style={{ color: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length], fontSize: 12 }}>{name}: {editInfluences[i] ?? 0}/{N}</label>
                 <input type="range" min={0} max={N} value={editInfluences[i] ?? 0}
                   onChange={e => setEditInfluences(prev => { const a = [...prev]; a[i] = Number(e.target.value); return a })}
-                  style={{ width: '100%', marginTop: 3, accentColor: FACTION_COLORS[i % FACTION_COLORS.length] }} />
+                  style={{ width: '100%', marginTop: 3, accentColor: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length] }} />
               </div>
             ))}
 

@@ -21,6 +21,7 @@ interface CampaignMapBlockData {
 interface CampaignMapLinkData { id: number; fromBlockId: number; toBlockId: number }
 interface CampaignMapData {
   id: number; eventId: number; maxInfluence: number; factions: string
+  factionColors: string
   blocks: CampaignMapBlockData[]
   links: CampaignMapLinkData[]
 }
@@ -83,6 +84,8 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
   }, [eventId, token])
 
   const factions: string[] = mapData ? JSON.parse(mapData.factions) : []
+  const storedColors: string[] = mapData ? JSON.parse(mapData.factionColors || '[]') : []
+  const factionColors: string[] = factions.map((_, i) => storedColors[i] || FACTION_COLORS[i % FACTION_COLORS.length])
   const N = mapData?.maxInfluence ?? 0
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -253,7 +256,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                         {factions.map((__, fi) => {
                           const fdata = block.factions.find(f => f.factionIndex === fi)
                           const influence = fdata?.influence ?? 0
-                          const color = FACTION_COLORS[fi % FACTION_COLORS.length]
+                          const color = factionColors[fi] || FACTION_COLORS[fi % FACTION_COLORS.length]
                           return (
                             <div key={fi} style={{
                               width: SEG_W, height: SEG_H,
@@ -289,7 +292,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                   <div style={{ fontWeight: 'bold', color: '#eee', marginBottom: 6, fontSize: 13 }}>{block.title || '—'}</div>
                   {factionList.map((f, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 2, background: FACTION_COLORS[i % FACTION_COLORS.length], flexShrink: 0 }} />
+                      <div style={{ width: 10, height: 10, borderRadius: 2, background: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length], flexShrink: 0 }} />
                       <span style={{ color: '#ccc', fontSize: 12, flex: 1 }}>{f.name}</span>
                       <span style={{ color: '#ffc107', fontSize: 12, fontWeight: 'bold' }}>{f.influence}/{N}</span>
                     </div>
