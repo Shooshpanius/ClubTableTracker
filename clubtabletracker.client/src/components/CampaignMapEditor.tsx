@@ -67,6 +67,11 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   // Suppresses the trailing 'click' that fires right after a drag (mouseup→click),
   // so releasing a drag doesn't open the block-edit panel. Reset on the next mousedown.
   const suppressNextClickRef = useRef(false)
+  // Whether the current press actually moved past a small threshold (a real drag).
+  // Reset on mousedown; read on mouseup. Without this, a plain click after a previous
+  // drag would still see a truthy localPos and be mistaken for a drag.
+  const dragMovedRef = useRef(false)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
 
   // Modes
   type Mode = 'select' | 'connect'
@@ -185,6 +190,8 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
     if (mode === 'connect') return
     e.preventDefault(); e.stopPropagation()
     suppressNextClickRef.current = false
+    dragMovedRef.current = false
+    dragStartRef.current = { x: e.clientX, y: e.clientY }
     const rect = containerRef.current!.getBoundingClientRect()
     const pos = getBlockPos(block)
     setDragging({ id: block.id, ox: e.clientX - rect.left - pos.x, oy: e.clientY - rect.top - pos.y })
@@ -192,6 +199,14 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !containerRef.current) return
+    // Only count it as a drag once the pointer moves past a small threshold,
+    // so a plain click (with negligible jitter) isn't treated as a drag.
+    if (!dragMovedRef.current && dragStartRef.current) {
+      const dx = e.clientX - dragStartRef.current.x
+      const dy = e.clientY - dragStartRef.current.y
+      if (dx * dx + dy * dy < 16) return
+      dragMovedRef.current = true
+    }
     const rect = containerRef.current.getBoundingClientRect()
     const x = Math.max(0, Math.min(CANVAS_W - blockWidth(factions.length), e.clientX - rect.left - dragging.ox))
     const y = Math.max(0, Math.min(CANVAS_H - 80, e.clientY - rect.top - dragging.oy))
@@ -201,11 +216,12 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const onMouseUp = useCallback(async () => {
     const drag = dragging
     if (!drag) return
+    const moved = dragMovedRef.current
     const pos = localPos[drag.id]
     // Clear drag state immediately so a pending (async) save doesn't block
     // subsequent clicks from selecting the block.
     setDragging(null)
-    if (pos) {
+    if (moved && pos) {
       const block = mapData?.blocks.find(b => b.id === drag.id)
       if (block) {
         // A real drag just ended — suppress the trailing 'click' the browser
