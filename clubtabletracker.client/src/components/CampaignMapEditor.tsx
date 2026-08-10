@@ -64,6 +64,9 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const [localPos, setLocalPos] = useState<Record<number, { x: number; y: number }>>({})
   const containerRef = useRef<HTMLDivElement>(null)
   const colorSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Suppresses the trailing 'click' that fires right after a drag (mouseup→click),
+  // so releasing a drag doesn't open the block-edit panel. Reset on the next mousedown.
+  const suppressNextClickRef = useRef(false)
 
   // Modes
   type Mode = 'select' | 'connect'
@@ -181,6 +184,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   const onBlockMouseDown = (e: React.MouseEvent, block: CampaignMapBlockData) => {
     if (mode === 'connect') return
     e.preventDefault(); e.stopPropagation()
+    suppressNextClickRef.current = false
     const rect = containerRef.current!.getBoundingClientRect()
     const pos = getBlockPos(block)
     setDragging({ id: block.id, ox: e.clientX - rect.left - pos.x, oy: e.clientY - rect.top - pos.y })
@@ -195,25 +199,32 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   }, [dragging, factions.length])
 
   const onMouseUp = useCallback(async () => {
-    if (!dragging) return
-    const pos = localPos[dragging.id]
+    const drag = dragging
+    if (!drag) return
+    const pos = localPos[drag.id]
+    // Clear drag state immediately so a pending (async) save doesn't block
+    // subsequent clicks from selecting the block.
+    setDragging(null)
     if (pos) {
-      const block = mapData?.blocks.find(b => b.id === dragging.id)
+      const block = mapData?.blocks.find(b => b.id === drag.id)
       if (block) {
+        // A real drag just ended — suppress the trailing 'click' the browser
+        // dispatches right after mouseup, so releasing a drag won't open the panel.
+        suppressNextClickRef.current = true
         const facs = block.factions
         const headers = { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' }
-        await fetch(`/api/campaign-map/${eventId}/blocks/${dragging.id}`, {
+        await fetch(`/api/campaign-map/${eventId}/blocks/${drag.id}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ title: block.title, posX: pos.x, posY: pos.y, factions: facs.map(f => ({ factionIndex: f.factionIndex, influence: f.influence })) })
         })
-        setMapData(prev => prev ? { ...prev, blocks: prev.blocks.map(b => b.id === dragging.id ? { ...b, posX: pos.x, posY: pos.y } : b) } : prev)
+        setMapData(prev => prev ? { ...prev, blocks: prev.blocks.map(b => b.id === drag.id ? { ...b, posX: pos.x, posY: pos.y } : b) } : prev)
       }
     }
-    setDragging(null)
   }, [dragging, localPos, mapData, eventId])
 
   const onBlockClick = (e: React.MouseEvent, block: CampaignMapBlockData) => {
     if (dragging) return
+    if (suppressNextClickRef.current) { suppressNextClickRef.current = false; return }
     if (mode === 'connect') {
       if (linkSource === null) { setLinkSource(block.id) }
       else if (linkSource !== block.id) {
