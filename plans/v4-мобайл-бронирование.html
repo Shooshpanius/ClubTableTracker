@@ -31,19 +31,31 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
   <!-- Move tables -->
   <div class="dataslate">
-    <h2>Перенос на другой стол</h2>
+    <h2>Перенос на другой стол <span class="text-xs" style="color:var(--warn)">· только магистр</span></h2>
     <div class="move-row" onclick="openSheet('move-sheet')"><div class="mt">I</div><div style="flex:1"><strong>12:00 – 14:00</strong><p class="text-xs text-muted">Small · Свободен</p></div><span style="color:var(--brass);font-size:0.7rem">→</span></div>
     <div class="move-row" onclick="openSheet('move-sheet')"><div class="mt">III</div><div style="flex:1"><strong>14:00 – 16:00</strong><p class="text-xs text-muted">Medium · Свободен</p></div><span style="color:var(--brass);font-size:0.7rem">→</span></div>
     <div class="move-row" onclick="openSheet('move-sheet')"><div class="mt">VII</div><div style="flex:1"><strong>16:00 – 18:00</strong><p class="text-xs text-muted">Large · Свободен</p></div><span style="color:var(--brass);font-size:0.7rem">→</span></div>
   </div>
 
-  <!-- Actions -->
+  <!-- OWNER ACTIONS (annul/reschedule/roster/invite — права владельца) -->
   <div class="dataslate">
-    <h2>Действия магистра</h2>
+    <h2>Действия владельца</h2>
+    <p class="text-xs text-muted mb-3">Доступны автору бронирования и магистру.</p>
     <div class="flex-row gap-2 mb-2 flex-wrap">
-      <button class="btn btn-secondary" onclick="openSheet('reschedule-sheet')">⏱ Reschedule</button>
-      <button class="btn btn-warn" onclick="openSheet('kick-sheet')">👤 Kick</button>
+      <button class="btn btn-secondary" onclick="openSheet('reschedule-sheet')">⏱ Перенести время</button>
+      <button class="btn btn-secondary">📝 Ростер</button>
+      <button class="btn btn-secondary">➕ Пригласить</button>
       <button class="btn btn-danger" onclick="openSheet('annul-sheet')">✕ Аннулировать</button>
+    </div>
+  </div>
+
+  <!-- MODERATOR-ONLY (kick/чужой ростер — права модератора) -->
+  <div class="dataslate">
+    <h2>Только магистр</h2>
+    <p class="text-xs text-muted mb-3">Кики и чужие ростеры — права модератора клуба.</p>
+    <div class="flex-row gap-2 flex-wrap">
+      <button class="btn btn-warn" onclick="openSheet('kick-sheet')">👤 Kick участника</button>
+      <button class="btn btn-secondary">📋 Ростер за игрока</button>
     </div>
   </div>
 </div>

@@ -486,6 +486,7 @@ p { color: var(--fg-secondary); font-size: 0.85rem; }
 </style>
 </head>
 <body>
+<!-- Каркас: дизайн-система + дом/клуб/бронь (исходный V3-шоукейс). Полный набор экранов — в файлах v4-мобайл-*.html; см. plans/design-brief-gap.md -->
 
 <!-- ════════════════════ MOBILE APP ════════════════════ -->
 
@@ -888,6 +889,42 @@ p { color: var(--fg-secondary); font-size: 0.85rem; }
   </div>
 </div>
 
+<!-- ── SCREEN: WARRIORS (члены клуба) ── -->
+<div class="screen" id="screen-warriors">
+  <div class="topbar"><h1 style="margin:0">Воины ордена</h1></div>
+  <div class="mobile-scroll">
+    <div class="px-4" style="padding-top:var(--s3)">
+      <div class="member-card" style="justify-content:space-between">
+        <div class="flex-row gap-3"><div class="avatar" style="background:var(--blood-red)">AK</div><div><div style="font-weight:600;font-size:0.85rem">Алексей Кузнецов</div><div style="font-size:0.7rem;color:var(--fg-muted)">Москва · 40K, KT, HH</div></div></div>
+        <span class="badge badge-danger">Магистр</span>
+      </div>
+      <div class="member-card" style="justify-content:space-between">
+        <div class="flex-row gap-3"><div class="avatar" style="background:var(--brass)">МП</div><div><div style="font-weight:600;font-size:0.85rem">Михаил Петров</div><div style="font-size:0.7rem;color:var(--fg-muted)">СПб · Kill Team, Warcry</div></div></div>
+        <span class="badge badge-warn">Капеллан</span>
+      </div>
+      <div class="member-card" style="justify-content:space-between">
+        <div class="flex-row gap-3"><div class="avatar" style="background:var(--success)">ДВ</div><div><div style="font-weight:600;font-size:0.85rem">Дмитрий Волков</div><div style="font-size:0.7rem;color:var(--fg-muted)">Екб · 40K, AoS</div></div></div>
+      </div>
+      <p class="text-xs text-muted mt-3">Полный список и профили — см. v4-мобайл-настройки.html и вкладку «Воины» клуба</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: LOG (лента активности) ── -->
+<div class="screen" id="screen-log">
+  <div class="topbar"><h1 style="margin:0">Лента активности</h1></div>
+  <div class="mobile-scroll">
+    <div class="px-4" style="padding-top:var(--s3)">
+      <div class="timeline">
+        <div class="tl-row"><div class="tl-time">14:10</div><div class="tl-body">Алексей забронировал Стол IV · 12:00–14:00</div></div>
+        <div class="tl-row"><div class="tl-time">12:30</div><div class="tl-body">Дмитрий забронировал Стол II · 16:00 · Kill Team</div></div>
+        <div class="tl-row"><div class="tl-time">10:22</div><div class="tl-body">Николай подал заявку в клуб — ожидает подтверждения</div></div>
+      </div>
+      <p class="text-xs text-muted mt-3">Полная лента с фильтрами — см. v4-мобайл-лента.html</p>
+    </div>
+  </div>
+</div>
+
 <!-- ── BOTTOM TAB BAR ── -->
 <nav class="tabbar">
   <button class="tabbar-item active" id="tab-home" onclick="switchScreen('screen-home')">
@@ -902,11 +939,11 @@ p { color: var(--fg-secondary); font-size: 0.85rem; }
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
     <span>Бронь</span>
   </button>
-  <button class="tabbar-item">
+  <button class="tabbar-item" id="tab-warriors" onclick="switchScreen('screen-warriors')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
     <span>Воины</span>
   </button>
-  <button class="tabbar-item">
+  <button class="tabbar-item" id="tab-log" onclick="switchScreen('screen-log')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     <span>Лог</span>
   </button>
@@ -921,6 +958,8 @@ function switchScreen(id) {
   document.querySelectorAll('.tabbar-item').forEach(t => t.classList.remove('active'));
   if (id === 'screen-home') document.getElementById('tab-home').classList.add('active');
   else if (id === 'screen-club') document.getElementById('tab-tables-nav').classList.add('active');
+  else if (id === 'screen-warriors') document.getElementById('tab-warriors').classList.add('active');
+  else if (id === 'screen-log') document.getElementById('tab-log').classList.add('active');
 }
 
 function showClubTab(name) {

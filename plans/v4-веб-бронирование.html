@@ -33,8 +33,8 @@ h1{font-family:var(--font-display);font-size:1rem;text-transform:uppercase;lette
 
   <!-- MOVE TABLE -->
   <div class="dataslate">
-    <h2>Перенос на другой стол</h2>
-    <p class="text-xs text-muted mb-3">Переместить текущее бронирование на свободный слот.</p>
+    <h2>Перенос на другой стол <span class="text-xs" style="color:var(--warn)">· только магистр</span></h2>
+    <p class="text-xs text-muted mb-3">Переместить текущее бронирование на свободный слот. Требует прав модератора клуба.</p>
     <div class="move-preview" onclick="openModal('move-modal')">
       <div class="mp-table">I</div><div class="mp-info"><strong>12:00 – 14:00</strong><p class="text-xs text-muted">Small · Свободен</p></div><span class="text-xs text-brass">Выбрать →</span>
     </div>
@@ -46,13 +46,25 @@ h1{font-family:var(--font-display);font-size:1rem;text-transform:uppercase;lette
     </div>
   </div>
 
-  <!-- RESCHEDULE, KICK, ANNUL -->
+  <!-- OWNER ACTIONS (annul/delete/reschedule — права владельца брони) -->
   <div class="dataslate">
-    <h2>Действия магистра</h2>
+    <h2>Действия владельца</h2>
+    <p class="text-xs text-muted mb-3">Доступны автору бронирования и магистру.</p>
     <div class="flex-row gap-2 mb-3" style="flex-wrap:wrap">
-      <button class="btn btn-secondary" onclick="openModal('reschedule-modal')">⏱ Reschedule</button>
-      <button class="btn btn-warn" onclick="openModal('kick-modal')">👤 Kick участника</button>
+      <button class="btn btn-secondary" onclick="openModal('reschedule-modal')">⏱ Перенести время</button>
+      <button class="btn btn-secondary">📝 Изменить ростер</button>
+      <button class="btn btn-secondary">➕ Пригласить игрока</button>
       <button class="btn btn-danger" onclick="openModal('annul-modal')">✕ Аннулировать</button>
+    </div>
+  </div>
+
+  <!-- MODERATOR-ONLY ACTIONS (move-table/kick/set-roster — права модератора) -->
+  <div class="dataslate">
+    <h2>Только магистр / модератор</h2>
+    <p class="text-xs text-muted mb-3">Перенос стола, кики и чужие ростеры — требуют прав модератора клуба.</p>
+    <div class="flex-row gap-2 mb-3" style="flex-wrap:wrap">
+      <button class="btn btn-warn" onclick="openModal('kick-modal')">👤 Kick участника</button>
+      <button class="btn btn-secondary">📋 Ростер за игрока</button>
     </div>
   </div>
 
