@@ -73,7 +73,7 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
     <div class="ci-meta"><div class="ci-time">Р’С‡РµСЂР°</div></div>
   </div>
   <div class="chat-item" onclick="openChat()">
-    <div class="ci-avatar" style="background:var(--success)">Р•РЎ</div><div class="ci-info"><div class="ci-name">Р•Р»РµРЅР° РЎРјРёСЂРЅРѕРІР°</div><div class="ci-preview">РЎРїР°СЃРёР±Рѕ Р·Р° РёРіСЂСѓ! РћС‚Р»РёС‡РЅР°СЏ РїР°СЂС‚РёСЏ</div></div>
+    <div class="ci-avatar" style="background:var(--success)">Р•РЎ</div><div class="ci-info"><div class="ci-name">Р•Р»РµРЅР° РЎРјРёСЂРЅРѕРІР°</div><div class="ci-preview">РЎРїР°СЃРёР±Рѕ Р·Р° РёРіСЂСѓ! РћС‚Р»РёС‡РЅР°СЏ Р±С‹Р»Р° РїР°СЂС‚РёСЏ</div></div>
     <div class="ci-meta"><div class="ci-time">РџРЅ</div><div class="ci-unread">1</div></div>
   </div>
   <div class="chat-item" onclick="openChat()">
@@ -134,20 +134,20 @@ function closeChat(){document.getElementById('chat-screen').classList.remove('op
 <!-- Context Menu Bottom Sheet -->
 <div class="ctx-sheet" id="ctx-sheet">
   <div class="ctx-handle"></div>
-  <button onclick="closeCtx()">? Ответить</button>
-  <button onclick="closeCtx()">? Переслать</button>
-  <button onclick="closeCtx()">?? Копировать</button>
-  <button class="danger" onclick="closeCtx()">? Удалить</button>
-  <button onclick="closeCtx()">Отмена</button>
+  <button onclick="closeCtx()">в†© РћС‚РІРµС‚РёС‚СЊ</button>
+  <button onclick="closeCtx()">в†Є РџРµСЂРµСЃР»Р°С‚СЊ</button>
+  <button onclick="closeCtx()">в§‰ РљРѕРїРёСЂРѕРІР°С‚СЊ</button>
+  <button class="danger" onclick="closeCtx()">вњ• РЈРґР°Р»РёС‚СЊ</button>
+  <button onclick="closeCtx()">РћС‚РјРµРЅР°</button>
 </div>
 
 <!-- Group Mgmt Sheet -->
 <div class="ctx-sheet" id="group-sheet">
   <div class="ctx-handle"></div>
-  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><h3 style="color:var(--brass)">Управление группой</h3></div>
-  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Название</label><input class="search-input" value="Крепость Ордена" style="width:100%"></div>
-  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">Тип</label><select class="search-input" style="width:100%"><option>Приватная</option><option selected>Публичная (клуба)</option></select></div>
-  <button onclick="closeGroup()" style="display:block;width:100%;text-align:center;padding:14px;background:var(--blood-red);color:var(--blood-on);border:none;font-family:var(--font-display);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);margin-top:var(--s3)">Сохранить</button>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><h3 style="color:var(--brass);font-family:var(--font-display);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em">РЈРїСЂР°РІР»РµРЅРёРµ РіСЂСѓРїРїРѕР№</h3></div>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">РќР°Р·РІР°РЅРёРµ</label><input class="search-input" value="РљСЂРµРїРѕСЃС‚СЊ РћСЂРґРµРЅР°" style="width:100%"></div>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">РўРёРї</label><select class="search-input" style="width:100%"><option>РџСЂРёРІР°С‚РЅС‹Р№</option><option selected>РџСѓР±Р»РёС‡РЅС‹Р№ (РєР»СѓР±Р°)</option></select></div>
+  <button onclick="closeGroup()" style="display:block;width:100%;text-align:center;padding:14px;background:var(--blood-red);color:var(--blood-on);border:none;font-family:var(--font-display);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);margin-top:var(--s3)">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
 </div>
 
 <!-- Loading skeleton (hidden by default, toggle to show) -->

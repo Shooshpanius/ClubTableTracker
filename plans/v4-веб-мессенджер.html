@@ -267,11 +267,11 @@ function closeChat(){
 
 <!-- Context Menu -->
 <div class="context-menu" id="ctx-menu">
-  <button onclick="alert('Ответ')">? Ответить</button>
-  <button onclick="alert('Переслать')">? Переслать</button>
-  <button onclick="alert('Скопировать')">?? Скопировать</button>
+  <button onclick="alert('РћС‚РІРµС‚РёС‚СЊ')">в†© РћС‚РІРµС‚РёС‚СЊ</button>
+  <button onclick="alert('РџРµСЂРµСЃР»Р°С‚СЊ')">в†Є РџРµСЂРµСЃР»Р°С‚СЊ</button>
+  <button onclick="alert('РљРѕРїРёСЂРѕРІР°С‚СЊ')">в§‰ РљРѕРїРёСЂРѕРІР°С‚СЊ</button>
   <div class="divider"></div>
-  <button class="danger" onclick="alert('Удалить')">? Удалить</button>
+  <button class="danger" onclick="alert('РЈРґР°Р»РёС‚СЊ')">вњ• РЈРґР°Р»РёС‚СЊ</button>
 </div>
 
 <!-- Loading skeleton -->
@@ -280,15 +280,15 @@ function closeChat(){
 </div>
 
 <!-- Group Management Dialog (hidden) -->
-<div id="group-mgmt-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(4,4,6,0.7);display:none;align-items:center;justify-content:center">
+<div id="group-mgmt-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(4,4,6,0.7);align-items:center;justify-content:center">
   <div style="background:linear-gradient(180deg,#161018,#100c14);border:2px solid;border-image:linear-gradient(135deg,var(--blood-red),var(--border-brass),var(--border)) 1;padding:var(--s6);max-width:440px;width:90%">
-    <h3 style="color:var(--brass);margin-bottom:var(--s4)">Управление группой</h3>
-    <div style="margin-bottom:var(--s4)"><label class="form-label">Название</label><input class="input" value="Крепость Ордена"></div>
-    <div style="margin-bottom:var(--s4)"><label class="form-label">Тип</label><select class="input"><option>Приватная</option><option selected>Публичная (клуба)</option></select></div>
-    <div style="margin-bottom:var(--s6)"><label class="form-label">Лого</label><input type="file" class="input" style="padding:8px"><p class="text-xs text-muted mt-1">jpeg, png, webp, до 5 MB</p></div>
+    <h3 style="color:var(--brass);margin-bottom:var(--s4)">РЈРїСЂР°РІР»РµРЅРёРµ РіСЂСѓРїРїРѕР№</h3>
+    <div style="margin-bottom:var(--s4)"><label class="text-xs text-muted" style="display:block;font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">РќР°Р·РІР°РЅРёРµ</label><input class="input" value="РљСЂРµРїРѕСЃС‚СЊ РћСЂРґРµРЅР°" style="width:100%;padding:10px 14px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem"></div>
+    <div style="margin-bottom:var(--s4)"><label class="text-xs text-muted" style="display:block;font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">РўРёРї</label><select class="input" style="width:100%;padding:10px 14px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem"><option>РџСЂРёРІР°С‚РЅС‹Р№</option><option selected>РџСѓР±Р»РёС‡РЅС‹Р№ (РєР»СѓР±Р°)</option></select></div>
+    <div style="margin-bottom:var(--s6)"><label class="text-xs text-muted" style="display:block;font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Р›РѕРіРѕ</label><input type="file" style="padding:8px;width:100%;background:#0a080c;border:1px solid var(--border);color:var(--fg)"><p class="text-xs text-muted mt-1">jpeg, png, webp, РґРѕ 5 MB</p></div>
     <div style="display:flex;gap:var(--s2);justify-content:flex-end">
-      <button class="btn" style="background:var(--surface);color:var(--fg-secondary);border-color:var(--border);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)">Отмена</button>
-      <button class="btn" style="background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)">Сохранить</button>
+      <button class="btn" style="background:var(--surface);color:var(--fg-secondary);border-color:var(--border);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)" onclick="this.closest('#group-mgmt-overlay').style.display='none'">РћС‚РјРµРЅР°</button>
+      <button class="btn" style="background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)" onclick="this.closest('#group-mgmt-overlay').style.display='none'">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
     </div>
   </div>
 </div>
