@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubTableTracker · Авторизация</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════ W40K Design Tokens (shared with V2/V3) ═══════ */
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-hover:#d94052;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--success-subtle:rgba(58,138,74,0.10);--warn:#c49030;--warn-subtle:rgba(196,144,48,0.10);--danger:#c4283b;--danger-subtle:rgba(196,40,59,0.12);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s12:48px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:16px;line-height:1.55;color:var(--fg);background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.gothic-line{height:2px;background:linear-gradient(90deg,transparent,var(--brass),var(--blood-red),var(--brass),transparent);margin:var(--s3) auto;max-width:300px}
+.container{max-width:440px;width:100%;padding:var(--s6)}
+.card{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s8) var(--s6);text-align:center}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;line-height:1;padding:12px 28px;min-height:48px;border:1px solid;cursor:pointer;transition:all 120ms ease;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%);box-shadow:0 0 16px rgba(196,40,59,0.25)}
+.btn-primary:hover{background:var(--blood-hover);box-shadow:0 0 24px rgba(196,40,59,0.35)}
+.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface-hover);color:var(--fg)}
+.btn-block{width:100%;justify-content:center}
+.badge{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;padding:3px 10px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}
+.badge-success{background:var(--success-subtle);color:var(--success);border:1px solid rgba(58,138,74,0.3)}
+.badge-brass{background:var(--brass-subtle);color:var(--brass);border:1px solid var(--border-brass)}
+.badge-danger{background:var(--danger-subtle);color:var(--danger);border:1px solid rgba(196,40,59,0.3)}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}
+.mt-3{margin-top:var(--s3)}.mt-4{margin-top:var(--s4)}.mt-6{margin-top:var(--s6)}.mb-2{margin-bottom:var(--s2)}.mb-4{margin-bottom:var(--s4)}
+.text-xs{font-size:0.75rem}.text-muted{color:var(--fg-muted)}.text-brass{color:var(--brass)}
+.input{background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem;padding:10px 14px;width:100%;outline:none}.input:focus{border-color:var(--blood-red)}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blood-red);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.yandex-btn{background:#FC3F1D;color:#fff;border-color:#e03010}.yandex-btn:hover{background:#e83818}
+.vk-btn{background:#0077FF;color:#fff;border-color:#0066dd}
+.google-btn{background:#4285F4;color:#fff;border-color:#3367d6}
+.provider-list{display:flex;flex-direction:column;gap:var(--s3);max-width:320px;margin:0 auto}
+.provider-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s3);background:var(--bg);border:1px solid var(--border);gap:var(--s3)}
+.provider-row .name{font-family:var(--font-display);font-size:0.75rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg)}
+.error-box{padding:var(--s4);background:var(--danger-subtle);border:1px solid rgba(196,40,59,0.3);margin-top:var(--s4);text-align:center}
+@media(max-width:480px){.container{padding:var(--s4)}.card{padding:var(--s6) var(--s4)}}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <!-- Logo -->
+    <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--brass);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:var(--s1)">CLUB TABLE TRACKER</div>
+    <div style="font-family:var(--font-display);font-size:0.7rem;color:var(--blood-red);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:var(--s4)">In the grim darkness, there is only war</div>
+    <div class="gothic-line"></div>
+    <p style="margin-bottom:var(--s6);color:var(--fg-secondary)">Войдите через Яндекс, чтобы бронировать столы и общаться в вокс-канале</p>
+
+    <!-- SCREEN A: Login buttons -->
+    <div id="screen-login">
+      <div class="provider-list">
+        <button class="btn btn-primary yandex-btn btn-block" onclick="showLoading()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="12"/></svg>
+          Войти через Яндекс
+        </button>
+        <p class="text-xs text-muted mt-3" style="text-align:center">Или привяжите другие аккаунты позже в Когитаторе</p>
+      </div>
+    </div>
+
+    <!-- SCREEN B: Loading -->
+    <div id="screen-loading" style="display:none">
+      <div class="spinner"></div>
+      <p class="mt-4" style="color:var(--brass);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Устанавливаем вокс-связь…</p>
+      <p class="text-xs text-muted mt-2">Ожидайте подтверждения от Когитатора</p>
+    </div>
+
+    <!-- SCREEN C: Error -->
+    <div id="screen-error" style="display:none">
+      <div style="font-size:2.5rem;margin-bottom:var(--s3);opacity:0.5">☠</div>
+      <p style="color:var(--danger);font-family:var(--font-display);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em">Вокс-связь потеряна</p>
+      <p class="text-xs text-muted mt-2 mb-4" id="error-text">Не удалось установить соединение с сервером аутентификации</p>
+      <button class="btn btn-primary btn-block" onclick="showLogin()">Вернуться</button>
+    </div>
+  </div>
+
+  <!-- Provider links section (logged-in view) -->
+  <div class="card mt-4" id="linked-accounts" style="display:none">
+    <h3 style="margin-bottom:var(--s4);text-align:center">Способы входа</h3>
+    <div class="provider-list">
+      <div class="provider-row">
+        <span class="name">Яндекс</span>
+        <span class="badge badge-success">Привязан ✓</span>
+      </div>
+      <div class="provider-row">
+        <span class="name">Google</span>
+        <span class="badge badge-brass">Не привязан</span>
+      </div>
+      <div class="provider-row">
+        <span class="name">VK</span>
+        <span class="badge badge-brass">Не привязан</span>
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-block mt-4" onclick="showMergeError()">Объединить с профилем Google</button>
+  </div>
+
+  <!-- Merge conflict -->
+  <div class="card mt-4" id="merge-error" style="display:none">
+    <div class="error-box">
+      <p style="color:var(--danger);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Конфликт слияния</p>
+      <p class="text-xs mt-2">Этот Google-аккаунт уже привязан к другому ордену. Обратитесь к Магистру.</p>
+    </div>
+  </div>
+
+  <!-- Provider not configured warning -->
+  <div class="card mt-4" id="not-configured" style="display:none">
+    <div class="error-box">
+      <p style="color:var(--warn);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Яндекс не настроен</p>
+      <p class="text-xs mt-2">Администратор не задал <code style="font-family:var(--font-mono);font-size:0.7rem;color:var(--brass)">VITE_YANDEX_CLIENT_ID</code>. Вход временно недоступен.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function showLoading(){document.getElementById('screen-login').style.display='none';document.getElementById('screen-loading').style.display='block'}
+function showLogin(){document.getElementById('screen-loading').style.display='none';document.getElementById('screen-error').style.display='none';document.getElementById('screen-login').style.display='block'}
+function showError(msg){document.getElementById('screen-login').style.display='none';document.getElementById('screen-loading').style.display='none';document.getElementById('screen-error').style.display='block';document.getElementById('error-text').textContent=msg}
+function showMergeError(){document.getElementById('merge-error').style.display='block'}
+</script>
+
+</body>
+</html>

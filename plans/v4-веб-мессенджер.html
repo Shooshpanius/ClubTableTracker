@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubTableTracker · Мессенджер</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════ W40K Tokens ═══════ */
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-hover:#d94052;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--success-subtle:rgba(58,138,74,0.10);--warn:#c49030;--warn-subtle:rgba(196,144,48,0.10);--danger:#c4283b;--danger-subtle:rgba(196,40,59,0.12);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s12:48px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:16px;line-height:1.5;color:var(--fg);background:var(--bg);min-height:100vh;display:flex;justify-content:center}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.gothic-line{height:2px;background:linear-gradient(90deg,transparent,var(--brass),var(--blood-red),var(--brass),transparent)}
+
+/* Layout */
+.messenger{width:100%;max-width:960px;display:flex;height:100vh;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+
+/* Chat List Sidebar */
+.chat-list{width:340px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg-raised)}
+.chat-list-header{padding:var(--s4);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chat-list-header h2{font-family:var(--font-display);font-size:0.9rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin:0}
+.chat-search{padding:var(--s3) var(--s4)}
+.chat-search .input{padding:8px 12px;font-size:0.8rem}
+.chat-items{flex:1;overflow-y:auto}
+.chat-item{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--border-soft);cursor:pointer;transition:background 120ms ease}
+.chat-item:hover,.chat-item.active{background:var(--surface)}
+.chat-item .ci-avatar{width:42px;height:42px;flex-shrink:0;background:var(--blood-red);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.7rem;color:var(--brass)}
+.chat-item .ci-info{flex:1;min-width:0}
+.chat-item .ci-name{font-weight:600;font-size:0.85rem;color:var(--fg)}
+.chat-item .ci-preview{font-size:0.75rem;color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.chat-item .ci-meta{text-align:right;flex-shrink:0}
+.chat-item .ci-time{font-family:var(--font-mono);font-size:0.6rem;color:var(--fg-muted)}
+.chat-item .ci-unread{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin-top:4px;background:var(--blood-red);color:var(--blood-on);font-family:var(--font-display);font-size:0.5rem;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}
+.chat-list-empty{padding:var(--s12) var(--s4);text-align:center;color:var(--fg-muted)}
+.chat-list-empty h3{color:var(--brass);margin-bottom:var(--s2);font-family:var(--font-display);text-transform:uppercase;font-size:0.85rem;letter-spacing:0.06em}
+
+/* Chat View */
+.chat-view{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-view-header{padding:var(--s3) var(--s4);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:var(--s3);background:var(--bg-raised)}
+.chat-view-header .cv-name{font-family:var(--font-display);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--fg)}
+.chat-view-header .cv-meta{font-size:0.7rem;color:var(--fg-muted)}
+.chat-messages{flex:1;overflow-y:auto;padding:var(--s4)}
+.chat-input-area{padding:var(--s3) var(--s4);border-top:1px solid var(--border);background:var(--bg-raised);display:flex;gap:var(--s3);align-items:flex-end}
+.chat-input-area textarea.input{resize:none;min-height:44px;max-height:120px;padding:10px 14px;flex:1}
+.send-btn{width:44px;height:44px;flex-shrink:0;background:var(--blood-red);color:var(--blood-on);border:1px solid color-mix(in oklab,var(--blood-red),white 25%);cursor:pointer;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.7rem;transition:background 120ms ease}
+.send-btn:hover{background:var(--blood-hover)}
+
+/* Message bubbles */
+.msg-group{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--s4)}
+.msg-row{display:flex;gap:var(--s2);max-width:70%}
+.msg-row.mine{align-self:flex-end;flex-direction:row-reverse}
+.msg-row .sender-avatar{width:28px;height:28px;flex-shrink:0;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.55rem;color:var(--brass)}
+.msg-bubble{padding:var(--s2) var(--s3);border-radius:3px;font-size:0.85rem;line-height:1.45;word-break:break-word}
+.msg-row.mine .msg-bubble{background:var(--blood-subtle);border:1px solid rgba(196,40,59,0.2)}
+.msg-row.theirs .msg-bubble{background:var(--surface);border:1px solid var(--border)}
+.msg-meta{display:flex;gap:var(--s2);font-family:var(--font-mono);font-size:0.55rem;color:var(--fg-muted);margin-top:2px}
+.msg-row.mine .msg-meta{justify-content:flex-end}
+
+/* Reply quote */
+.reply-quote{padding:var(--s2) var(--s3);background:rgba(0,0,0,0.2);border-left:3px solid var(--brass);margin-bottom:var(--s2);font-size:0.75rem;position:relative}
+.reply-quote .rq-name{font-family:var(--font-display);font-size:0.6rem;color:var(--brass);text-transform:uppercase;letter-spacing:0.04em}
+.reply-quote .rq-text{color:var(--fg-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px}
+.reply-quote .rq-close{position:absolute;top:4px;right:6px;background:none;border:none;color:var(--fg-muted);cursor:pointer;font-size:0.9rem;padding:2px}
+
+/* Date separator */
+.date-sep{display:flex;align-items:center;gap:var(--s3);margin:var(--s4) 0}
+.date-sep::before,.date-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.date-sep span{font-family:var(--font-display);font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap}
+
+/* Unread divider */
+.unread-divider{display:flex;align-items:center;gap:var(--s3);margin:var(--s3) 0}
+.unread-divider::after{content:'';flex:1;height:1px;background:var(--blood-red)}
+.unread-divider span{font-family:var(--font-display);font-size:0.55rem;color:var(--blood-red);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;background:var(--blood-subtle);padding:2px 8px}
+
+/* Empty/Error states */
+.empty-chat{padding:var(--s12);text-align:center;color:var(--fg-muted);flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.empty-chat h3{color:var(--brass);margin-bottom:var(--s2);font-family:var(--font-display);text-transform:uppercase;font-size:0.9rem;letter-spacing:0.06em}
+.msg-status{font-size:0.55rem;color:var(--fg-muted)}
+.msg-status.sent{color:var(--brass)}
+.msg-status.error{color:var(--danger)}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface-hover) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.btn{font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:6px 14px;border:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--fg-secondary);clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);transition:all 120ms ease}
+.btn:hover{background:var(--surface-hover)}
+.btn-sm{padding:4px 10px;font-size:0.55rem}
+.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}.mt-1{margin-top:var(--s1)}.mt-2{margin-top:var(--s2)}.mt-3{margin-top:var(--s3)}.mb-3{margin-bottom:var(--s3)}
+.flex-row{display:flex;align-items:center;gap:var(--s2)}
+
+@media(max-width:720px){.messenger{flex-direction:column}.chat-list{width:100%;height:100vh}.chat-view{height:100vh;position:fixed;inset:0;z-index:50;display:none}.chat-view.open{display:flex}}
+.context-menu{position:absolute;z-index:200;background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s1);min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none}
+.context-menu button{display:block;width:100%;text-align:left;padding:var(--s2) var(--s3);background:none;border:none;color:var(--fg-secondary);font-family:var(--font-body);font-size:0.8rem;cursor:pointer;transition:background 120ms ease}
+.context-menu button:hover{background:var(--surface-hover);color:var(--fg)}
+.context-menu button.danger{color:var(--danger)}.context-menu button.danger:hover{background:var(--danger-subtle)}
+.context-menu .divider{height:1px;background:var(--border-soft);margin:var(--s1) 0}.skeleton-list{padding:var(--s3) var(--s4)}.sk-item{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4)}.sk-av{width:42px;height:42px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}.sk-txt{flex:1;display:flex;flex-direction:column;gap:var(--s2)}.sk-txt .sk-line{height:12px;border-radius:2px}.sk-txt .sk-line:first-child{width:60%}.sk-txt .sk-line:last-child{width:40%}</style>
+</head>
+<body>
+
+<div class="messenger">
+  <!-- CHAT LIST -->
+  <div class="chat-list" id="chat-list">
+    <div class="chat-list-header">
+      <h2>Вокс-канал</h2>
+      <button class="btn btn-sm" style="background:var(--blood-red);color:var(--blood-on);border-color:var(--blood-red)">+ Новый чат</button>
+    </div>
+    <div class="chat-search">
+      <input class="input" type="text" placeholder="Поиск по чатам…">
+    </div>
+    <div class="chat-items">
+      <!-- Group chat -->
+      <div class="chat-item active" onclick="openChat('general')">
+        <div class="ci-avatar">✠</div>
+        <div class="ci-info">
+          <div class="ci-name">Крепость Ордена</div>
+          <div class="ci-preview">Михаил: Кто на партию в субботу?</div>
+        </div>
+        <div class="ci-meta">
+          <div class="ci-time">12:42</div>
+          <div class="ci-unread">3</div>
+        </div>
+      </div>
+      <!-- Direct chat -->
+      <div class="chat-item" onclick="openChat('mikhail')">
+        <div class="ci-avatar" style="background:var(--brass)">МП</div>
+        <div class="ci-info">
+          <div class="ci-name">Михаил Петров</div>
+          <div class="ci-preview">Договорились, в 13:00 на третьем</div>
+        </div>
+        <div class="ci-meta">
+          <div class="ci-time">Вчера</div>
+        </div>
+      </div>
+      <div class="chat-item" onclick="openChat('elena')">
+        <div class="ci-avatar" style="background:var(--success)">ЕС</div>
+        <div class="ci-info">
+          <div class="ci-name">Елена Смирнова</div>
+          <div class="ci-preview">Спасибо за игру! Отличная была партия</div>
+        </div>
+        <div class="ci-meta">
+          <div class="ci-time">Пн</div>
+          <div class="ci-unread">1</div>
+        </div>
+      </div>
+      <!-- Group - Кампания -->
+      <div class="chat-item" onclick="openChat('campaign')">
+        <div class="ci-avatar" style="background:var(--warn)">☠</div>
+        <div class="ci-info">
+          <div class="ci-name">Кампания «Падение Кадии»</div>
+          <div class="ci-preview">Алексей: Обновил карту кампании, проверьте</div>
+        </div>
+        <div class="ci-meta">
+          <div class="ci-time">10:15</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT VIEW (general chat) -->
+  <div class="chat-view open" id="chat-view">
+    <div class="chat-view-header">
+      <button class="btn btn-sm" style="display:none" id="back-btn" onclick="closeChat()">← Назад</button>
+      <div class="ci-avatar" style="width:36px;height:36px;background:var(--blood-red)">✠</div>
+      <div>
+        <div class="cv-name">Крепость Ордена</div>
+        <div class="cv-meta">12 воинов · Групповой</div>
+      </div>
+    </div>
+
+    <div class="chat-messages">
+      <!-- Date separator -->
+      <div class="date-sep"><span>Сегодня</span></div>
+
+      <!-- Message from others -->
+      <div class="msg-group">
+        <div class="msg-row theirs">
+          <div class="sender-avatar" style="background:var(--brass)">МП</div>
+          <div>
+            <div style="font-size:0.65rem;color:var(--brass);font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px">Михаил Петров</div>
+            <div class="msg-bubble">Кто на партию в субботу? Хочу опробовать новый ростер Хаоса</div>
+            <div class="msg-meta"><span>12:30</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My message -->
+      <div class="msg-group">
+        <div class="msg-row mine">
+          <div class="msg-bubble">Я буду! Возьму Космодесант, давно не играл</div>
+          <div class="msg-meta"><span>12:35</span><span class="msg-status sent">✓</span></div>
+        </div>
+      </div>
+
+      <!-- Message with reply quote -->
+      <div class="msg-group">
+        <div class="msg-row mine">
+          <div>
+            <div class="reply-quote">
+              <button class="rq-close">✕</button>
+              <div class="rq-name">Михаил Петров</div>
+              <div class="rq-text">Кто на партию в субботу? Хочу опробовать новый…</div>
+            </div>
+            <div class="msg-bubble">Отличная идея! Забронирую стол на 14:00</div>
+            <div class="msg-meta"><span>12:38</span><span class="msg-status sent">✓</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theirs again -->
+      <div class="msg-group">
+        <div class="msg-row theirs">
+          <div class="sender-avatar" style="background:var(--brass)">МП</div>
+          <div>
+            <div style="font-size:0.65rem;color:var(--brass);font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px">Михаил Петров</div>
+            <div class="msg-bubble">Договорились, в 14:00 на третьем столе. Позову ещё Диму, сделаем 2×2?</div>
+            <div class="msg-meta"><span>12:42</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unread divider -->
+      <div class="unread-divider"><span>Новые сообщения</span></div>
+
+      <!-- New message -->
+      <div class="msg-group">
+        <div class="msg-row theirs">
+          <div class="sender-avatar" style="background:var(--success)">ДВ</div>
+          <div>
+            <div style="font-size:0.65rem;color:var(--brass);font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px">Дмитрий Волков</div>
+            <div class="msg-bubble">Я за! Принесу новый отряд Терминаторов, только вчера допокрасил. Кстати, вы видели новые правила на эррату?</div>
+            <div class="msg-meta"><span>12:50</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="chat-input-area" id="input-area">
+      <textarea class="input" placeholder="Вокс-сообщение…" rows="1" id="msg-input"></textarea>
+      <button class="send-btn" title="Отправить">✠</button>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE (no chat selected) -->
+  <div class="empty-chat" id="empty-chat" style="display:none">
+    <div style="font-size:3rem;opacity:0.2;margin-bottom:var(--s4)">✠</div>
+    <h3>Вокс-канал тих</h3>
+    <p class="text-xs">Выберите чат слева или начните новый диалог</p>
+    <button class="btn mt-3" style="background:var(--blood-red);color:var(--blood-on);border-color:var(--blood-red)">+ Новый чат</button>
+  </div>
+</div>
+
+<script>
+function openChat(id){
+  document.getElementById('chat-view').classList.add('open');
+  document.getElementById('empty-chat').style.display='none';
+  if(window.innerWidth<720) document.getElementById('chat-list').style.display='none';
+  document.getElementById('back-btn').style.display=window.innerWidth<720?'inline-flex':'none';
+}
+function closeChat(){
+  document.getElementById('chat-view').classList.remove('open');
+  document.getElementById('chat-list').style.display='flex';
+}
+</script>
+
+
+<!-- Context Menu -->
+<div class="context-menu" id="ctx-menu">
+  <button onclick="alert('�����')">? ��������</button>
+  <button onclick="alert('���������')">? ���������</button>
+  <button onclick="alert('�����������')">?? �����������</button>
+  <div class="divider"></div>
+  <button class="danger" onclick="alert('�������')">? �������</button>
+</div>
+
+<!-- Loading skeleton -->
+<div class="chat-items" id="chat-skeleton" style="display:none">
+  <div class="skeleton-list"><div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div><div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div><div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div></div>
+</div>
+
+<!-- Group Management Dialog (hidden) -->
+<div id="group-mgmt-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(4,4,6,0.7);display:none;align-items:center;justify-content:center">
+  <div style="background:linear-gradient(180deg,#161018,#100c14);border:2px solid;border-image:linear-gradient(135deg,var(--blood-red),var(--border-brass),var(--border)) 1;padding:var(--s6);max-width:440px;width:90%">
+    <h3 style="color:var(--brass);margin-bottom:var(--s4)">���������� �������</h3>
+    <div style="margin-bottom:var(--s4)"><label class="form-label">��������</label><input class="input" value="�������� ������"></div>
+    <div style="margin-bottom:var(--s4)"><label class="form-label">���</label><select class="input"><option>���������</option><option selected>��������� (�����)</option></select></div>
+    <div style="margin-bottom:var(--s6)"><label class="form-label">����</label><input type="file" class="input" style="padding:8px"><p class="text-xs text-muted mt-1">jpeg, png, webp, �� 5 MB</p></div>
+    <div style="display:flex;gap:var(--s2);justify-content:flex-end">
+      <button class="btn" style="background:var(--surface);color:var(--fg-secondary);border-color:var(--border);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)">������</button>
+      <button class="btn" style="background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)">���������</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Context menu on message bubbles (right-click)
+document.querySelectorAll('.msg-bubble').forEach(b => {
+  b.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    const menu = document.getElementById('ctx-menu');
+    menu.style.display = 'block';
+    menu.style.left = e.pageX + 'px';
+    menu.style.top = e.pageY + 'px';
+  });
+});
+document.addEventListener('click', () => document.getElementById('ctx-menu').style.display = 'none');
+</script></body>
+</html>

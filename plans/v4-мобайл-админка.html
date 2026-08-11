@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><title>ClubTableTracker · Мобайл · Админка</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.85rem;color:var(--fg);background:var(--bg);min-height:100vh;min-height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(7,6,9,0.97),rgba(7,6,9,0.9));backdrop-filter:blur(12px);padding:var(--s3) var(--s4);display:flex;align-items:center;gap:var(--s2);min-height:52px;border-bottom:2px solid;border-image:linear-gradient(90deg,var(--blood-red),transparent) 1}
+.topbar h1{font-family:var(--font-display);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass)}
+.htabs{display:flex;overflow-x:auto;gap:1px;background:var(--bg);border-bottom:1px solid var(--border);-webkit-overflow-scrolling:touch;margin-top:52px}.htab{padding:10px 14px;font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-muted);background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0}.htab.active{color:var(--brass);border-bottom:2px solid var(--brass)}.htab .cnt{margin-left:5px;padding:1px 5px;background:var(--blood-red);color:var(--blood-on);font-size:0.45rem;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);font-family:var(--font-mono)}
+.tabp{display:none}.tabp.active{display:block}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s4);padding-bottom:calc(var(--s6) + env(safe-area-inset-bottom))}
+.dataslate{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s4);margin-bottom:var(--s4);border-image:linear-gradient(135deg,var(--border),var(--border-brass),var(--border)) 1}
+.dataslate h2{font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin-bottom:var(--s3)}
+.form-label{display:block;font-family:var(--font-display);font-size:0.5rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.input{width:100%;padding:10px 12px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.8rem;outline:none;min-height:44px}.input:focus{border-color:var(--blood-red)}.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239e8e7a' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:9px 16px;min-height:42px;border:1px solid;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);white-space:nowrap}.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%)}.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-danger{background:var(--danger);color:var(--blood-on);border-color:var(--danger)}.btn-block{width:100%}
+.avatar{width:32px;height:32px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.55rem;color:var(--brass);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-display);font-size:0.45rem;letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.badge-success{background:var(--success);color:var(--blood-on)}.badge-warn{background:var(--warn);color:#0a0806}.badge-neutral{background:var(--surface);color:var(--fg-muted);border:1px solid var(--border)}.badge-danger{background:var(--danger);color:var(--blood-on)}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}.flex-between{display:flex;align-items:center;justify-content:space-between}.flex-wrap{flex-wrap:wrap}.gap-2{gap:var(--s2)}.mt-2{margin-top:var(--s2)}.mt-3{margin-top:var(--s3)}.mb-2{margin-bottom:var(--s2)}.mb-3{margin-bottom:var(--s3)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}.gallery-item{aspect-ratio:4/3;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative}.gallery-item .del{position:absolute;top:3px;right:3px;width:18px;height:18px;background:var(--danger);color:var(--blood-on);border:none;cursor:pointer;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);font-size:0.5rem}
+.chat-row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);background:var(--bg);border:1px solid var(--border)}.map-editor{position:relative;width:100%;height:200px;background:#08060a;border:1px solid var(--border);overflow:hidden;margin-bottom:var(--s3)}.map-editor .grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:24px 24px}.map-editor .map-table{position:absolute;background:linear-gradient(180deg,#141a18,#0d1410);border:2px solid rgba(58,138,74,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.55rem;color:var(--fg)}
+.member-row{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0;border-bottom:1px solid var(--border-soft)}.member-row:last-child{border-bottom:none}.member-row .m-info{flex:1}.member-row .m-name{font-weight:600;font-size:0.8rem}.member-row .m-detail{font-size:0.65rem;color:var(--fg-muted)}.member-row .m-badges{display:flex;gap:2px;flex-wrap:wrap}
+</style></head>
+<body>
+<!-- Topbar is handled by the tab header below -->
+<div class="topbar"><button style="background:none;border:none;color:var(--fg-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px">←</button><h1>Крепость Ордена</h1><span style="font-family:var(--font-display);font-size:0.45rem;color:var(--fg-muted);margin-left:auto">Магистр</span></div>
+
+<div class="htabs" id="htabs">
+  <button class="htab active" onclick="showTabM(0)">Столы</button>
+  <button class="htab" onclick="showTabM(1)">Участники<span class="cnt">2</span></button>
+  <button class="htab" onclick="showTabM(2)">События</button>
+  <button class="htab" onclick="showTabM(3)">Галерея</button>
+  <button class="htab" onclick="showTabM(4)">Настройки</button>
+  <button class="htab" onclick="showTabM(5)">Чаты</button>
+</div>
+<div class="scroll">
+  <!-- Tab 0: Tables -->
+  <div class="tabp active" id="mtab-0">
+    <div class="flex-between mb-3"><h2 style="color:var(--brass);font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase">Столы (12)</h2><button class="btn btn-primary btn-sm">+ Стол</button></div>
+    <div class="map-editor"><div class="grid-bg"></div>
+      <div class="map-table" style="left:10px;top:10px;width:50px;height:36px">I</div>
+      <div class="map-table" style="left:75px;top:10px;width:50px;height:36px">II</div>
+      <div class="map-table" style="left:140px;top:8px;width:70px;height:40px">III</div>
+      <div class="map-table" style="left:10px;top:58px;width:50px;height:36px">IV</div>
+      <div class="map-table" style="left:75px;top:58px;width:50px;height:36px">V</div>
+      <div class="map-table" style="left:140px;top:60px;width:70px;height:40px">VI</div>
+    </div>
+    <div class="dataslate">
+      <h2>Стол VII</h2>
+      <div class="flex-row gap-2 mb-3 flex-wrap"><input class="input" placeholder="Номер" value="VII" style="width:80px"><select class="input select" style="width:120px"><option>Small</option><option selected>Medium</option><option>Large</option></select><label style="display:flex;align-items:center;gap:4px;font-size:0.7rem;cursor:pointer"><input type="checkbox" style="accent-color:var(--blood-red)">EventsOnly</label></div>
+      <p class="text-xs text-muted mb-2">Поддерживаемые системы:</p>
+      <div class="flex-row gap-2 mb-3 flex-wrap" style="font-size:0.7rem"><label><input type="checkbox" checked style="accent-color:var(--blood-red)">40K</label><label><input type="checkbox" checked style="accent-color:var(--blood-red)">KT</label><label><input type="checkbox" style="accent-color:var(--blood-red)">HH</label><label><input type="checkbox" style="accent-color:var(--blood-red)">AoS</label></div>
+      <div class="flex-row gap-2 flex-wrap"><button class="btn btn-primary btn-sm">Сохранить</button><button class="btn btn-secondary btn-sm">Отмена</button><button class="btn btn-danger btn-sm">Удалить</button></div>
+    </div>
+  </div>
+  <!-- Tab 1: Members -->
+  <div class="tabp" id="mtab-1">
+    <div class="flex-between mb-3"><h2 style="color:var(--brass);font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase">24 участника</h2><button class="btn btn-primary btn-sm">+ Ручной</button></div>
+    <div class="member-row"><div class="avatar" style="background:var(--blood-red)">AK</div><div class="m-info"><div class="m-name">Алексей Кузнецов</div><div class="m-detail">Москва · 40K, KT · <span class="badge badge-danger">Магистр</span></div></div></div>
+    <div class="member-row"><div class="avatar" style="background:var(--brass)">МП</div><div class="m-info"><div class="m-name">Михаил Петров</div><div class="m-detail">СПб · KT · <span class="badge badge-warn">Капеллан</span></div></div></div>
+    <div class="member-row"><div class="avatar" style="background:var(--success)">ДВ</div><div class="m-info"><div class="m-name">Дмитрий Волков</div><div class="m-detail">Екб · 40K · <span class="badge badge-neutral">—</span></div></div></div>
+    <div class="member-row"><div class="avatar" style="background:var(--warn)">НП</div><div class="m-info"><div class="m-name">Николай Петренко</div><div class="m-detail">Москва · <span class="badge badge-warn">Pending</span> · <button class="btn btn-sm btn-primary" style="font-size:0.45rem;padding:3px 8px;min-height:auto">Approve</button></div></div></div>
+    <div class="dataslate mt-3"><h2>Действия с участником</h2><div class="flex-row gap-2 flex-wrap"><button class="btn btn-secondary btn-sm">Роль</button><button class="btn btn-secondary btn-sm">Ключ</button><button class="btn btn-secondary btn-sm">Системы</button><button class="btn btn-danger btn-sm">Кик</button></div></div>
+  </div>
+  <!-- Tab 2: Events -->
+  <div class="tabp" id="mtab-2">
+    <h2>3 события</h2>
+    <div class="dataslate"><h2>«Железный Кулак»</h2><p class="text-xs text-muted">Tournament · 40K · 11.08 12:00-20:00 · 12/16</p><div class="flex-row gap-2 mt-2"><button class="btn btn-secondary btn-sm">Ред.</button><button class="btn btn-danger btn-sm">Удалить</button></div></div>
+    <div class="dataslate"><h2>«Падение Кадии»</h2><p class="text-xs text-muted">Campaign · HH · 15.08 · 6/8</p><div class="flex-row gap-2 mt-2"><button class="btn btn-secondary btn-sm">Ред.</button><button class="btn btn-danger btn-sm">Удалить</button></div></div>
+    <button class="btn btn-primary btn-block mt-3">+ Новое событие</button>
+  </div>
+  <!-- Tab 3: Gallery -->
+  <div class="tabp" id="mtab-3">
+    <h2 style="color:var(--brass);font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;margin-bottom:var(--s3)">Галерея (6/10)</h2>
+    <div class="gallery-grid">
+      <div class="gallery-item" style="background:linear-gradient(135deg,#1a1420,#0e0b12)"><button class="del">✕</button><span style="font-size:0.5rem;color:var(--fg-muted)">турнир_01</span></div>
+      <div class="gallery-item" style="background:linear-gradient(135deg,#1a1a1a,#141414)"><button class="del">✕</button><span style="font-size:0.5rem;color:var(--fg-muted)">столы</span></div>
+      <div class="gallery-item" style="background:linear-gradient(135deg,#101420,#0a0e14)"><button class="del">✕</button><span style="font-size:0.5rem;color:var(--fg-muted)">покрас</span></div>
+    </div>
+    <button class="btn btn-primary btn-block mt-3">+ Загрузить</button>
+  </div>
+  <!-- Tab 4: Settings -->
+  <div class="tabp" id="mtab-4">
+    <div class="dataslate"><h2>Время работы</h2><div class="flex-row gap-3"><div><label class="form-label">Открытие</label><input class="input" type="time" value="10:00" style="width:130px"></div><div><label class="form-label">Закрытие</label><input class="input" type="time" value="22:00" style="width:130px"></div></div></div>
+    <div class="dataslate"><h2>Короткое имя</h2><input class="input" value="Крепость" maxlength="20" style="margin-bottom:var(--s3)"><label class="form-label">Цвет бейджа</label><input type="color" value="#4a9eff" style="width:44px;height:36px;border:1px solid var(--border);cursor:pointer"></div>
+    <button class="btn btn-primary btn-block">Сохранить</button>
+  </div>
+  <!-- Tab 5: Chats -->
+  <div class="tabp" id="mtab-5">
+    <h2>2 групповых чата</h2>
+    <div class="chat-row mb-3"><div class="avatar" style="background:var(--blood-red)">✠</div><div style="flex:1"><strong>Крепость Ордена</strong><p class="text-xs text-muted">Публичный · 12 участников</p></div><button class="btn btn-secondary btn-sm">Упр.</button></div>
+    <div class="chat-row"><div class="avatar" style="background:var(--warn)">☠</div><div style="flex:1"><strong>Кампания «Падение Кадии»</strong><p class="text-xs text-muted">Приватный · 6 участников</p></div><button class="btn btn-secondary btn-sm">Упр.</button></div>
+    <button class="btn btn-primary btn-block mt-3">+ Создать чат</button>
+  </div>
+</div>
+<script>function showTabM(n){document.querySelectorAll('.tabp').forEach(p=>p.classList.remove('active'));document.getElementById('mtab-'+n).classList.add('active');document.querySelectorAll('#htabs .htab').forEach((t,i)=>t.classList.toggle('active',i===n))}</script>
+</body></html>

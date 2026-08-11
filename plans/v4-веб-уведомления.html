@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>ClubTableTracker · Уведомления</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.9rem;color:var(--fg);background:var(--bg);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.container{max-width:760px;margin:0 auto;padding:var(--s8) var(--s6);display:flex;flex-direction:column;height:100vh}
+h1{font-family:var(--font-display);font-size:1.1rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass)}h2{font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-muted);margin-bottom:var(--s3)}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:7px 14px;border:1px solid;cursor:pointer;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-secondary:hover{background:var(--surface-hover)}.btn-sm{padding:4px 10px;font-size:0.5rem}
+.filters{display:flex;gap:var(--s1);flex-wrap:wrap;margin-bottom:var(--s5)}.filters .chip{padding:5px 12px;font-family:var(--font-display);font-size:0.45rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-muted);background:var(--surface);border:1px solid var(--border);cursor:pointer;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.filters .chip.active{color:var(--brass);border-color:var(--brass);background:var(--brass-subtle)}
+.notif-list{flex:1;overflow-y:auto}.notif-card{display:flex;gap:var(--s4);padding:var(--s4);background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);margin-bottom:var(--s3);transition:all 120ms ease}.notif-card.unread{border-left:3px solid var(--blood-red)}.notif-card:hover{background:var(--surface-hover)}
+.notif-card .n-icon{width:36px;height:36px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}.n-body{flex:1}.n-header{display:flex;align-items:center;gap:var(--s2);margin-bottom:2px;flex-wrap:wrap}.n-title{font-family:var(--font-display);font-size:0.65rem;text-transform:uppercase}.n-time{font-family:var(--font-mono);font-size:0.5rem;color:var(--fg-muted)}.n-text{font-size:0.75rem;color:var(--fg-secondary);line-height:1.4}.n-actions{margin-top:var(--s2);display:flex;gap:var(--s1)}
+.badge{font-family:var(--font-display);font-size:0.4rem;letter-spacing:0.08em;text-transform:uppercase;padding:1px 6px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.badge-blood{background:var(--blood-subtle);color:var(--blood-red)}.badge-brass{background:var(--brass-subtle);color:var(--brass)}.badge-success{background:var(--success);color:var(--fg)}
+.empty-state{text-align:center;padding:var(--s8) var(--s4);color:var(--fg-muted)}.empty-state .icon{font-size:2.5rem}.empty-state p{font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:var(--s3)}
+.flex-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s2)}.flex-row{display:flex;align-items:center;gap:var(--s3)}.gap-2{gap:var(--s2)}.mt-2{margin-top:var(--s2)}.mb-3{margin-bottom:var(--s3)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}
+</style></head>
+<body>
+<div class="container">
+  <div class="flex-between mb-4"><h1>Уведомления</h1><button class="btn btn-secondary btn-sm">← Назад</button></div>
+  <div class="filters"><button class="chip active">Все (3)</button><button class="chip">Непрочитанные (3)</button><button class="chip">Приглашения</button><button class="chip">Бронирования</button><button class="chip">События</button></div>
+  <div class="notif-list">
+    <div class="notif-card unread">
+      <div class="n-icon" style="background:var(--blood-subtle)">📋</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--blood-red)">Приглашение в бронь</span><span class="n-time">5 минут</span><span class="badge badge-blood">New</span></div><p class="n-text">Алексей приглашает вас в ростер: <strong>Стол IV</strong>, 11 августа 12:00 · Warhammer 40K</p><div class="n-actions"><button class="btn btn-sm" style="background:var(--success);color:var(--fg);border-color:var(--success);font-size:0.45rem;padding:3px 10px">Принять</button><button class="btn btn-sm" style="background:var(--surface);color:var(--fg-muted);border-color:var(--border);font-size:0.45rem;padding:3px 10px">Отклонить</button></div></div>
+    </div>
+    <div class="notif-card unread">
+      <div class="n-icon" style="background:var(--brass-subtle)">⚔</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--brass)">Событие</span><span class="n-time">2 часа</span><span class="badge badge-blood">New</span></div><p class="n-text">Создано событие <strong>«Железный Кулак»</strong> в клубе «Крепость Ордена» · Tournament · 2000pts · 16 мест</p></div>
+    </div>
+    <div class="notif-card unread">
+      <div class="n-icon" style="background:var(--blood-subtle)">🔔</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--blood-red)">Бронирование</span><span class="n-time">Вчера</span><span class="badge badge-blood">New</span></div><p class="n-text">Ваша бронь <strong>Стол II</strong> на завтра 16:00 подтверждена. Не забудьте прийти!</p></div>
+    </div>
+    <div class="notif-card">
+      <div class="n-icon" style="background:var(--brass-subtle)">⚔</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--brass)">Событие</span><span class="n-time">2 дня</span></div><p class="n-text">Регламенты турнира «Ярость Хоруса» обновлены. Скачайте новую версию в карточке события.</p></div>
+    </div>
+    <div class="notif-card">
+      <div class="n-icon" style="background:var(--blood-subtle)">📋</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--blood-red)">Приглашение</span><span class="n-time">3 дня</span></div><p class="n-text">Михаил приглашает вас в ростер: <strong>Стол III</strong>, 14 августа · Kill Team</p></div>
+    </div>
+    <div class="notif-card">
+      <div class="n-icon" style="background:var(--surface)">💬</div>
+      <div class="n-body"><div class="n-header"><span class="n-title" style="color:var(--fg-muted)">Сообщение</span><span class="n-time">4 дня</span></div><p class="n-text">Новое сообщение в чате «Крепость Ордена» от Алексея: «Кто на покрас в субботу?»</p></div>
+    </div>
+  </div>
+</div>
+</body></html>

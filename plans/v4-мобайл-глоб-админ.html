@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><title>ClubTableTracker · Мобайл · Глобальный админ</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.85rem;color:var(--fg);background:var(--bg);min-height:100vh;min-height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(7,6,9,0.97),rgba(7,6,9,0.9));backdrop-filter:blur(12px);padding:var(--s3) var(--s4);display:flex;align-items:center;gap:var(--s3);min-height:52px;border-bottom:2px solid;border-image:linear-gradient(90deg,var(--blood-red),transparent) 1}.topbar h1{font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s4);padding-bottom:calc(var(--s6) + env(safe-area-inset-bottom))}
+.dataslate{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s4);margin-bottom:var(--s4);border-image:linear-gradient(135deg,var(--border),var(--border-brass),var(--border)) 1}
+.dataslate h2{font-family:var(--font-display);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin-bottom:var(--s3)}
+.club-row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s2);background:var(--bg);border:1px solid var(--border);margin-bottom:var(--s2)}.club-row .c-info{flex:1;min-width:0}.club-row .c-name{font-weight:600;font-size:0.75rem}.club-row .c-detail{font-size:0.6rem;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.club-row .c-stem{font-family:var(--font-mono);font-size:0.55rem;color:var(--brass)}
+.btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.5rem;letter-spacing:0.06em;text-transform:uppercase;padding:6px 12px;min-height:36px;border:1px solid;cursor:pointer;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);white-space:nowrap}.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%)}.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-danger{background:var(--danger);color:var(--blood-on);border-color:var(--danger)}.btn-warn{background:var(--warn);color:#0a0806;border-color:var(--warn)}.btn-block{width:100%}
+.badge{display:inline-flex;font-family:var(--font-display);font-size:0.4rem;letter-spacing:0.08em;text-transform:uppercase;padding:1px 6px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.badge-brass{background:var(--brass-subtle);color:var(--brass)}.badge-success{background:var(--success);color:var(--fg)}
+.input{width:100%;padding:10px 12px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.75rem;outline:none;min-height:44px}.input:focus{border-color:var(--blood-red)}.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239e8e7a' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.form-label{display:block;font-family:var(--font-display);font-size:0.5rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px}
+.key-row{display:flex;align-items:center;gap:var(--s2);padding:var(--s2);background:var(--bg);border:1px solid var(--border)}.key-row .key-val{flex:1;font-family:var(--font-mono);font-size:0.55rem;color:var(--fg-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:400;background:linear-gradient(180deg,#161018,#100c14);border:2px solid;border-image:linear-gradient(135deg,var(--blood-red),var(--border-brass),var(--border)) 1;border-bottom:none;border-radius:12px 12px 0 0;padding:var(--s5) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom));display:none}.sheet.open{display:block}.sheet .handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto var(--s3)}.sheet h3{font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--brass);margin-bottom:var(--s4)}.sheet .field{margin-bottom:var(--s3)}.sheet .field label{display:block;font-size:0.5rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}.flex-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s2)}.gap-1{gap:var(--s1)}.gap-2{gap:var(--s2)}.mt-2{margin-top:var(--s2)}.mt-3{margin-top:var(--s3)}.mb-3{margin-bottom:var(--s3)}.text-xs{font-size:0.65rem}.text-muted{color:var(--fg-muted)}
+</style></head>
+<body>
+<div class="topbar"><button style="background:none;border:none;color:var(--fg-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px">←</button><h1>Глобальное управление</h1></div>
+<div class="scroll">
+  <div class="dataslate">
+    <h2>Клубы (3)</h2>
+    <div class="club-row"><div class="c-info"><div class="c-name">Крепость Ордена</div><div class="c-detail">krepost · 24 уч. · alex@mail.ru · 15.07</div></div><div class="flex-row gap-1"><button class="btn btn-secondary" style="font-size:0.4rem;padding:4px 8px;min-height:30px">Ключ</button><button class="btn btn-danger" style="font-size:0.4rem;padding:4px 8px;min-height:30px">⏏</button></div></div>
+    <div class="club-row"><div class="c-info"><div class="c-name">Башня Черепов</div><div class="c-detail">skull-tower · 8 уч. · igor@gmail.com · 01.08</div></div><div class="flex-row gap-1"><button class="btn btn-secondary" style="font-size:0.4rem;padding:4px 8px;min-height:30px">Ключ</button><button class="btn btn-danger" style="font-size:0.4rem;padding:4px 8px;min-height:30px">⏏</button></div></div>
+    <div class="club-row"><div class="c-info"><div class="c-name">Цитадель</div><div class="c-detail">citadel · 0 уч. · — · 10.08</div></div><div class="flex-row gap-1"><button class="btn btn-secondary" style="font-size:0.4rem;padding:4px 8px;min-height:30px">Ключ</button><button class="btn btn-danger" style="font-size:0.4rem;padding:4px 8px;min-height:30px">⏏</button></div></div>
+    <button class="btn btn-primary btn-block mt-2" onclick="document.getElementById('create-sheet').classList.add('open')">+ Создать клуб</button>
+  </div>
+
+  <div class="dataslate">
+    <h2>Сгенерировать ключ</h2>
+    <div class="flex-row gap-2 mb-3"><select class="input select" style="flex:1"><option>Крепость Ордена</option><option>Башня Черепов</option><option>Цитадель</option></select><button class="btn btn-primary">→</button></div>
+    <div class="key-row"><span class="key-val">КТ-O7F3A-9X2M1-W4Q8P</span><span class="badge badge-brass">Активен</span><button class="btn btn-warn" style="font-size:0.4rem;padding:3px 8px;min-height:28px">Revoke</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="create-sheet"><div class="handle"></div><h3>Создать клуб</h3>
+  <div class="field"><label>Название</label><input class="input" placeholder="Название ордена"></div>
+  <div class="field"><label>Короткое имя</label><input class="input" placeholder="krotkoe-imya" maxlength="20"></div>
+  <div class="field"><label>Магистр (email)</label><input class="input" placeholder="master@domain.ru" type="email"></div>
+  <div class="flex-row gap-2 mt-3" style="justify-content:flex-end"><button class="btn btn-secondary" onclick="this.closest('.sheet').classList.remove('open')">Отмена</button><button class="btn btn-primary" onclick="this.closest('.sheet').classList.remove('open')">Создать</button></div>
+</div>
+</body></html>

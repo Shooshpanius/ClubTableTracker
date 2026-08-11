@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><title>ClubTableTracker · Мобайл · Авторизация</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--font-color:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-hover:#d94052;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--danger-subtle:rgba(196,40,59,0.12);--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:15px;color:var(--font-color);background:var(--bg);min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;max-width:430px;margin:0 auto}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.card{padding:var(--s8) var(--s6);text-align:center;width:100%}
+.gothic-line{height:2px;background:linear-gradient(90deg,transparent,var(--brass),var(--blood-red),var(--brass),transparent);margin:var(--s3) auto;max-width:260px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);font-family:var(--font-display);font-size:0.8rem;letter-spacing:0.06em;text-transform:uppercase;padding:14px 28px;min-height:48px;border:1px solid;cursor:pointer;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:all 120ms ease}
+.btn-block{width:100%}
+.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%);box-shadow:0 0 16px rgba(196,40,59,0.25)}
+.btn-primary:active{background:var(--blood-hover)}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blood-red);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{padding:var(--s4);background:var(--danger-subtle);border:1px solid rgba(196,40,59,0.3);margin-top:var(--s4)}
+.mt-3{margin-top:var(--s3)}.mt-4{margin-top:var(--s4)}.mb-4{margin-bottom:var(--s4)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}
+</style></head>
+<body>
+<div class="card">
+  <div style="font-family:var(--font-display);font-size:1.3rem;color:var(--brass);text-transform:uppercase;letter-spacing:0.1em">CLUB TABLE TRACKER</div>
+  <div style="font-family:var(--font-display);font-size:0.65rem;color:var(--blood-red);text-transform:uppercase;letter-spacing:0.15em;margin-top:var(--s2)">In the grim darkness, there is only war</div>
+  <div class="gothic-line"></div>
+  <p style="color:var(--fg-secondary);margin:var(--s6) 0">Войдите через Яндекс, чтобы бронировать столы и общаться в вокс-канале</p>
+
+  <div id="login">
+    <button class="btn btn-primary btn-block" style="background:#FC3F1D;border-color:#e03010" onclick="showLoading()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="12"/></svg>
+      Войти через Яндекс
+    </button>
+    <p class="text-xs text-muted mt-4">Или привяжите другие аккаунты позже в Когитаторе</p>
+  </div>
+
+  <div id="loading" style="display:none">
+    <div class="spinner"></div>
+    <p class="mt-4" style="color:var(--brass);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Устанавливаем вокс-связь…</p>
+    <p class="text-xs text-muted mt-2">Ожидайте подтверждения от Когитатора</p>
+  </div>
+
+  <div id="error" style="display:none">
+    <div style="font-size:2.5rem;margin-bottom:var(--s3);opacity:0.5">☠</div>
+    <p style="color:var(--danger);font-family:var(--font-display);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em">Вокс-связь потеряна</p>
+    <p class="text-xs text-muted mt-2 mb-4">Не удалось установить соединение с сервером аутентификации</p>
+    <button class="btn btn-primary btn-block" style="background:var(--surface);color:var(--font-color)" onclick="back()">Вернуться</button>
+  </div>
+
+  <div id="merge-conflict" style="display:none">
+    <div class="error-box"><p style="color:var(--danger);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">�������� �������</p><p class="text-xs mt-2">���� ������� ��� �������� � ������� ������. ���������� � ��������.</p></div>
+    <button class="btn btn-primary btn-block mt-4" style="background:var(--surface);color:var(--font-color)" onclick="back()">���������</button>
+  </div>
+
+  <div id="no-config" style="display:none">
+    <div class="error-box"><p style="color:var(--warn);font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em">Яндекс не настроен</p><p class="text-xs mt-2">Администратор не задал VITE_YANDEX_CLIENT_ID</p></div>
+  </div>
+</div>
+<script>function showLoading(){document.getElementById('login').style.display='none';document.getElementById('loading').style.display='block'}
+function back(){document.getElementById('loading').style.display='none';document.getElementById('error').style.display='none';document.getElementById('login').style.display='block'}</script>
+</body></html>

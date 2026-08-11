@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>ClubTableTracker · Глобальный админ</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.9rem;color:var(--fg);background:var(--bg);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.container{max-width:1000px;margin:0 auto;padding:var(--s8) var(--s6)}
+h1{font-family:var(--font-display);font-size:1.2rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass)}h2{font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin-bottom:var(--s3)}
+.dataslate{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s5);margin-bottom:var(--s4);border-image:linear-gradient(135deg,var(--border),var(--border-brass),var(--border)) 1}
+table{width:100%;border-collapse:collapse;font-size:0.75rem}th{padding:var(--s2) var(--s3);color:var(--fg-muted);font-family:var(--font-display);font-size:0.5rem;letter-spacing:0.08em;text-transform:uppercase;text-align:left;border-bottom:2px solid var(--border)}td{padding:var(--s2) var(--s3);border-bottom:1px solid var(--border-soft);color:var(--fg-secondary)}tr:hover td{background:var(--surface-hover)}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-size:0.55rem;letter-spacing:0.06em;text-transform:uppercase;padding:6px 12px;border:1px solid;cursor:pointer;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);white-space:nowrap}.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%)}.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-warn{background:var(--warn);color:#0a0806;border-color:var(--warn)}.btn-danger{background:var(--danger);color:var(--blood-on);border-color:var(--danger)}.btn-sm{padding:3px 8px;font-size:0.45rem}
+.badge{display:inline-flex;gap:2px;font-family:var(--font-display);font-size:0.4rem;letter-spacing:0.08em;text-transform:uppercase;padding:1px 6px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.badge-success{background:var(--success);color:var(--fg)}.badge-brass{background:var(--brass-subtle);color:var(--brass)}
+.input{background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.75rem;padding:7px 10px;outline:none}.input:focus{border-color:var(--blood-red)}
+.key-row{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:var(--bg);border:1px solid var(--border);font-family:var(--font-mono);font-size:0.65rem;color:var(--fg-secondary)}.key-row .key-val{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.key-row .key-action{flex-shrink:0}
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(4,4,6,0.7);display:none;align-items:center;justify-content:center}.modal-overlay.open{display:flex}
+.modal{background:linear-gradient(180deg,#161018,#100c14);border:2px solid;border-image:linear-gradient(135deg,var(--blood-red),var(--border-brass),var(--border)) 1;padding:var(--s6);max-width:400px;width:90%}.modal h3{font-family:var(--font-display);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--brass);margin-bottom:var(--s4)}.form-label{display:block;font-family:var(--font-display);font-size:0.5rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}.flex-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s2)}.gap-1{gap:var(--s1)}.gap-2{gap:var(--s2)}.mt-2{margin-top:var(--s2)}.mt-3{margin-top:var(--s3)}.mb-3{margin-bottom:var(--s3)}.mb-4{margin-bottom:var(--s4)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}.text-secondary{color:var(--fg-secondary)}
+</style></head>
+<body>
+<div class="container">
+  <div class="flex-between mb-4"><div><h1 style="margin-bottom:2px">Глобальное управление</h1><p class="text-xs text-muted">Панель системного администратора · Все клубы платформы</p></div><button class="btn btn-secondary btn-sm">← Назад</button></div>
+
+  <div class="dataslate">
+    <h2>Клубы (3)</h2>
+    <table>
+      <thead><tr><th>Название</th><th>Стебель</th><th>Магистр</th><th>Уч.</th><th>Ключей</th><th>Создан</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Крепость Ордена</strong></td>
+          <td><code style="color:var(--brass);font-size:0.65rem">krepost</code></td>
+          <td class="text-secondary">alex@mail.ru</td>
+          <td>24</td>
+          <td>1</td>
+          <td>15.07.2026</td>
+          <td><div class="flex-row gap-1"><button class="btn btn-sm btn-secondary">Ключ</button><button class="btn btn-sm btn-danger">⏏</button></div></td>
+        </tr>
+        <tr>
+          <td><strong>Башня Черепов</strong></td>
+          <td><code style="color:var(--brass);font-size:0.65rem">skull-tower</code></td>
+          <td class="text-secondary">igor@gmail.com</td>
+          <td>8</td>
+          <td>2</td>
+          <td>01.08.2026</td>
+          <td><div class="flex-row gap-1"><button class="btn btn-sm btn-secondary">Ключ</button><button class="btn btn-sm btn-danger">⏏</button></div></td>
+        </tr>
+        <tr>
+          <td><strong>Цитадель</strong></td>
+          <td><code style="color:var(--brass);font-size:0.65rem">citadel</code></td>
+          <td class="text-secondary">— (не активирован)</td>
+          <td>0</td>
+          <td>1</td>
+          <td>10.08.2026</td>
+          <td><div class="flex-row gap-1"><button class="btn btn-sm btn-secondary">Ключ</button><button class="btn btn-sm btn-danger">⏏</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="btn btn-primary mt-3" onclick="document.getElementById('create-modal').classList.add('open')">+ Создать клуб</button>
+  </div>
+
+  <!-- Generate key section -->
+  <div class="dataslate">
+    <h2>Сгенерировать ключ</h2>
+    <p class="text-xs text-muted mb-3">Позволяет создать новый инвайт-ключ для клуба. Действует как <code>?code=...</code> в URL.</p>
+    <div class="flex-row gap-2 mb-3"><select class="input" style="width:200px"><option>Крепость Ордена</option><option>Башня Черепов</option><option>Цитадель</option></select><button class="btn btn-primary btn-sm">Сгенерировать</button></div>
+    <div class="key-row"><span class="key-val">КТ-O7F3A-9X2M1-W4Q8P</span><span class="badge badge-brass">Активен</span><button class="btn btn-sm btn-secondary key-action">Копировать</button><button class="btn btn-sm btn-warn key-action">Revoke</button></div>
+  </div>
+</div>
+
+<!-- Create Club Modal -->
+<div class="modal-overlay" id="create-modal"><div class="modal">
+  <h3>Создать клуб</h3>
+  <div class="mb-3"><label class="form-label">Название</label><input class="input" style="width:100%" placeholder="Название ордена"></div>
+  <div class="mb-3"><label class="form-label">Короткое имя</label><input class="input" style="width:100%" placeholder="krotkoe-imya" maxlength="20"></div>
+  <div class="mb-3"><label class="form-label">Магистр (email)</label><input class="input" style="width:100%" placeholder="master@domain.ru" type="email"></div>
+  <div class="flex-row gap-2" style="justify-content:flex-end"><button class="btn btn-secondary" onclick="this.closest('.modal-overlay').classList.remove('open')">Отмена</button><button class="btn btn-primary" onclick="this.closest('.modal-overlay').classList.remove('open')">Создать</button></div>
+</div></div>
+</body></html>

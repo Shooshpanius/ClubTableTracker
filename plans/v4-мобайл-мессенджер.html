@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"><title>ClubTableTracker · Мобайл · Мессенджер</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-hover:#d94052;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--danger-subtle:rgba(196,40,59,0.12);--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:15px;color:var(--fg);background:var(--bg);min-height:100vh;min-height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(7,6,9,0.97),rgba(7,6,9,0.9));backdrop-filter:blur(12px);padding:var(--s3) var(--s4);display:flex;align-items:center;gap:var(--s2);min-height:52px;border-bottom:2px solid;border-image:linear-gradient(90deg,var(--blood-red),transparent) 1}
+.topbar h1{font-family:var(--font-display);font-size:0.9rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin:0}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+
+/* Chat list */
+.chat-item{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--border-soft);cursor:pointer;min-height:60px}
+.chat-item:active{background:var(--surface)}
+.ci-avatar{width:44px;height:44px;flex-shrink:0;background:var(--blood-red);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.7rem;color:var(--brass)}
+.ci-info{flex:1;min-width:0}.ci-name{font-weight:600;font-size:0.85rem}.ci-preview{font-size:0.75rem;color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.ci-meta{text-align:right;flex-shrink:0}.ci-time{font-family:var(--font-mono);font-size:0.6rem;color:var(--fg-muted)}
+.ci-unread{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin-top:4px;background:var(--blood-red);color:var(--blood-on);font-family:var(--font-display);font-size:0.5rem;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}
+
+/* Search */
+.search-bar{padding:var(--s3) var(--s4);border-bottom:1px solid var(--border)}
+.search-input{width:100%;padding:9px 14px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem;outline:none;min-height:40px}.search-input:focus{border-color:var(--blood-red)}
+.fab{position:fixed;bottom:24px;right:var(--s4);width:52px;height:52px;background:var(--blood-red);color:var(--blood-on);border:2px solid color-mix(in oklab,var(--blood-red),white 25%);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 20px rgba(196,40,59,0.3);z-index:90}
+
+/* Chat view screen */
+.chat-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:none;flex-direction:column;max-width:430px;margin:0 auto}
+.chat-screen.open{display:flex}
+.chat-header{padding:var(--s3) var(--s4);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:var(--s3);min-height:52px}
+.ch-avatar{width:36px;height:36px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.6rem;color:var(--brass);flex-shrink:0}
+.ch-name{font-family:var(--font-display);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.04em}
+.ch-meta{font-size:0.65rem;color:var(--fg-muted)}
+.chat-msgs{flex:1;overflow-y:auto;padding:var(--s4);-webkit-overflow-scrolling:touch}
+
+/* Bubbles */
+.msg-group{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--s4)}
+.msg-row{display:flex;gap:var(--s2);max-width:82%}.msg-row.mine{align-self:flex-end;flex-direction:row-reverse}
+.msg-bubble{padding:var(--s2) var(--s3);font-size:0.85rem;line-height:1.45;word-break:break-word}
+.msg-row.mine .msg-bubble{background:var(--blood-subtle);border:1px solid rgba(196,40,59,0.2);border-radius:3px}
+.msg-row.theirs .msg-bubble{background:var(--surface);border:1px solid var(--border);border-radius:3px}
+.msg-meta{display:flex;gap:var(--s2);font-family:var(--font-mono);font-size:0.55rem;color:var(--fg-muted);margin-top:2px}.msg-row.mine .msg-meta{justify-content:flex-end}
+
+.reply-quote{padding:var(--s2) var(--s3);background:rgba(0,0,0,0.2);border-left:3px solid var(--brass);margin-bottom:var(--s2);font-size:0.7rem;position:relative}
+.reply-quote .rq-name{font-family:var(--font-display);font-size:0.55rem;color:var(--brass);text-transform:uppercase}.reply-quote .rq-text{color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.reply-quote .rq-close{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--fg-muted);font-size:1rem;cursor:pointer;padding:2px 6px}
+
+.date-sep{display:flex;align-items:center;gap:var(--s3);margin:var(--s4) 0}.date-sep::before,.date-sep::after{content:'';flex:1;height:1px;background:var(--border)}.date-sep span{font-family:var(--font-display);font-size:0.5rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em}
+.unread-divider{display:flex;align-items:center;gap:var(--s3);margin:var(--s3) 0}.unread-divider::after{content:'';flex:1;height:1px;background:var(--blood-red)}.unread-divider span{font-family:var(--font-display);font-size:0.5rem;color:var(--blood-red);text-transform:uppercase;letter-spacing:0.08em;background:var(--blood-subtle);padding:2px 8px}
+
+.chat-input-area{padding:var(--s3) var(--s4);border-top:1px solid var(--border);display:flex;gap:var(--s3);align-items:flex-end;background:var(--bg-raised);padding-bottom:calc(var(--s3) + env(safe-area-inset-bottom))}
+.chat-input-area textarea{flex:1;resize:none;min-height:44px;max-height:120px;padding:10px 14px;background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem;outline:none}.chat-input-area textarea:focus{border-color:var(--blood-red)}
+.send-btn{width:44px;height:44px;flex-shrink:0;background:var(--blood-red);color:var(--blood-on);border:1px solid color-mix(in oklab,var(--blood-red),white 25%);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.7rem;cursor:pointer}
+
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s8);color:var(--fg-muted);text-align:center}.empty h3{font-family:var(--font-display);font-size:0.85rem;text-transform:uppercase;color:var(--brass);margin-bottom:var(--s2)}
+.ctx-sheet{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;z-index:400;background:linear-gradient(180deg,#161018,#100c14);border:2px solid;border-image:linear-gradient(135deg,var(--blood-red),var(--border-brass),var(--border)) 1;border-bottom:none;border-radius:12px 12px 0 0;padding:var(--s6) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));display:none}
+.ctx-sheet button{display:block;width:100%;text-align:left;padding:14px var(--s3);background:none;border:none;color:var(--fg-secondary);font-family:var(--font-body);font-size:0.9rem;cursor:pointer;min-height:48px}
+.ctx-sheet button:active{background:var(--surface);color:var(--fg)}
+.ctx-sheet button.danger{color:var(--danger)}.ctx-sheet button.danger:active{background:var(--danger-subtle)}
+.ctx-sheet .ctx-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto var(--s4)}
+.sk-item{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4)}.sk-av{width:44px;height:44px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}.sk-txt{flex:1;display:flex;flex-direction:column;gap:var(--s2)}.sk-txt .sk-line{height:12px;border-radius:2px}.sk-txt .sk-line:first-child{width:65%}.sk-txt .sk-line:last-child{width:40%}.skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface-hover) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}</style></head>
+<body>
+
+<!-- Chat List Screen -->
+<div class="topbar"><h1>Вокс-канал</h1></div>
+<div class="search-bar"><input class="search-input" type="text" placeholder="Поиск по чатам…"></div>
+<div class="scroll" id="chat-list">
+  <div class="chat-item" onclick="openChat()">
+    <div class="ci-avatar">✠</div><div class="ci-info"><div class="ci-name">Крепость Ордена</div><div class="ci-preview">Михаил: Кто на партию в субботу?</div></div>
+    <div class="ci-meta"><div class="ci-time">12:42</div><div class="ci-unread">3</div></div>
+  </div>
+  <div class="chat-item" onclick="openChat()">
+    <div class="ci-avatar" style="background:var(--brass)">МП</div><div class="ci-info"><div class="ci-name">Михаил Петров</div><div class="ci-preview">Договорились, в 13:00 на третьем</div></div>
+    <div class="ci-meta"><div class="ci-time">Вчера</div></div>
+  </div>
+  <div class="chat-item" onclick="openChat()">
+    <div class="ci-avatar" style="background:var(--success)">ЕС</div><div class="ci-info"><div class="ci-name">Елена Смирнова</div><div class="ci-preview">Спасибо за игру! Отличная партия</div></div>
+    <div class="ci-meta"><div class="ci-time">Пн</div><div class="ci-unread">1</div></div>
+  </div>
+  <div class="chat-item" onclick="openChat()">
+    <div class="ci-avatar" style="background:var(--warn)">☠</div><div class="ci-info"><div class="ci-name">Кампания «Падение Кадии»</div><div class="ci-preview">Алексей: Обновил карту кампании</div></div>
+    <div class="ci-meta"><div class="ci-time">10:15</div></div>
+  </div>
+</div>
+<div class="fab" onclick="/* New chat flow */">+</div>
+
+<!-- Chat Conversation Screen -->
+<div class="chat-screen" id="chat-screen">
+  <div class="chat-header" style="border-bottom:2px solid;border-image:linear-gradient(90deg,var(--blood-red),transparent) 1">
+    <button style="background:none;border:none;color:var(--fg-muted);font-size:1.2rem;cursor:pointer;padding:4px 8px" onclick="closeChat()">←</button>
+    <div class="ch-avatar" style="background:var(--blood-red)">✠</div>
+    <div><div class="ch-name">Крепость Ордена</div><div class="ch-meta">12 воинов</div></div>
+  </div>
+  <div class="chat-msgs">
+    <div class="date-sep"><span>Сегодня</span></div>
+    <div class="msg-group">
+      <div class="msg-row theirs">
+        <div>
+          <div style="font-size:0.6rem;color:var(--brass);font-family:var(--font-display);text-transform:uppercase;margin-bottom:1px">Михаил Петров</div>
+          <div class="msg-bubble">Кто на партию в субботу? Хочу опробовать новый ростер Хаоса</div>
+          <div class="msg-meta"><span>12:30</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="msg-group"><div class="msg-row mine"><div class="msg-bubble">Я буду! Возьму Космодесант</div><div class="msg-meta"><span>12:35</span></div></div></div>
+    <div class="msg-group">
+      <div class="msg-row mine">
+        <div>
+          <div class="reply-quote"><button class="rq-close">✕</button><div class="rq-name">Михаил Петров</div><div class="rq-text">Кто на партию в субботу?</div></div>
+          <div class="msg-bubble">Отличная идея! Забронирую на 14:00</div><div class="msg-meta"><span>12:38</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="unread-divider"><span>Новые</span></div>
+    <div class="msg-group">
+      <div class="msg-row theirs">
+        <div>
+          <div style="font-size:0.6rem;color:var(--brass);font-family:var(--font-display);text-transform:uppercase;margin-bottom:1px">Дмитрий Волков</div>
+          <div class="msg-bubble">Я за! Принесу Терминаторов, только допокрасил</div><div class="msg-meta"><span>12:50</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <textarea placeholder="Вокс-сообщение…" rows="1"></textarea>
+    <button class="send-btn">✠</button>
+  </div>
+</div>
+
+<script>
+function openChat(){document.getElementById('chat-screen').classList.add('open')}
+function closeChat(){document.getElementById('chat-screen').classList.remove('open')}
+</script>
+
+<!-- Context Menu Bottom Sheet -->
+<div class="ctx-sheet" id="ctx-sheet">
+  <div class="ctx-handle"></div>
+  <button onclick="closeCtx()">? ��������</button>
+  <button onclick="closeCtx()">? ���������</button>
+  <button onclick="closeCtx()">?? ����������</button>
+  <button class="danger" onclick="closeCtx()">? �������</button>
+  <button onclick="closeCtx()">������</button>
+</div>
+
+<!-- Group Mgmt Sheet -->
+<div class="ctx-sheet" id="group-sheet">
+  <div class="ctx-handle"></div>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><h3 style="color:var(--brass)">���������� �������</h3></div>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">��������</label><input class="search-input" value="�������� ������" style="width:100%"></div>
+  <div style="padding:0 var(--s3);margin-bottom:var(--s4)"><label style="display:block;font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px">���</label><select class="search-input" style="width:100%"><option>���������</option><option selected>��������� (�����)</option></select></div>
+  <button onclick="closeGroup()" style="display:block;width:100%;text-align:center;padding:14px;background:var(--blood-red);color:var(--blood-on);border:none;font-family:var(--font-display);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);margin-top:var(--s3)">���������</button>
+</div>
+
+<!-- Loading skeleton (hidden by default, toggle to show) -->
+<div id="chat-skeleton" style="display:none">
+  <div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div>
+  <div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div>
+  <div class="sk-item"><div class="skeleton sk-av"></div><div class="sk-txt"><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div></div></div>
+</div>
+
+<script>
+let longPressTimer;
+document.querySelectorAll('.msg-bubble').forEach(b => {
+  b.addEventListener('touchstart', function(e) {
+    longPressTimer = setTimeout(() => {
+      document.getElementById('ctx-sheet').style.display = 'block';
+    }, 500);
+  });
+  b.addEventListener('touchend', () => clearTimeout(longPressTimer));
+  b.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+});
+function closeCtx(){document.getElementById('ctx-sheet').style.display='none'}
+function closeGroup(){document.getElementById('group-sheet').style.display='none'}
+</script></body></html>

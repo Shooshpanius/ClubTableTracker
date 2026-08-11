@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubTableTracker · Когитатор (Настройки)</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-hover:#d94052;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--success-subtle:rgba(58,138,74,0.10);--warn:#c49030;--warn-subtle:rgba(196,144,48,0.10);--danger:#c4283b;--danger-subtle:rgba(196,40,59,0.12);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s12:48px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.9rem;line-height:1.55;color:var(--fg);background:var(--bg);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.container{max-width:720px;margin:0 auto;padding:var(--s12) var(--s6)}
+h1{font-family:var(--font-display);font-size:1.25rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin-bottom:var(--s2)}
+h2{font-family:var(--font-display);font-size:0.9rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass);margin-bottom:var(--s4)}
+.dataslate{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s6);margin-bottom:var(--s4);position:relative;border-image:linear-gradient(135deg,var(--border),var(--border-brass),var(--border)) 1}
+.section-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}@media(max-width:640px){.section-grid{grid-template-columns:1fr}}
+.form-row{margin-bottom:var(--s4)}
+.form-label{display:block;font-family:var(--font-display);font-size:0.55rem;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.input{background:#0a080c;border:1px solid var(--border);color:var(--fg);font-family:var(--font-body);font-size:0.85rem;padding:10px 14px;width:100%;outline:none}.input:focus{border-color:var(--blood-red)}
+textarea.input{resize:vertical;min-height:80px}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-size:0.65rem;letter-spacing:0.06em;text-transform:uppercase;padding:9px 18px;border:1px solid;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);transition:all 120ms ease;min-height:40px}
+.btn-primary{background:var(--blood-red);color:var(--blood-on);border-color:color-mix(in oklab,var(--blood-red),white 25%)}.btn-primary:hover{background:var(--blood-hover)}
+.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-secondary:hover{background:var(--surface-hover)}
+.btn-danger{background:var(--danger-subtle);color:var(--danger);border-color:rgba(196,40,59,0.3)}.btn-danger:hover{background:rgba(196,40,59,0.2)}
+.badge{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-display);font-size:0.5rem;letter-spacing:0.08em;text-transform:uppercase;padding:2px 8px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}
+.badge-success{background:var(--success-subtle);color:var(--success);border:1px solid rgba(58,138,74,0.3)}
+.badge-brass{background:var(--brass-subtle);color:var(--brass);border:1px solid var(--border-brass)}
+.badge-danger{background:var(--danger-subtle);color:var(--danger);border:1px solid rgba(196,40,59,0.3)}
+.avatar{width:72px;height:72px;background:var(--blood-red);clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:1.4rem;color:var(--brass);flex-shrink:0}
+.gs-check{display:flex;flex-wrap:wrap;gap:var(--s2)}.gs-tag{display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--bg);border:1px solid var(--border);cursor:pointer;font-size:0.75rem;transition:all 120ms ease}.gs-tag:hover{border-color:var(--brass)}.gs-tag input{accent-color:var(--blood-red)}
+.color-dot{width:28px;height:28px;border-radius:3px;border:2px solid var(--border);cursor:pointer;transition:border-color 120ms ease}.color-dot:hover{border-color:var(--brass)}.color-dot.selected{border-color:var(--brass);box-shadow:0 0 8px rgba(196,163,90,0.4)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s3) 0;border-bottom:1px solid var(--border-soft)}.toggle-row:last-child{border-bottom:none}
+.toggle{width:44px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background 150ms ease;border:none}.toggle.on{background:var(--success)}.toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:var(--fg);border-radius:50%;transition:left 150ms ease}.toggle.on::after{left:22px}
+.provider-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s3);background:var(--bg);border:1px solid var(--border)}.provider-row .pn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg)}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}.flex-between{display:flex;align-items:center;justify-content:space-between}
+.mt-2{margin-top:var(--s2)}.mt-3{margin-top:var(--s3)}.mt-4{margin-top:var(--s4)}.mb-2{margin-bottom:var(--s2)}.mb-4{margin-bottom:var(--s4)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}.gap-2{gap:var(--s2)}
+.saved-toast{position:fixed;top:var(--s4);right:var(--s4);padding:var(--s3) var(--s4);background:var(--success);color:var(--blood-on);font-family:var(--font-display);font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);z-index:100;animation:fadeOut 2s forwards}@keyframes fadeOut{70%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="flex-between" style="margin-bottom:var(--s8)">
+    <div><h1 style="margin-bottom:0">Когитатор</h1><p class="text-xs text-muted">Настройки профиля и предпочтений</p></div>
+    <button class="btn btn-secondary" onclick="history.back()">← К клубам</button>
+  </div>
+
+  <div class="section-grid">
+    <!-- Profile Card -->
+    <div class="dataslate">
+      <div class="flex-row" style="margin-bottom:var(--s4);gap:var(--s4)">
+        <div class="avatar">AK</div>
+        <div style="flex:1">
+          <p class="text-xs text-muted mb-2">Аватар загружается из аккаунта Яндекс. Сменить нельзя.</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Имя для отображения</label>
+        <input class="input" type="text" value="Алексей Кузнецов" maxlength="50">
+        <p class="text-xs text-muted mt-1">Из аккаунта: Алексей Кузнецов (Yandex)</p>
+      </div>
+      <div class="form-row">
+        <label class="form-label">О себе</label>
+        <textarea class="input" maxlength="500" placeholder="Расскажите о своём ордене…">Играю в Warhammer 40K с 2017 года. Люблю narrative-форматы и покрас. Предпочитаю Chaos Space Marines.</textarea>
+        <p class="text-xs text-muted mt-1">372 / 500 символов</p>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Город</label>
+        <input class="input" type="text" value="Москва" maxlength="50" placeholder="Ваш город">
+      </div>
+      <button class="btn btn-primary" onclick="showSaved()">Сохранить профиль</button>
+    </div>
+
+    <!-- Game Systems -->
+    <div class="dataslate">
+      <h2>Игровые системы</h2>
+      <p class="text-xs text-muted mb-4">Отметьте системы, в которые играете — это влияет на подбор соперников</p>
+      <div class="gs-check" style="margin-bottom:var(--s4)">
+        <label class="gs-tag"><input type="checkbox" checked> Warhammer 40K</label>
+        <label class="gs-tag"><input type="checkbox" checked> Kill Team</label>
+        <label class="gs-tag"><input type="checkbox" checked> Horus Heresy</label>
+        <label class="gs-tag"><input type="checkbox"> Age of Sigmar</label>
+        <label class="gs-tag"><input type="checkbox"> Warcry</label>
+        <label class="gs-tag"><input type="checkbox"> Legions Imperialis</label>
+        <label class="gs-tag"><input type="checkbox"> Necromunda</label>
+        <label class="gs-tag"><input type="checkbox"> Battlefleet Gothic</label>
+      </div>
+      <button class="btn btn-primary" onclick="showSaved()">Сохранить системы</button>
+    </div>
+
+    <!-- Booking Colors -->
+    <div class="dataslate">
+      <h2>Цвета брони</h2>
+      <div style="margin-bottom:var(--s4)">
+        <label class="form-label">Мои бронирования</label>
+        <div class="flex-row gap-2 mt-2">
+          <div class="color-dot selected" style="background:#FF8C00"></div>
+          <div class="color-dot" style="background:#4A9EFF"></div>
+          <div class="color-dot" style="background:#C4283B"></div>
+          <div class="color-dot" style="background:#3A8A4A"></div>
+          <button class="btn btn-sm" style="margin-left:auto;font-size:0.55rem">Сбросить</button>
+        </div>
+      </div>
+      <div style="margin-bottom:var(--s4)">
+        <label class="form-label">Чужие бронирования</label>
+        <div class="flex-row gap-2 mt-2">
+          <div class="color-dot selected" style="background:#C49030"></div>
+          <div class="color-dot" style="background:#888888"></div>
+          <div class="color-dot" style="background:#AA5555"></div>
+          <button class="btn btn-sm" style="margin-left:auto;font-size:0.55rem">Сбросить</button>
+        </div>
+      </div>
+      <div style="margin-bottom:var(--s4)">
+        <label class="form-label">Свободные слоты</label>
+        <div class="flex-row gap-2 mt-2">
+          <div class="color-dot selected" style="background:#3A8A4A"></div>
+          <div class="color-dot" style="background:#90EE90"></div>
+          <button class="btn btn-sm" style="margin-left:auto;font-size:0.55rem">Сбросить</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="showSaved()">Сохранить цвета</button>
+    </div>
+
+    <!-- Linked accounts -->
+    <div class="dataslate">
+      <h2>Способы входа</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--s2)">
+        <div class="provider-row">
+          <span class="pn">Яндекс</span>
+          <span class="badge badge-success">Привязан ✓</span>
+        </div>
+        <div class="provider-row">
+          <span class="pn">Google</span>
+          <span class="badge badge-brass">Не привязан</span>
+        </div>
+        <div class="provider-row">
+          <span class="pn">VK</span>
+          <span class="badge badge-brass">Не привязан</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary mt-4" style="width:100%;justify-content:center">Объединить с Google</button>
+      <button class="btn btn-secondary mt-2" style="width:100%;justify-content:center">Объединить с VK</button>
+    </div>
+
+    <!-- Notifications -->
+    <div class="dataslate" style="grid-column:1/-1">
+      <h2>Уведомления</h2>
+      <div class="toggle-row">
+        <div><span style="font-weight:600">Push-уведомления</span><p class="text-xs text-muted">Новые сообщения, приглашения, события</p></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><span style="font-weight:600">Приглашения в бронь</span><p class="text-xs text-muted">Когда вас приглашают в игру</p></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><span style="font-weight:600">Сообщения чата</span><p class="text-xs text-muted">Новые сообщения в вокс-канале</p></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="toggle-row">
+        <div><span style="font-weight:600">События клуба</span><p class="text-xs text-muted">Новые турниры и кампании</p></div>
+        <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <p class="text-xs text-muted mt-4" style="display:flex;align-items:center;gap:5px"><span style="color:var(--success)">●</span> FCM-токен активен · com.example.club_table_tracker</p>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="dataslate" style="grid-column:1/-1;border-color:rgba(196,40,59,0.3)">
+      <div class="flex-between">
+        <div><h2 style="color:var(--danger)">Опасная зона</h2><p class="text-xs text-muted">Выход из аккаунта. Все несохранённые данные будут потеряны.</p></div>
+        <button class="btn btn-danger">Исторгнуть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="saved-toast" id="toast" style="display:none">✓ Сохранено</div>
+<script>function showSaved(){var t=document.getElementById('toast');t.style.display='block';setTimeout(function(){t.style.display='none'},2000)}</script>
+</body>
+</html>

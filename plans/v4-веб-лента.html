@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>ClubTableTracker · Лента активности</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Fira+Sans:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--font-display:'Russo One',system-ui,sans-serif;--font-body:'Fira Sans',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--bg:#070609;--bg-raised:#0e0b12;--surface:#141018;--surface-hover:#1a1420;--border:#2a1e2e;--border-brass:rgba(196,163,90,0.20);--border-soft:rgba(255,255,255,0.04);--fg:#e8dcc8;--fg-secondary:#9e8e7a;--fg-muted:#5e4e3e;--blood-red:#c4283b;--blood-on:#f0e8d8;--blood-subtle:rgba(196,40,59,0.12);--brass:#c4a35a;--brass-subtle:rgba(196,163,90,0.10);--success:#3a8a4a;--warn:#c49030;--danger:#c4283b;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:0.9rem;color:var(--fg);background:var(--bg);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");background-size:256px}
+.container{max-width:800px;margin:0 auto;padding:var(--s8) var(--s6)}
+h1{font-family:var(--font-display);font-size:1.1rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--brass)}
+.dataslate{background:linear-gradient(180deg,var(--surface),var(--bg-raised));border:1px solid var(--border);padding:var(--s5);margin-bottom:var(--s4);border-image:linear-gradient(135deg,var(--border),var(--border-brass),var(--border)) 1}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;padding:7px 14px;border:1px solid;cursor:pointer;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}.btn-secondary{background:var(--surface);color:var(--fg-secondary);border-color:var(--border)}.btn-secondary:hover{background:var(--surface-hover)}.btn-sm{padding:4px 10px;font-size:0.5rem}
+.badge{display:inline-flex;gap:3px;font-family:var(--font-display);font-size:0.45rem;letter-spacing:0.08em;text-transform:uppercase;padding:2px 7px;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.badge-blood{background:var(--blood-subtle);color:var(--blood-red);border:1px solid rgba(196,40,59,0.3)}.badge-brass{background:var(--brass-subtle);color:var(--brass);border:1px solid var(--border-brass)}.badge-success{background:var(--success);color:var(--blood-on)}.badge-neutral{background:var(--surface);color:var(--fg-muted);border:1px solid var(--border)}.badge-warn{background:var(--warn);color:#0a0806}
+.filters{display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s6)}.filters .chip{padding:5px 14px;font-family:var(--font-display);font-size:0.5rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-muted);background:var(--surface);border:1px solid var(--border);cursor:pointer;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%);transition:all 120ms ease}.filters .chip:hover{color:var(--fg);border-color:var(--border-brass)}.filters .chip.active{color:var(--brass);border-color:var(--brass);background:var(--brass-subtle)}
+.timeline{position:relative;padding-left:var(--s6)}.timeline::before{content:'';position:absolute;left:11px;top:4px;bottom:4px;width:2px;background:linear-gradient(180deg,var(--blood-red),var(--border),var(--border-brass))}
+.tl-item{position:relative;margin-bottom:var(--s5);display:flex;align-items:flex-start;gap:var(--s4)}.tl-item::before{content:'';position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--blood-red);border:2px solid var(--bg)}.tl-item.tl-event::before{background:var(--brass)}.tl-item.tl-member::before{background:var(--success)}.tl-item.tl-system::before{background:var(--fg-muted)}
+.tl-content{flex:1}.tl-header{display:flex;align-items:center;gap:var(--s2);margin-bottom:2px;flex-wrap:wrap}.tl-header .tl-type{font-family:var(--font-display);font-size:0.55rem;text-transform:uppercase;letter-spacing:0.06em}.tl-actor{font-family:var(--font-display);font-size:0.65rem;text-transform:uppercase;color:var(--fg)}.tl-desc{font-size:0.75rem;color:var(--fg-secondary);line-height:1.4}.tl-time{font-family:var(--font-mono);font-size:0.55rem;color:var(--fg-muted);white-space:nowrap}
+.empty-state{text-align:center;padding:var(--s12) var(--s4);color:var(--fg-muted)}.empty-state .icon{font-size:2.5rem;margin-bottom:var(--s3)}.empty-state p{font-family:var(--font-display);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em}
+.pagination{display:flex;gap:var(--s2);justify-content:center;margin-top:var(--s6)}.pagination button{font-family:var(--font-display);font-size:0.55rem;padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--fg-secondary);cursor:pointer;clip-path:polygon(3px 0,100% 0,calc(100% - 3px) 100%,0 100%)}.pagination button:hover{color:var(--brass);border-color:var(--border-brass)}.pagination button.active{background:var(--blood-red);color:var(--blood-on);border-color:var(--blood-red)}
+.flex-row{display:flex;align-items:center;gap:var(--s3)}.flex-between{display:flex;align-items:center;justify-content:space-between}.gap-2{gap:var(--s2)}.mt-2{margin-top:var(--s2)}.mb-3{margin-bottom:var(--s3)}.text-xs{font-size:0.7rem}.text-muted{color:var(--fg-muted)}
+@media(max-width:640px){.tl-time{margin-left:auto}.tl-item::before{left:-20px}}
+</style></head>
+<body>
+<div class="container">
+  <div class="flex-between mb-4"><h1>Лента активности</h1><button class="btn btn-secondary btn-sm">← Назад</button></div>
+  <div class="filters">
+    <button class="chip active">Все</button><button class="chip">Бронирования</button><button class="chip">Участники</button><button class="chip">События</button><button class="chip">Система</button>
+  </div>
+  <div class="timeline">
+    <div class="tl-item tl-event">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--brass)">Событие</span><span class="tl-time">15:42</span></div><p class="tl-desc">Создано событие <strong>«Железный Кулак»</strong> · 11 августа · 16 мест</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--blood-red)">Бронирование</span><span class="tl-time">14:10</span></div><p class="tl-desc"><span class="tl-actor">Алексей</span> забронировал <strong>Стол IV</strong> на 12:00-14:00</p></div>
+    </div>
+    <div class="tl-item tl-member">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--success)">Участник</span><span class="tl-time">13:05</span></div><p class="tl-desc"><span class="tl-actor">Михаил</span> присоединился к клубу «Крепость Ордена»</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--blood-red)">Бронирование</span><span class="tl-time">12:30</span></div><p class="tl-desc"><span class="tl-actor">Дмитрий</span> забронировал <strong>Стол II</strong> на 16:00-18:00 · Kill Team</p></div>
+    </div>
+    <div class="tl-item tl-system">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--fg-muted)">Система</span><span class="tl-time">11:00</span></div><p class="tl-desc"><strong>Крепость Ордена</strong> обновлена: изменён цвет бейджа</p></div>
+    </div>
+    <div class="tl-item tl-member">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--success)">Участник</span><span class="tl-time">10:22</span></div><p class="tl-desc"><span class="tl-actor">Николай</span> подал заявку в клуб — ожидает подтверждения</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--blood-red)">Бронирование</span><span class="tl-time">Вчера, 19:45</span></div><p class="tl-desc"><span class="tl-actor">Алексей</span> аннулировал бронь <strong>Стол VIII</strong> · 18:00-20:00</p></div>
+    </div>
+    <div class="tl-item tl-event">
+      <div class="tl-content"><div class="tl-header"><span class="tl-type" style="color:var(--brass)">Событие</span><span class="tl-time">Вчера, 16:15</span></div><p class="tl-desc"><span class="tl-actor">Алексей</span> зарегистрировался на турнир «Ярость Хоруса»</p></div>
+    </div>
+  </div>
+  <div class="pagination"><button>←</button><button class="active">1</button><button>2</button><button>3</button><button>→</button></div>
+
+  <!-- Empty state (commented, toggle to show) -->
+  <div class="empty-state" style="display:none"><div class="icon">☠</div><p>Лента пуста</p><p class="text-xs text-muted mt-2">Активность появится здесь, когда в клубе начнётся движение.</p></div>
+</div>
+</body></html>
