@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App.tsx'
 import { googleClientId, isGoogleConfigured } from './oauthConfig'
+import './styles/grimdark.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
