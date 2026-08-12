@@ -60,20 +60,20 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate, 
     else setViewMonth(m => m + 1)
   }
 
-  const navBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#eee', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }
+  const navBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--gd-fg)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }
 
   return (
-    <div style={{ background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, userSelect: 'none' }}>
+    <div style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: 16, userSelect: 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <button style={navBtn} onClick={prevMonth}>‹</button>
-        <span style={{ fontWeight: 'bold', fontSize: 14 }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
+        <span style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--gd-fg)' }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
         <button style={navBtn} onClick={nextMonth}>›</button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr>
             {DAY_NAMES.map(d => (
-              <th key={d} style={{ color: '#aaa', fontSize: 11, padding: '2px 0', fontWeight: 'normal', textAlign: 'center' }}>{d}</th>
+              <th key={d} style={{ color: 'var(--gd-fg-secondary)', fontSize: 11, padding: '2px 0', fontWeight: 'normal', textAlign: 'center' }}>{d}</th>
             ))}
           </tr>
         </thead>
@@ -101,10 +101,10 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate, 
                       padding: '4px 2px', textAlign: 'center',
                       cursor: isDisabled ? 'default' : 'pointer',
                       borderRadius: 4, fontSize: 13,
-                      background: isSelected ? '#e94560' : hasBookings ? '#ffc107' : 'transparent',
-                      color: isDisabled ? '#444' : isSelected ? '#fff' : hasBookings ? '#222' : isToday ? '#4caf50' : isPast ? '#666' : isCampaignDate ? '#ffc107' : '#eee',
+                      background: isSelected ? 'var(--gd-blood-red)' : hasBookings ? 'var(--gd-warn)' : 'transparent',
+                      color: isDisabled ? 'var(--gd-fg-muted)' : isSelected ? 'var(--gd-blood-on)' : hasBookings ? 'var(--gd-brass-on)' : isToday ? 'var(--gd-success)' : isPast ? 'var(--gd-fg-muted)' : isCampaignDate ? 'var(--gd-warn)' : 'var(--gd-fg)',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
-                      outline: isToday && !isSelected ? '2px solid #4caf50' : isCampaignDate && !isSelected ? '1px solid #ffc107' : 'none',
+                      outline: isToday && !isSelected ? '2px solid var(--gd-success)' : isCampaignDate && !isSelected ? '1px solid var(--gd-warn)' : 'none',
                       outlineOffset: '-2px',
                       opacity: isDisabled ? 0.4 : isPast ? 0.6 : 1,
                       textDecoration: 'none'

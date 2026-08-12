@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Button } from './ui'
 
 const CANVAS_W = 1200
 const CANVAS_H = 700
@@ -172,18 +173,13 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
     }
   }, []) // runs once; reads pan/scale via refs
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
-    zIndex: 2000, display: 'flex', flexDirection: 'column'
-  }
-
   return (
-    <div style={overlayStyle}>
+    <div className="gd-app gd-cmap-overlay">
       {/* Header */}
-      <div style={{ background: '#16213e', borderBottom: '1px solid #0f3460', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <span style={{ color: '#eee', fontWeight: 'bold', fontSize: 16 }}>🗺️ Карта кампании: {eventTitle}</span>
-        <span style={{ color: '#aaa', fontSize: 12, marginLeft: 'auto' }}>Колесо / два пальца — зум · Перетаскивание — прокрутка</span>
-        <button onClick={onClose} style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontWeight: 'bold', fontSize: 14 }}>✕ Закрыть</button>
+      <div className="gd-cmap-header">
+        <span className="gd-cmap-title" style={{ fontSize: '1rem' }}>🗺️ Карта кампании: {eventTitle}</span>
+        <span className="gd-cmap-sub" style={{ marginLeft: 'auto' }}>Колесо / два пальца — зум · Перетаскивание — прокрутка</span>
+        <Button variant="danger" size="sm" onClick={onClose}>✕ Закрыть</Button>
       </div>
 
       {/* Body */}
@@ -196,8 +192,8 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
         onMouseLeave={onMouseUp}
         style={{ flex: 1, overflow: 'hidden', cursor: panning ? 'grabbing' : 'grab', userSelect: 'none', position: 'relative', touchAction: 'none' }}
       >
-        {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#aaa', fontSize: 18 }}>Загрузка...</div>}
-        {error && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#e94560', fontSize: 16 }}>{error}</div>}
+        {loading && <div className="gd-cmap-hint">Загрузка...</div>}
+        {error && <div className="gd-cmap-hint" style={{ color: 'var(--gd-danger)' }}>{error}</div>}
         {mapData && (
           <div style={{ position: 'absolute', transformOrigin: '0 0', transform: `translate(${pan.x}px,${pan.y}px) scale(${scale})` }}>
             <svg style={{ position: 'absolute', left: 0, top: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none', overflow: 'visible' }}>
@@ -229,22 +225,20 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                   key={block.id}
                   onMouseEnter={() => setTooltip({ block, x: block.posX + bw + 8, y: block.posY })}
                   onMouseLeave={() => setTooltip(null)}
+                  className="gd-cmap-block"
                   style={{
                     position: 'absolute', left: block.posX, top: block.posY,
                     width: bw, height: bh,
-                    border: '2px solid #533483', borderRadius: 4,
-                    background: '#0a0a1a', overflow: 'hidden',
-                    boxSizing: 'border-box'
+                    border: '2px solid var(--gd-brass)'
                   }}
                 >
                   {/* Header */}
-                  <div style={{
-                    height: BLOCK_HEADER_H, background: '#16213e',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 'bold', color: '#eee',
-                    padding: '0 4px', textAlign: 'center', overflow: 'hidden',
-                    whiteSpace: 'normal', wordBreak: 'break-word', borderBottom: '1px solid #533483'
-                  }} title={block.title}>
+                  <div className="gd-cmap-block-header"
+                    style={{
+                      height: BLOCK_HEADER_H,
+                      padding: '0 4px', textAlign: 'center', overflow: 'hidden',
+                      whiteSpace: 'normal', wordBreak: 'break-word'
+                    }} title={block.title}>
                     {block.title || '—'}
                   </div>
                   {/* Grid — N rows top-to-bottom (level N..1), M columns (factions); fills bottom-to-top */}
@@ -261,7 +255,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                             <div key={fi} style={{
                               width: SEG_W, height: SEG_H,
                               background: influence >= level ? color : 'rgba(255,255,255,0.05)',
-                              border: '2px solid #888888',
+                              border: '2px solid var(--gd-fg-muted)',
                               borderRadius: 4,
                               boxSizing: 'border-box'
                             }} />
@@ -283,18 +277,14 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                 return { name, influence: fd?.influence ?? 0 }
               })
               return (
-                <div style={{
-                  position: 'absolute', left: tooltip.x, top: tooltip.y,
-                  background: '#16213e', border: '1px solid #533483', borderRadius: 6,
-                  padding: '8px 12px', minWidth: 140, zIndex: 100, pointerEvents: 'none',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
-                }}>
-                  <div style={{ fontWeight: 'bold', color: '#eee', marginBottom: 6, fontSize: 13 }}>{block.title || '—'}</div>
+                <div className="gd-cmap-tooltip"
+                  style={{ position: 'absolute', left: tooltip.x, top: tooltip.y }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--gd-fg)', marginBottom: 'var(--gd-s2)', fontSize: 13 }}>{block.title || '—'}</div>
                   {factionList.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <div key={i} className="gd-flex-row" style={{ alignItems: 'center', gap: 'var(--gd-s2)', marginBottom: 3 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 2, background: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length], flexShrink: 0 }} />
-                      <span style={{ color: '#ccc', fontSize: 12, flex: 1 }}>{f.name}</span>
-                      <span style={{ color: '#ffc107', fontSize: 12, fontWeight: 'bold' }}>{f.influence}/{N}</span>
+                      <span style={{ color: 'var(--gd-fg-secondary)', fontSize: 12, flex: 1 }}>{f.name}</span>
+                      <span style={{ color: 'var(--gd-warn)', fontSize: 12, fontWeight: 'bold' }}>{f.influence}/{N}</span>
                     </div>
                   ))}
                 </div>

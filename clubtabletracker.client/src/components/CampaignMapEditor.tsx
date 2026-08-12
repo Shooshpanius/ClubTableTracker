@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Button } from './ui'
 
 const CANVAS_W = 1400
 const CANVAS_H = 800
@@ -33,15 +34,6 @@ const FACTION_COLORS = ['#e94560','#4caf50','#2196f3','#ff9800','#9c27b0','#00bc
 function blockHeight(maxInfluence: number) {
   const n = Math.max(1, maxInfluence)
   return BLOCK_HEADER_H + n * SEG_H + (n - 1) * SEG_GAP_V
-}
-
-const inputStyle: React.CSSProperties = {
-  background: '#0f1e3d', color: '#eee', border: '1px solid #1a4a8a',
-  borderRadius: 4, padding: '5px 8px', fontSize: 13
-}
-const btnStyle: React.CSSProperties = {
-  background: '#533483', color: '#fff', border: 'none',
-  borderRadius: 4, padding: '5px 12px', cursor: 'pointer', fontSize: 13
 }
 
 export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Props) {
@@ -311,74 +303,73 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
   // ---- Render ----
   const canvasCursor = mode === 'connect' ? (linkSource ? 'crosshair' : 'pointer') : dragging ? 'grabbing' : 'default'
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed', inset: 0, background: '#0a0a1a', zIndex: 2000,
-    display: 'flex', flexDirection: 'column'
-  }
+  const blockBorder = (isSrc: boolean, isSel: boolean): string =>
+    `2px solid ${isSrc ? 'var(--gd-warn)' : isSel ? 'var(--gd-blood-red)' : 'var(--gd-brass)'}`
 
   if (loading) return (
-    <div style={overlayStyle}>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 20 }}>Загрузка...</div>
+    <div className="gd-app gd-cmap-overlay">
+      <div className="gd-cmap-center">Загрузка...</div>
     </div>
   )
 
   if (error) return (
-    <div style={overlayStyle}>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-        <span style={{ color: '#e94560', fontSize: 16 }}>{error}</span>
-        <button style={{ ...btnStyle, background: '#c0392b' }} onClick={onClose}>Закрыть</button>
+    <div className="gd-app gd-cmap-overlay">
+      <div className="gd-cmap-error">
+        <span className="gd-error-text" style={{ fontSize: '1rem' }}>{error}</span>
+        <Button variant="danger" size="sm" onClick={onClose}>Закрыть</Button>
       </div>
     </div>
   )
 
   return (
-    <div style={overlayStyle}>
+    <div className="gd-app gd-cmap-overlay">
       {/* Header */}
-      <div style={{ background: '#16213e', borderBottom: '1px solid #0f3460', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
-        <span style={{ color: '#eee', fontWeight: 'bold', fontSize: 15 }}>✏️ Редактор карты: {eventTitle}</span>
+      <div className="gd-cmap-header">
+        <span className="gd-cmap-title">✏️ Редактор карты: {eventTitle}</span>
         {mapData && (
           <>
-            <button style={{ ...btnStyle, background: '#1a5276' }} onClick={addBlock}>+ Блок</button>
-            <button
-              style={{ ...btnStyle, background: mode === 'connect' ? (linkSource ? '#e94560' : '#c27c00') : '#1a6e3c' }}
+            <Button variant="secondary" size="sm" onClick={addBlock}>+ Блок</Button>
+            <Button
+              variant={mode === 'connect' ? (linkSource ? 'danger' : 'brass') : 'primary'}
+              size="sm"
               onClick={() => { setMode(m => m === 'connect' ? 'select' : 'connect'); setLinkSource(null) }}
             >
               {mode === 'connect' ? (linkSource ? '✕ Отменить связь' : '✕ Режим связей') : '→ Соединить'}
-            </button>
+            </Button>
             {mode === 'connect' && linkSource && (
-              <span style={{ color: '#ffc107', fontSize: 13 }}>Выберите целевой блок…</span>
+              <span className="gd-text-xs" style={{ color: 'var(--gd-warn)' }}>Выберите целевой блок…</span>
             )}
             {mode === 'connect' && !linkSource && (
-              <span style={{ color: '#aaa', fontSize: 13 }}>Нажмите на блок-источник, затем на цель</span>
+              <span className="gd-text-xs gd-text-muted">Нажмите на блок-источник, затем на цель</span>
             )}
           </>
         )}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ ...btnStyle, background: '#c0392b' }}>✕ Закрыть</button>
+        <div style={{ marginLeft: 'auto' }}>
+          <Button variant="danger" size="sm" onClick={onClose}>✕ Закрыть</Button>
         </div>
       </div>
 
       {/* Body: settings + canvas */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className="gd-cmap-body">
 
         {/* Settings panel */}
-        <div style={{ width: 240, background: '#0f1e3d', borderRight: '1px solid #1a3a6a', padding: 14, overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ color: '#eee', fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>⚙️ Настройки карты</div>
+        <div className="gd-cmap-sidebar">
+          <div className="gd-cmap-sidebar-title">⚙️ Настройки карты</div>
 
           {/* MaxInfluence */}
           <div>
-            <label style={{ color: '#aaa', fontSize: 12 }}>N (макс. влияние)</label>
+            <label className="gd-cmap-label">N (макс. влияние)</label>
             <input type="number" min={1} max={20} value={maxInfluence}
               disabled={hasBlocks}
               onChange={e => setMaxInfluence(Number(e.target.value))}
-              style={{ ...inputStyle, width: '100%', marginTop: 3, opacity: hasBlocks ? 0.5 : 1 }} />
+              className="gd-input" style={{ width: '100%', marginTop: 'var(--gd-s1)', opacity: hasBlocks ? 0.5 : 1 }} />
           </div>
 
           {/* Factions */}
           <div>
-            <label style={{ color: '#aaa', fontSize: 12 }}>Фракции (M строк)</label>
+            <label className="gd-cmap-label">Фракции (M строк)</label>
             {factionsRaw.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+              <div key={i} className="gd-flex-row" style={{ gap: 'var(--gd-s1)', marginTop: 'var(--gd-s1)', alignItems: 'center' }}>
                 <input type="color" aria-label="Цвет фракции" title="Цвет фракции"
                   value={factionColorsRaw[i] || FACTION_COLORS[i % FACTION_COLORS.length]}
                   onChange={e => {
@@ -386,47 +377,45 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                     setFactionColorsRaw(next)
                     saveColors(next)
                   }}
-                  style={{ width: 30, height: 30, padding: 0, border: '1px solid #1a4a8a', borderRadius: 4, background: 'none', cursor: 'pointer', flexShrink: 0 }} />
+                  className="gd-color-input" style={{ width: 30, height: 30, flexShrink: 0 }} />
                 <input value={f} disabled={hasBlocks}
                   onChange={e => setFactionsRaw(prev => prev.map((v, j) => j === i ? e.target.value : v))}
-                  style={{ ...inputStyle, flex: 1, opacity: hasBlocks ? 0.5 : 1 }} />
+                  className="gd-input" style={{ flex: 1, opacity: hasBlocks ? 0.5 : 1 }} />
                 {!hasBlocks && factionsRaw.length > 1 && (
-                  <button onClick={() => {
+                  <Button variant="danger" size="xs" onClick={() => {
                     setFactionsRaw(prev => prev.filter((_, j) => j !== i))
                     setFactionColorsRaw(prev => prev.filter((_, j) => j !== i))
-                  }}
-                    style={{ ...btnStyle, background: '#c0392b', padding: '4px 8px' }}>×</button>
+                  }}>×</Button>
                 )}
               </div>
             ))}
             {!hasBlocks && (
-              <button onClick={() => {
+              <Button variant="secondary" size="sm" onClick={() => {
                 setFactionsRaw(prev => [...prev, ''])
                 setFactionColorsRaw(prev => [...prev, FACTION_COLORS[factionsRaw.length % FACTION_COLORS.length]])
-              }}
-                style={{ ...btnStyle, background: '#1a5276', fontSize: 12, marginTop: 6, width: '100%' }}>+ Фракция</button>
+              }} style={{ marginTop: 'var(--gd-s1)', width: '100%' }}>+ Фракция</Button>
             )}
           </div>
 
-          {settingsError && <div style={{ color: '#e94560', fontSize: 12 }}>{settingsError}</div>}
-          {hasBlocks && <div style={{ color: '#888', fontSize: 11 }}>N и список фракций заблокированы (есть блоки). Цвета фракций менять можно.</div>}
+          {settingsError && <div className="gd-error-text">{settingsError}</div>}
+          {hasBlocks && <div className="gd-text-xs gd-text-muted">N и список фракций заблокированы (есть блоки). Цвета фракций менять можно.</div>}
 
           {!mapData ? (
-            <button style={{ ...btnStyle, background: '#4caf50', width: '100%' }} onClick={createMap} disabled={settingsSaving}>
+            <Button variant="primary" size="sm" onClick={createMap} disabled={settingsSaving} style={{ width: '100%' }}>
               {settingsSaving ? 'Создание...' : '✓ Создать карту'}
-            </button>
+            </Button>
           ) : (
-            <button style={{ ...btnStyle, background: hasBlocks ? '#555' : '#4caf50', width: '100%' }}
-              onClick={saveSettings} disabled={hasBlocks || settingsSaving}>
+            <Button variant={hasBlocks ? 'ghost' : 'primary'} size="sm"
+              onClick={saveSettings} disabled={hasBlocks || settingsSaving} style={{ width: '100%' }}>
               {settingsSaving ? 'Сохранение...' : '✓ Сохранить настройки'}
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Canvas */}
-        <div style={{ flex: 1, overflow: 'auto', position: 'relative', background: '#0a0a1a' }}>
+        <div className="gd-cmap-canvas">
           {!mapData ? (
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#555', fontSize: 18, textAlign: 'center' }}>
+            <div className="gd-cmap-hint">
               Настройте параметры и создайте карту
             </div>
           ) : (
@@ -443,7 +432,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                     <path d="M0,0 L8,4 L0,8 Z" fill="#7eb8f7" />
                   </marker>
                   <marker id="arrow-ed-hover" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                    <path d="M0,0 L8,4 L0,8 Z" fill="#e94560" />
+                    <path d="M0,0 L8,4 L0,8 Z" fill="var(--gd-blood-red)" />
                   </marker>
                 </defs>
                 {mapData.links.map(link => {
@@ -458,7 +447,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                   return (
                     <line key={link.id}
                       x1={fc.x} y1={fc.y} x2={tc.x} y2={tc.y}
-                      stroke={isHovered ? '#e94560' : '#7eb8f7'}
+                      stroke={isHovered ? 'var(--gd-blood-red)' : '#7eb8f7'}
                       strokeWidth={isHovered ? 4 : 2}
                       markerEnd={isHovered ? 'url(#arrow-ed-hover)' : 'url(#arrow-ed)'}
                       style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
@@ -481,24 +470,22 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                   <div key={block.id}
                     onMouseDown={e => onBlockMouseDown(e, block)}
                     onClick={e => onBlockClick(e, block)}
+                    className="gd-cmap-block"
                     style={{
                       position: 'absolute', left: pos.x, top: pos.y,
                       width: bw, height: bh,
-                      border: `2px solid ${isSource ? '#ffc107' : isSelected ? '#e94560' : '#533483'}`,
-                      borderRadius: 4, background: '#0a0a1a', overflow: 'hidden',
+                      border: blockBorder(isSource, isSelected),
                       cursor: mode === 'connect' ? 'pointer' : 'grab',
-                      boxSizing: 'border-box', zIndex: 2,
-                      boxShadow: isSource ? '0 0 12px rgba(255,193,7,0.5)' : isSelected ? '0 0 10px rgba(233,69,96,0.4)' : 'none'
+                      zIndex: 2,
+                      boxShadow: isSource ? '0 0 12px rgba(196,144,48,0.5)' : isSelected ? '0 0 10px rgba(196,40,59,0.4)' : 'none'
                     }}
                   >
-                    <div style={{
-                      height: BLOCK_HEADER_H, background: '#16213e',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 'bold', color: '#eee',
-                      padding: '0 4px', textAlign: 'center',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      borderBottom: '1px solid #533483', userSelect: 'none'
-                    }} title={block.title}>
+                    <div className="gd-cmap-block-header"
+                      style={{
+                        height: BLOCK_HEADER_H,
+                        padding: '0 4px', textAlign: 'center',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                      }} title={block.title}>
                       {block.title || '—'}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: SEG_GAP_V }}>
@@ -514,7 +501,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                               <div key={fi} style={{
                                 width: SEG_W, height: SEG_H,
                                 background: influence >= level ? color : 'rgba(255,255,255,0.04)',
-                                border: '2px solid #888888',
+                                border: '2px solid var(--gd-fg-muted)',
                                 borderRadius: 4,
                                 boxSizing: 'border-box'
                               }} />
@@ -529,7 +516,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
               })}
 
               {mapData.blocks.length === 0 && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#555', fontSize: 18, pointerEvents: 'none', textAlign: 'center' }}>
+                <div className="gd-cmap-hint">
                   Нажмите «+ Блок» для добавления территорий
                 </div>
               )}
@@ -539,16 +526,16 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
 
         {/* Block edit panel */}
         {editingBlock && (
-          <div style={{ width: 220, background: '#0f1e3d', borderLeft: '1px solid #1a3a6a', padding: 14, overflowY: 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#eee', fontWeight: 'bold', fontSize: 14 }}>📝 Блок</span>
-              <button onClick={() => setEditingBlock(null)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          <div className="gd-cmap-edit-panel">
+            <div className="gd-flex-between">
+              <span className="gd-cmap-sidebar-title">📝 Блок</span>
+              <button onClick={() => setEditingBlock(null)} className="gd-cmap-close">✕</button>
             </div>
 
             <div>
-              <label style={{ color: '#aaa', fontSize: 12 }}>Название</label>
+              <label className="gd-cmap-label">Название</label>
               <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                style={{ ...inputStyle, width: '100%', marginTop: 3 }} maxLength={200} />
+                className="gd-input" style={{ width: '100%', marginTop: 'var(--gd-s1)' }} maxLength={200} />
             </div>
 
             {factions.map((name, i) => (
@@ -556,15 +543,15 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                 <label style={{ color: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length], fontSize: 12 }}>{name}: {editInfluences[i] ?? 0}/{N}</label>
                 <input type="range" min={0} max={N} value={editInfluences[i] ?? 0}
                   onChange={e => setEditInfluences(prev => { const a = [...prev]; a[i] = Number(e.target.value); return a })}
-                  style={{ width: '100%', marginTop: 3, accentColor: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length] }} />
+                  style={{ width: '100%', marginTop: 'var(--gd-s1)', accentColor: factionColors[i] || FACTION_COLORS[i % FACTION_COLORS.length] }} />
               </div>
             ))}
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <button style={{ ...btnStyle, background: '#4caf50', flex: 1 }} onClick={saveBlock} disabled={editSaving}>
+            <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)', marginTop: 'var(--gd-s1)' }}>
+              <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={saveBlock} disabled={editSaving}>
                 {editSaving ? '...' : '✓ Сохранить'}
-              </button>
-              <button style={{ ...btnStyle, background: '#c0392b' }} onClick={deleteBlock} title="Удалить блок">🗑</button>
+              </Button>
+              <Button variant="danger" size="sm" onClick={deleteBlock} title="Удалить блок">🗑</Button>
             </div>
           </div>
         )}

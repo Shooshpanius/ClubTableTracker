@@ -73,12 +73,12 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
 
   return (
     <div style={{ display: 'inline-block', width: RECT_WIDTH, margin: '0 6px', textAlign: 'center', verticalAlign: 'top' }}>
-      <div title={table.number} style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? '#e94560' : '#eee', height: TABLE_HEADER_HEIGHT, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div title={table.number} style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 13, color: isSelected ? 'var(--gd-blood-red)' : 'var(--gd-fg)', height: TABLE_HEADER_HEIGHT, overflow: 'hidden', wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {table.number}
       </div>
       <div style={{
         width: RECT_WIDTH, height: RECT_HEIGHT,
-        border: isEventTable ? '3px solid #ffff00' : isSelected ? '3px solid #e94560' : '2px solid #555',
+        border: isEventTable ? '3px solid var(--gd-warn)' : isSelected ? '3px solid var(--gd-blood-red)' : '2px solid var(--gd-border)',
         borderRadius: 6, overflow: 'hidden', position: 'relative'
       }}>
         {segments.map((seg, i) => {

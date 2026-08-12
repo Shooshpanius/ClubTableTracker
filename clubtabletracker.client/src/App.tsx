@@ -10,7 +10,7 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage'
 
 function App() {
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', background: '#1a1a2e', color: '#eee' }}>
+    <div className="gd-app" style={{ minHeight: '100vh' }}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />

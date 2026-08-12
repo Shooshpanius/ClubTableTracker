@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Button } from './ui'
 import { shareTableSchedule } from '../utils/shareBooking'
 import type { ShareSlot } from '../utils/shareBooking'
 
@@ -58,7 +59,7 @@ function parseTimeMinutes(t: string | undefined): number {
   return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : -1
 }
 
-function TimeSelect({ value, onChange, style, minTime, maxTime }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties; minTime?: string; maxTime?: string }) {
+function TimeSelect({ value, onChange, style, className, minTime, maxTime }: { value: string; onChange: (v: string) => void; style?: React.CSSProperties; className?: string; minTime?: string; maxTime?: string }) {
   const match = TIME_RE.exec(value)
   const hour = match ? match[1] : ''
   const minute = match ? (MINUTES.includes(match[2]) ? match[2] : '00') : '00'
@@ -86,14 +87,14 @@ function TimeSelect({ value, onChange, style, minTime, maxTime }: { value: strin
 
   return (
     <span style={{ display: 'inline-flex', gap: 4 }}>
-      <select style={style} value={hour} onChange={e => {
+      <select className={className} style={style} value={hour} onChange={e => {
         const h = e.target.value
         onChange(h ? `${h}:${minute}` : '')
       }}>
         <option value="">чч</option>
         {validHours.map(h => <option key={h} value={h}>{h}</option>)}
       </select>
-      <select style={style} value={minute} disabled={!hour} onChange={e => {
+      <select className={className} style={style} value={minute} disabled={!hour} onChange={e => {
         onChange(hour ? `${hour}:${e.target.value}` : '')
       }}>
         {validMinutes.map(m => <option key={m} value={m}>{m}</option>)}
@@ -235,32 +236,26 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
     shareTableSchedule(table.number, selectedDate, clubName, buildShareSlots(), openTime, closeTime, setError)
   }
 
-  const inputStyle: React.CSSProperties = {
-    background: '#0f3460', border: '1px solid #533483', color: '#eee',
-    padding: '8px 12px', borderRadius: 4, marginRight: 8
-  }
-  const btnStyle: React.CSSProperties = {
-    background: '#533483', color: '#fff', border: 'none',
-    padding: '8px 16px', borderRadius: 4, cursor: 'pointer'
-  }
+  const inputCls = 'gd-input'
+  const labelStyle: React.CSSProperties = { color: 'var(--gd-fg-secondary)', fontSize: 13 }
 
   return (
     <div>
-      <h4>Book Table #{table.number}</h4>
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
-          <TimeSelect style={inputStyle} value={startTime} onChange={setStartTime} minTime={openTime} maxTime={closeTime} />
+      <h4 className="gd-h3">Стол #{table.number}</h4>
+      <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gd-s2)' }}>
+          <label style={labelStyle}>Начало:</label>
+          <TimeSelect className={inputCls} value={startTime} onChange={setStartTime} minTime={openTime} maxTime={closeTime} />
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
-          <TimeSelect style={inputStyle} value={endTime} onChange={setEndTime} minTime={openTime} maxTime={closeTime} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gd-s2)' }}>
+          <label style={labelStyle}>Конец:</label>
+          <TimeSelect className={inputCls} value={endTime} onChange={setEndTime} minTime={openTime} maxTime={closeTime} />
         </span>
       </div>
       {(games.length > 0 || tournamentGameSystem) && (
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <label style={{ color: '#aaa', fontSize: 13 }}>Система:</label>
-          <select style={inputStyle} value={gameSystem} onChange={e => handleGameSystemChange(e.target.value)} disabled={!!tournamentGameSystem} aria-label={tournamentGameSystem ? `Система игры турнира: ${tournamentGameSystem}` : undefined}>
+        <div className="gd-flex-row gd-flex-wrap" style={{ marginTop: 'var(--gd-s2)', gap: 'var(--gd-s2)' }}>
+          <label style={labelStyle}>Система:</label>
+          <select className="gd-input gd-select" value={gameSystem} onChange={e => handleGameSystemChange(e.target.value)} disabled={!!tournamentGameSystem} aria-label={tournamentGameSystem ? `Система игры турнира: ${tournamentGameSystem}` : undefined}>
             {!tournamentGameSystem && <option value="">— не выбрана —</option>}
             {tournamentGameSystem
               ? <option value={tournamentGameSystem}>{tournamentGameSystem}</option>
@@ -269,49 +264,49 @@ export default function BookingForm({ table, token, onBooked, onCancel, selected
           </select>
         </div>
       )}
-      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ color: '#aaa', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-          <input type="checkbox" checked={isDoubles} onChange={e => handleDoublesChange(e.target.checked)} style={{ accentColor: '#533483' }} />
+      <div className="gd-flex-row" style={{ marginTop: 'var(--gd-s2)', gap: 'var(--gd-s2)' }}>
+        <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 'var(--gd-s2)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={isDoubles} onChange={e => handleDoublesChange(e.target.checked)} style={{ accentColor: 'var(--gd-brass)' }} />
           2x2 (4 игрока)
         </label>
       </div>
       {isModerator && (
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ color: '#ffc107', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <input type="checkbox" checked={isForOthers} onChange={e => handleForOthersChange(e.target.checked)} style={{ accentColor: '#ffc107' }} />
+        <div className="gd-flex-row" style={{ marginTop: 'var(--gd-s2)', gap: 'var(--gd-s2)' }}>
+          <label style={{ color: 'var(--gd-warn)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 'var(--gd-s2)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={isForOthers} onChange={e => handleForOthersChange(e.target.checked)} style={{ accentColor: 'var(--gd-warn)' }} />
             Для других (модератор не участвует)
           </label>
         </div>
       )}
       {members.length > 0 && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ marginTop: 'var(--gd-s2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
               {Array.from({ length: isForOthers ? (isDoubles ? 4 : 2) : (isDoubles ? 3 : 1) }, (_, i) => {
                 const showGameSystemPrompt = !gameSystem && i === 0 && invitedUserIds[i] !== RESERVED_USER_ID
                 const label = isForOthers
                   ? (isDoubles ? `Игрок ${i + 1}:` : (i === 0 ? 'Игрок 1:' : 'Игрок 2:'))
                   : (isDoubles ? `Игрок ${i + 2}:` : 'Оппонент:')
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <label style={{ color: isForOthers ? '#ffc107' : '#aaa', fontSize: 13 }}>{label}</label>
-                    <select style={inputStyle} value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)}>
+                  <div key={i} className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+                    <label style={{ color: isForOthers ? 'var(--gd-warn)' : 'var(--gd-fg-secondary)', fontSize: 13 }}>{label}</label>
+                    <select className="gd-input gd-select" value={invitedUserIds[i]} onChange={e => setInvitedAt(i, e.target.value)}>
                       <option value="">— не выбран —</option>
                       <option value={RESERVED_USER_ID}>ЗАБРОНИРОВАНО</option>
                       {eligibleMembers
                         .filter(m => !invitedUserIds.some((id, j) => j !== i && id === m.id))
                         .map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
-                    {showGameSystemPrompt && <span style={{ color: '#888', fontSize: 12 }}>Выберите систему</span>}
+                    {showGameSystemPrompt && <span className="gd-text-xs gd-text-muted">Выберите систему</span>}
                   </div>
                 )
               })}
         </div>
       )}
-      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button style={{ ...btnStyle, background: '#28a745' }} onClick={book} disabled={loading}>{loading ? 'Бронирование...' : 'В резерв'}</button>
-        <button style={{ ...btnStyle, background: '#1a73e8' }} onClick={handleShare} type="button">📤 Поделиться</button>
-        {onCancel && <button style={{ ...btnStyle, background: '#ffc107', color: '#222' }} onClick={onCancel}>Отмена</button>}
+      <div className="gd-flex-row gd-flex-wrap" style={{ marginTop: 'var(--gd-s2)', gap: 'var(--gd-s2)' }}>
+        <Button variant="primary" size="sm" onClick={book} disabled={loading}>{loading ? 'Бронирование...' : '✓ В резерв'}</Button>
+        <Button variant="secondary" size="sm" onClick={handleShare}>📤 Поделиться</Button>
+        {onCancel && <Button variant="ghost" size="sm" onClick={onCancel}>Отмена</Button>}
       </div>
-      {error && <p style={{ color: '#e94560', marginTop: 8 }}>{error}</p>}
+      {error && <p className="gd-error-text" style={{ marginTop: 'var(--gd-s2)' }}>{error}</p>}
     </div>
   )
 }

@@ -21,7 +21,7 @@ export default function ClubMap({ tables, bookings, decorations = [], onTableCli
   }
 
   return (
-    <div style={{ background: '#0a0a1a', border: '1px solid #0f3460', borderRadius: 8, overflow: 'auto' }}>
+    <div style={{ background: 'var(--gd-bg)', border: '1px solid var(--gd-border)', borderRadius: 8, overflow: 'auto' }}>
       <div style={{ position: 'relative', width: 800, height: 500, minWidth: 800 }}>
         {decorations.map(deco => (
           <div key={`deco-${deco.id}`}
@@ -35,7 +35,7 @@ export default function ClubMap({ tables, bookings, decorations = [], onTableCli
         {tables.map(table => {
           const count = getBookingCount(table.id)
           const color = count === 0 ? '#1a4a1a' : count >= 2 ? '#4a1a1a' : '#4a4a1a'
-          const borderColor = table.id === selectedTableId ? '#e94560' : '#0f3460'
+          const borderColor = table.id === selectedTableId ? 'var(--gd-blood-red)' : 'var(--gd-border)'
           return (
             <div key={table.id}
               onClick={() => onTableClick(table)}

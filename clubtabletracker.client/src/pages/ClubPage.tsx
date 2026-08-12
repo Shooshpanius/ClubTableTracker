@@ -5,6 +5,7 @@ import TableTimeline, { TABLE_HEADER_HEIGHT } from '../components/TableTimeline'
 import BookingCalendar from '../components/BookingCalendar'
 import ClubMap from '../components/ClubMap'
 import CampaignMapView from '../components/CampaignMapView'
+import { Button, GothicDivider } from '../components/ui'
 import { DEFAULT_BOOKING_COLORS } from '../constants'
 import type { BookingColors } from '../constants'
 import { shareTextOnly } from '../utils/shareBooking'
@@ -96,10 +97,10 @@ const LOG_ACTION_LABEL: Record<string, string> = {
 }
  
 const LOG_ACTION_COLOR: Record<string, string> = {
-  Booked: '#4caf50',
-  Joined: '#2196f3',
-  Left: '#ffc107',
-  Cancelled: '#e94560',
+  Booked: 'var(--gd-success)',
+  Joined: '#4a9eff',
+  Left: 'var(--gd-warn)',
+  Cancelled: 'var(--gd-danger)',
   MovedTable: '#9c27b0',
   Rescheduled: '#00bcd4'
 }
@@ -210,9 +211,9 @@ export default function ClubPage() {
    
   const [playerRosterLoading, setPlayerRosterLoading] = useState(false)
    
-  const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
-   
-  const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
+  const cardStyle: React.CSSProperties = { background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: 16, marginBottom: 16 }
+
+  const btnStyle: React.CSSProperties = { background: 'var(--gd-surface-active)', color: 'var(--gd-fg)', border: '1px solid var(--gd-border-brass)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
   const shareBtnStyle: React.CSSProperties = { background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
 
   // === useEffect: загрузка данных по clubId ===
@@ -798,14 +799,9 @@ export default function ClubPage() {
 
   if (!club) {
     return (
-      <div style={{ padding: 40, color: '#aaa' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, marginBottom: 16 }}
-        >
-          ← Назад
-        </button>
-        <p>Загрузка клуба...</p>
+      <div className="gd-app" style={{ padding: 40 }}>
+        <Button variant="ghost" size="sm" style={{ marginBottom: 'var(--gd-s4)' }} onClick={() => navigate('/')}>← Назад</Button>
+        <p className="gd-empty-hint">Загрузка клуба...</p>
       </div>
     )
   }
@@ -817,53 +813,34 @@ export default function ClubPage() {
 
   return (
     <>
-      <div style={{ padding: isMobile ? 16 : 40 }}>
+      <div className="gd-app" style={{ padding: isMobile ? 16 : 40 }}>
         {/* Кнопка "Назад" */}
-        <button
-          onClick={() => navigate('/')}
-          style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, marginBottom: 16 }}
-        >
-          ← Назад
-        </button>
+        <Button variant="ghost" size="sm" style={{ marginBottom: 'var(--gd-s4)' }} onClick={() => navigate('/')}>← Назад</Button>
 
         {/* Заголовок клуба */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div className="gd-club-header">
           {club.logoUrl && (
-            <img src={club.logoUrl} alt="Лого" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, background: '#0f3460' }} />
+            <img src={club.logoUrl} alt="Лого" className="gd-clubs-logo" />
           )}
-          <h2 style={{ color: '#e94560', margin: 0 }}>{club.name}</h2>
+          <h2 className="gd-club-title">{club.name}</h2>
           {isAdmin && (
-            <button
-              onClick={() => navigate(`/clubAdmin?clubId=${club.id}`)}
-              style={{ background: '#e94560', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-            >
-              Админ
-            </button>
+            <Button variant="danger" size="sm" onClick={() => navigate(`/clubAdmin?clubId=${club.id}`)}>Админ</Button>
           )}
         </div>
+        <GothicDivider />
 
         {/* === ТЕЛО АККОРДЕОНА === */}
         {isMobile ? (
           /* ===== MOBILE accordion body ===== */
           <div>
             {/* Mobile tab bar */}
-            <div style={{ display: "flex", borderBottom: "2px solid #0f3460", flexWrap: "wrap" }}>
+            <div className="gd-tabs">
               {(["tables", "games", "events", "log", "players", "map", "gallery", "chats"] as const).map((tab, i) => {
                 const labels = ["Столы", "Игры", "События", "📋", "👥", "🗺️", "🖼️", "💬"]
                 return (
                   <button
                     key={tab}
-                    style={{
-                      flex: 1,
-                      background: mobileTab === tab ? "#e94560" : "#0f3460",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: tab === "tables" ? "4px 0 0 0" : tab === "chats" ? "0 4px 0 0" : 0,
-                      padding: "9px 4px",
-                      cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: mobileTab === tab ? "bold" : "normal",
-                    }}
+                    className={`gd-tab${mobileTab === tab ? ' active' : ''}`}
                     onClick={async () => {
                       setMobileTab(tab)
                       if (tab === "games") await loadUpcoming()
@@ -1368,7 +1345,7 @@ export default function ClubPage() {
           /* ===== DESKTOP accordion body with tabs ===== */
           <div style={{ padding: '0 16px 16px 16px' }}>
             {/* Tab bar */}
-            <div style={{ display: 'flex', gap: 4, paddingTop: 12, marginBottom: 16, flexWrap: 'wrap', borderBottom: '1px solid #0f3460' }}>
+            <div className="gd-tabs" style={{ marginBottom: 'var(--gd-s4)' }}>
               {([
                 ['booking', '🎲 Бронирование столов'],
                 ['upcoming', '📅 Предстоящие игры'],
@@ -1381,7 +1358,7 @@ export default function ClubPage() {
               ] as [string, string][]).map(([tab, label]) => (
                 <button
                   key={tab}
-                  style={{ ...btnStyle, background: desktopTab === tab ? '#e94560' : '#0f3460', marginBottom: 0, marginRight: 0, borderRadius: '4px 4px 0 0' }}
+                  className={`gd-tab${desktopTab === tab ? ' active' : ''}`}
                   onClick={async () => {
                     if (tab === 'upcoming') await loadUpcoming()
                     else if (tab === 'log') await loadActivityLog()
