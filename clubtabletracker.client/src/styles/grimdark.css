@@ -323,3 +323,67 @@
 @media (max-width: 768px) {
   .gd-grid-2, .gd-grid-3 { grid-template-columns: 1fr; }
 }
+
+/* ── Spinner ── */
+.gd-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--gd-border);
+  border-top-color: var(--gd-blood-red);
+  border-radius: 50%;
+  animation: gd-spin 0.8s linear infinite;
+}
+@keyframes gd-spin { to { transform: rotate(360deg); } }
+
+/* ── Error / warning box ── */
+.gd-error-box {
+  padding: var(--gd-s4);
+  background: var(--gd-danger-subtle);
+  border: 1px solid rgba(196, 40, 59, 0.3);
+}
+.gd-warn-box {
+  padding: var(--gd-s4);
+  background: var(--gd-warn-subtle);
+  border: 1px solid rgba(196, 144, 48, 0.3);
+}
+
+/* ── Provider button overrides (brand colors) ── */
+.gd-btn-yandex {
+  background: #FC3F1D; color: #fff; border-color: #e03010;
+  box-shadow: 0 0 12px rgba(252, 63, 29, 0.25);
+}
+.gd-btn-yandex:hover:not(:disabled) { background: #e83818; }
+.gd-btn-vk { background: #0077FF; color: #fff; border-color: #0066dd; }
+.gd-btn-vk:hover:not(:disabled) { background: #0066dd; }
+.gd-btn-google { background: #4285F4; color: #fff; border-color: #3367d6; }
+.gd-btn-google:hover:not(:disabled) { background: #3367d6; }
+
+/* ── Provider row (linked-accounts list) ── */
+.gd-provider-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--gd-s3); background: var(--gd-bg);
+  border: 1px solid var(--gd-border); gap: var(--gd-s3);
+}
+.gd-provider-row .name {
+  font-family: var(--gd-font-display); font-size: 0.75rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--gd-fg);
+}
+
+/* ── Auth layout ── */
+.gd-auth-layout {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: var(--gd-s4);
+}
+.gd-auth-card {
+  max-width: 440px; width: 100%; text-align: center;
+  background: linear-gradient(180deg, var(--gd-surface), var(--gd-bg-raised));
+  border: 1px solid var(--gd-border);
+  padding: var(--gd-s8) var(--gd-s6);
+}
+.gd-provider-list {
+  display: flex; flex-direction: column; gap: var(--gd-s3);
+  max-width: 320px; margin: 0 auto;
+}
+@media (max-width: 480px) {
+  .gd-auth-layout { padding: var(--gd-s3); }
+  .gd-auth-card { padding: var(--gd-s6) var(--gd-s4); }
+}

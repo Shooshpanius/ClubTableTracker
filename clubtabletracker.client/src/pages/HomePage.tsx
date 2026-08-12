@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { isYandexConfigured, buildOAuthAuthorizeUrl } from '../oauthConfig'
 import { LAST_PR_NUMBER, LAST_PR_DATE } from '../version'
 import useIsMobile from '../utils/useIsMobile'
 import { isTokenExpired } from '../utils/auth'
@@ -138,7 +137,6 @@ export default function HomePage() {
 
   const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
   const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
-  const warnStyle: React.CSSProperties = { color: '#ffc107', fontSize: 14 }
 
   // Вычисляем наборы клубов
   const now = new Date()
@@ -250,11 +248,6 @@ export default function HomePage() {
     )
   }
 
-  const startYandexLogin = () => {
-    const url = buildOAuthAuthorizeUrl('yandex')
-    if (url) window.location.href = url
-  }
-
   return (
     <div style={{ padding: isMobile ? 16 : 40 }}>
 
@@ -306,15 +299,9 @@ export default function HomePage() {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-              {isYandexConfigured ? (
-                <button onClick={startYandexLogin} style={{ ...btnStyle, background: '#FC3F1D', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden>Я</span> Войти через Яндекс
-                </button>
-              ) : (
-                <span style={{ ...warnStyle, fontSize: isMobile ? 12 : 14 }}>
-                  ⚠️ Вход через Яндекс не настроен. Укажите <code>VITE_YANDEX_CLIENT_ID</code> в <code>.env</code>.
-                </span>
-              )}
+              <button onClick={() => navigate('/login')} style={{ ...btnStyle, background: '#FC3F1D', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span aria-hidden>🔐</span> Войти
+              </button>
             </div>
           )}
         </div>

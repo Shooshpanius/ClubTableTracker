@@ -5,6 +5,7 @@ import ClubAdminPage from './pages/ClubAdminPage'
 import SettingsPage from './pages/SettingsPage'
 import ClubPage from './pages/ClubPage'
 import MessengerPage from './pages/MessengerPage'
+import LoginPage from './pages/LoginPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
     <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', background: '#1a1a2e', color: '#eee' }}>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/clubAdmin" element={<ClubAdminPage />} />
         <Route path="/settings" element={<SettingsPage />} />

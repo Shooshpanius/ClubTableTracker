@@ -83,43 +83,45 @@ export default function OAuthCallbackPage({ provider }: Props) {
   }, [provider, searchParams, navigate])
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#1a1a2e',
-        color: '#eee',
-      }}
-    >
-      <div style={{ textAlign: 'center', maxWidth: 460, padding: 24 }}>
+    <div className="gd-app gd-auth-layout">
+      <div className="gd-auth-card">
         {error ? (
           <>
-            <h2 style={{ color: '#e94560' }}>Не удалось войти</h2>
-            <p style={{ color: '#eee', marginTop: 12, wordBreak: 'break-word' }}>
-              {error}
-            </p>
-            <button
-              onClick={() => navigate('/', { replace: true })}
-              style={{
-                marginTop: 20,
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#0f3460',
-                color: '#eee',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
+            <div style={{ fontSize: '2.5rem', marginBottom: 'var(--gd-s3)', opacity: 0.5 }}>☠</div>
+            <p
+              className="gd-display"
+              style={{ fontSize: '0.85rem', letterSpacing: '0.06em', color: 'var(--gd-danger)' }}
             >
-              На главную
+              Вокс-связь потеряна
+            </p>
+            <div className="gd-error-box gd-mt-4">
+              <p
+                className="gd-text-sm"
+                style={{ wordBreak: 'break-word', color: 'var(--gd-fg)' }}
+              >
+                {error}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="gd-btn gd-btn-secondary gd-btn-block gd-mt-4"
+              onClick={() => navigate('/login', { replace: true })}
+            >
+              Вернуться
             </button>
           </>
         ) : (
           <>
-            <h2>Вход через {providerTitle(provider)}…</h2>
-            <p style={{ color: '#aaa' }}>Подождите, выполняем вход.</p>
+            <div className="gd-spinner" style={{ margin: '0 auto var(--gd-s4)' }} />
+            <p
+              className="gd-display"
+              style={{ fontSize: '0.75rem', letterSpacing: '0.06em', color: 'var(--gd-brass)' }}
+            >
+              Устанавливаем вокс-связь…
+            </p>
+            <p className="gd-text-xs gd-text-muted gd-mt-2">
+              Вход через {providerTitle(provider)}. Ожидайте подтверждения от Когитатора.
+            </p>
           </>
         )}
       </div>
