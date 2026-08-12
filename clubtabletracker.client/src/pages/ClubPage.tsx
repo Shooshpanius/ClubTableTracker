@@ -214,7 +214,7 @@ export default function ClubPage() {
   const cardStyle: React.CSSProperties = { background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: 16, marginBottom: 16 }
 
   const btnStyle: React.CSSProperties = { background: 'var(--gd-surface-active)', color: 'var(--gd-fg)', border: '1px solid var(--gd-border-brass)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
-  const shareBtnStyle: React.CSSProperties = { background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
+  const shareBtnStyle: React.CSSProperties = { background: 'var(--gd-brass)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }
 
   // === useEffect: загрузка данных по clubId ===
   useEffect(() => {
@@ -872,23 +872,23 @@ export default function ClubPage() {
                 {/* Legend */}
                 <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 13, flexWrap: "wrap" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: "inline-block", borderRadius: 2, border: "1px solid #555" }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: "inline-block", borderRadius: 2, border: "1px solid var(--gd-fg-muted)" }} />
                     Свободно
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: "inline-block", borderRadius: 2, border: "1px solid #ffff00" }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: "inline-block", borderRadius: 2, border: "1px solid var(--gd-warn)" }} />
                     Свободно (событие)
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: "inline-block", borderRadius: 2, border: "1px solid #555" }} />
+                    <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: "inline-block", borderRadius: 2, border: "1px solid var(--gd-fg-muted)" }} />
                     Занято
                   </span>
-                  {user && !isSelectedDatePast && <span style={{ color: "#aaa" }}>Нажмите на свободный слот для бронирования</span>}
-                  {isSelectedDatePast && <span style={{ color: "#888", fontStyle: "italic" }}>{PAST_DATE_HINT}</span>}
+                  {user && !isSelectedDatePast && <span style={{ color: "var(--gd-fg-muted)" }}>Нажмите на свободный слот для бронирования</span>}
+                  {isSelectedDatePast && <span style={{ color: "var(--gd-fg-muted)", fontStyle: "italic" }}>{PAST_DATE_HINT}</span>}
                 </div>
 
                 {/* Table accordions */}
-                {tables.length === 0 && <p style={{ color: "#aaa" }}>Столы не настроены администратором клуба.</p>}
+                {tables.length === 0 && <p style={{ color: "var(--gd-fg-muted)" }}>Столы не настроены администратором клуба.</p>}
                 {tables.map(table => {
                   const isTableExpanded = expandedTableId === table.id
                   const isTableSelected = selectedTable?.id === table.id
@@ -901,16 +901,16 @@ export default function ClubPage() {
                           if (expanding) handleTableHeaderClick(table)
                         }}
                         style={{
-                          width: "100%", background: isTableExpanded ? "#1a2a50" : "#16213e",
-                          border: "none", borderBottom: isTableExpanded ? "1px solid #0f3460" : "none",
-                          color: isTableSelected ? "#e94560" : "#eee",
+                          width: "100%", background: isTableExpanded ? "var(--gd-border-soft)" : "var(--gd-surface)",
+                          border: "none", borderBottom: isTableExpanded ? "1px solid var(--gd-border)" : "none",
+                          color: isTableSelected ? "var(--gd-blood-red)" : "var(--gd-fg)",
                           padding: "12px 16px", textAlign: "left", cursor: "pointer",
                           display: "flex", justifyContent: "space-between", alignItems: "center",
                           fontSize: 15, fontWeight: "bold"
                         }}>
                         <span>Стол {table.number}</span>
-                        <span style={{ fontSize: 12, color: "#aaa", fontWeight: "normal" }}>{table.size}</span>
-                        <span style={{ fontSize: 18, color: "#888", marginLeft: 8 }}>{isTableExpanded ? "▲" : "▼"}</span>
+                        <span style={{ fontSize: 12, color: "var(--gd-fg-muted)", fontWeight: "normal" }}>{table.size}</span>
+                        <span style={{ fontSize: 18, color: "var(--gd-fg-muted)", marginLeft: 8 }}>{isTableExpanded ? "▲" : "▼"}</span>
                       </button>
 
                       {/* Occupancy bar */}
@@ -955,7 +955,7 @@ export default function ClubPage() {
                                 const hour = clubOpenHour + i
                                 const top = (i / clubTotalHours) * RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8
                                 return (
-                                  <div key={hour} style={{ position: "absolute", top, right: 0, fontSize: 11, color: "#888", whiteSpace: "nowrap", transform: "translateY(-30%)" }}>
+                                  <div key={hour} style={{ position: "absolute", top, right: 0, fontSize: 11, color: "var(--gd-fg-muted)", whiteSpace: "nowrap", transform: "translateY(-30%)" }}>
                                     {String(hour).padStart(2, "0")}:00
                                   </div>
                                 )
@@ -977,7 +977,7 @@ export default function ClubPage() {
                             />
                           </div>
                           {isTableSelected && user && !isSelectedDatePast && (
-                            <div style={{ ...cardStyle, border: "1px solid #e94560", marginTop: 16 }}>
+                            <div style={{ ...cardStyle, border: "1px solid var(--gd-blood-red)", marginTop: 16 }}>
                               <BookingForm
                                 key={`${table.id}-${bookingStart}-${bookingEnd}`}
                                 table={table}
@@ -1011,16 +1011,16 @@ export default function ClubPage() {
             {mobileTab === "games" && (
               <div>
                 {!user ? (
-                  <p style={{ color: "#aaa" }}>Войдите, чтобы видеть предстоящие игры.</p>
+                  <p style={{ color: "var(--gd-fg-muted)" }}>Войдите, чтобы видеть предстоящие игры.</p>
                 ) : (
                   <>
                     <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                      <button style={{ ...btnStyle, background: upcomingTab === "my" ? "#e94560" : "#0f3460", marginRight: 0 }} onClick={() => setUpcomingTab("my")}>Мои игры</button>
-                      <button style={{ ...btnStyle, background: upcomingTab === "all" ? "#e94560" : "#0f3460", marginRight: 0 }} onClick={() => setUpcomingTab("all")}>Все игры</button>
+                      <button style={{ ...btnStyle, background: upcomingTab === "my" ? "var(--gd-blood-red)" : "var(--gd-border)", marginRight: 0 }} onClick={() => setUpcomingTab("my")}>Мои игры</button>
+                      <button style={{ ...btnStyle, background: upcomingTab === "all" ? "var(--gd-blood-red)" : "var(--gd-border)", marginRight: 0 }} onClick={() => setUpcomingTab("all")}>Все игры</button>
                     </div>
                     {(() => {
                       const list = upcomingTab === "my" ? upcomingMyBookings : upcomingAllBookings
-                      if (list.length === 0) return <p style={{ color: "#aaa", margin: 0 }}>Нет предстоящих игр</p>
+                      if (list.length === 0) return <p style={{ color: "var(--gd-fg-muted)", margin: 0 }}>Нет предстоящих игр</p>
                       const grouped: Record<string, UpcomingBooking[]> = {}
                       for (const b of list) {
                         const d = new Date(b.startTime)
@@ -1030,7 +1030,7 @@ export default function ClubPage() {
                       }
                       return Object.entries(grouped).map(([dateLabel, items]) => (
                         <div key={dateLabel} style={{ marginBottom: 16 }}>
-                          <div style={{ color: "#ffc107", fontWeight: "bold", marginBottom: 6, textTransform: "capitalize" }}>{dateLabel}</div>
+                          <div style={{ color: "var(--gd-warn)", fontWeight: "bold", marginBottom: 6, textTransform: "capitalize" }}>{dateLabel}</div>
                           {items.map(b => {
                             const start = new Date(b.startTime)
                             const end = new Date(b.endTime)
@@ -1043,55 +1043,55 @@ export default function ClubPage() {
                             const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
                             const canJoin = !isOwner && !myParticipant && acceptedCount < maxPlayers - 1
                             return (
-                              <div key={b.id} style={{ background: isInvited ? "#1a1a3d" : "#0f1e3d", borderRadius: 6, padding: "8px 12px", marginBottom: 6, border: isInvited ? "1px solid #7b2fff" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                              <div key={b.id} style={{ background: isInvited ? "var(--gd-surface-active)" : "var(--gd-surface)", borderRadius: 6, padding: "8px 12px", marginBottom: 6, border: isInvited ? "1px solid var(--gd-brass)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                                 <div>
-                                  <span style={{ color: "#eee", fontWeight: "bold" }}>Стол {b.tableNumber}</span>
-                                  <span style={{ color: "#aaa", marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
-                                  <span style={{ color: "#4caf50", marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
-                                  {b.gameSystem && <span style={{ color: "#888", marginLeft: 8, fontSize: 12, fontStyle: "italic" }}>{b.gameSystem}</span>}
-                                  {b.isDoubles && <span style={{ color: "#7b2fff", marginLeft: 8, fontSize: 12, fontWeight: "bold" }}>2×2</span>}
+                                  <span style={{ color: "var(--gd-fg)", fontWeight: "bold" }}>Стол {b.tableNumber}</span>
+                                  <span style={{ color: "var(--gd-fg-muted)", marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
+                                  <span style={{ color: "var(--gd-success)", marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
+                                  {b.gameSystem && <span style={{ color: "var(--gd-fg-muted)", marginLeft: 8, fontSize: 12, fontStyle: "italic" }}>{b.gameSystem}</span>}
+                                  {b.isDoubles && <span style={{ color: "var(--gd-brass)", marginLeft: 8, fontSize: 12, fontWeight: "bold" }}>2×2</span>}
                                   <div style={{ fontSize: 12, marginTop: 2 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                                      <span style={{ color: b.ownerRoster ? "#eee" : "#aaa" }}>{keyIcon(b.user.id)}{b.user.name}</span>
-                                      {isOwner && <span style={{ color: "#ff8c00", fontSize: 11 }}>(орг.)</span>}
+                                      <span style={{ color: b.ownerRoster ? "var(--gd-fg)" : "var(--gd-fg-muted)" }}>{keyIcon(b.user.id)}{b.user.name}</span>
+                                      {isOwner && <span style={{ color: "var(--gd-warn)", fontSize: 11 }}>(орг.)</span>}
                                       <button
-                                        style={{ background: b.ownerRoster ? "#1a4a2a" : "#222", color: b.ownerRoster ? "#27ae60" : "#666", border: `1px solid ${b.ownerRoster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
+                                        style={{ background: b.ownerRoster ? "var(--gd-success)" : "var(--gd-bg)", color: b.ownerRoster ? "var(--gd-success)" : "var(--gd-fg-muted)", border: `1px solid ${b.ownerRoster ? "var(--gd-success)" : "var(--gd-border)"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
                                         onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false }) }}
                                       >R</button>
                                     </div>
                                     {b.participants.filter(p => p.status !== "Invited").map(p => (
                                       <div key={p.participantId ?? p.id} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginTop: 2 }}>
-                                        <span style={{ color: p.roster ? "#eee" : "#aaa" }}>{keyIcon(p.id)}{p.name}</span>
+                                        <span style={{ color: p.roster ? "var(--gd-fg)" : "var(--gd-fg-muted)" }}>{keyIcon(p.id)}{p.name}</span>
                                         <button
-                                          style={{ background: p.roster ? "#1a4a2a" : "#222", color: p.roster ? "#27ae60" : "#666", border: `1px solid ${p.roster ? "#27ae60" : "#444"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
+                                          style={{ background: p.roster ? "var(--gd-success)" : "var(--gd-bg)", color: p.roster ? "var(--gd-success)" : "var(--gd-fg-muted)", border: `1px solid ${p.roster ? "var(--gd-success)" : "var(--gd-border)"}`, borderRadius: 3, padding: "1px 6px", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: "16px" }}
                                           onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
                                         >R</button>
                                       </div>
                                     ))}
                                     {b.participants.filter(p => p.status === "Invited").map(p => (
-                                      <div key={p.participantId ?? p.id} style={{ color: "#7b2fff", fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
+                                      <div key={p.participantId ?? p.id} style={{ color: "var(--gd-brass)", fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
                                     ))}
-                                    {isAcceptedParticipant && <span style={{ color: "#4caf50", fontSize: 11 }}>(участник)</span>}
+                                    {isAcceptedParticipant && <span style={{ color: "var(--gd-success)", fontSize: 11 }}>(участник)</span>}
                                   </div>
                                 </div>
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                   {canJoin && (
-                                    <button style={{ ...btnStyle, background: "#1565c0", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
+                                    <button style={{ ...btnStyle, background: "var(--gd-brass)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
                                   )}
                                   {isInvited && (
                                     <>
-                                      <button style={{ ...btnStyle, background: "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
-                                      <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
+                                      <button style={{ ...btnStyle, background: "var(--gd-success)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
+                                      <button style={{ ...btnStyle, background: "var(--gd-danger)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
                                     </>
                                   )}
                                   {isOwner && (
                                     <>
-                                      <button style={{ ...btnStyle, background: "#e67e22", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
-                                      <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
+                                      <button style={{ ...btnStyle, background: "var(--gd-warn)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
+                                      <button style={{ ...btnStyle, background: "var(--gd-danger)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
                                     </>
                                   )}
                                   {isAcceptedParticipant && (
-                                    <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
+                                    <button style={{ ...btnStyle, background: "var(--gd-danger)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
                                   )}
                                 </div>
                               </div>
@@ -1109,63 +1109,63 @@ export default function ClubPage() {
             {mobileTab === "events" && (
               <div>
                 {clubEvents.length === 0 ? (
-                  <p style={{ color: "#aaa" }}>События отсутствуют.</p>
+                  <p style={{ color: "var(--gd-fg-muted)" }}>События отсутствуют.</p>
                 ) : (
                   clubEvents.map(ev => {
                     const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
                     const isFull = ev.participants.length >= ev.maxParticipants
                     return (
-                      <div key={ev.id} style={{ background: "#0f1e3d", borderRadius: 6, padding: "10px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                      <div key={ev.id} style={{ background: "var(--gd-surface)", borderRadius: 6, padding: "10px 14px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                         <div>
-                          <span style={{ color: "#eee", fontWeight: "bold" }}>{ev.title}</span>
-                          <span style={{ marginLeft: 8, color: "#ffc107", fontSize: 12 }}>{ev.eventType}</span>
-                          {ev.gameSystem && <span style={{ marginLeft: 8, color: "#888", fontSize: 12, fontStyle: "italic" }}>{ev.gameSystem}</span>}
-                          <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
+                          <span style={{ color: "var(--gd-fg)", fontWeight: "bold" }}>{ev.title}</span>
+                          <span style={{ marginLeft: 8, color: "var(--gd-warn)", fontSize: 12 }}>{ev.eventType}</span>
+                          {ev.gameSystem && <span style={{ marginLeft: 8, color: "var(--gd-fg-muted)", fontSize: 12, fontStyle: "italic" }}>{ev.gameSystem}</span>}
+                          <div style={{ fontSize: 12, color: "var(--gd-fg-muted)", marginTop: 4 }}>
                             📅 {new Date(ev.startTime).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             {" – "}
                             {new Date(ev.endTime).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
-                            {isRegistered && <span style={{ color: "#4caf50", marginLeft: 8 }}>✓ вы записаны</span>}
+                            {isRegistered && <span style={{ color: "var(--gd-success)", marginLeft: 8 }}>✓ вы записаны</span>}
                           </div>
                           {ev.gameMasterName && (
-                            <div style={{ fontSize: 12, color: "#c0a060", marginTop: 3 }}>
+                            <div style={{ fontSize: 12, color: "var(--gd-brass)", marginTop: 3 }}>
                               🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
                             </div>
                           )}
                           {ev.participants.length > 0 && (
-                            <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                            <div style={{ fontSize: 11, color: "var(--gd-fg-muted)", marginTop: 2 }}>
                               {ev.participants.map(p => p.name).join(", ")}
                             </div>
                           )}
                           {ev.description && (
-                            <div style={{ fontSize: 12, color: "#bbb", marginTop: 4, whiteSpace: "pre-wrap" }}>{ev.description}</div>
+                            <div style={{ fontSize: 12, color: "var(--gd-fg-secondary)", marginTop: 4, whiteSpace: "pre-wrap" }}>{ev.description}</div>
                           )}
                           {ev.regulationUrl && (
                             <div style={{ marginTop: 4 }}>
-                              <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
+                              <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--gd-brass)", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                             </div>
                           )}
                           {ev.regulationUrl2 && (
                             <div style={{ marginTop: 2 }}>
-                              <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "#7eb8f7", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
+                              <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: "var(--gd-brass)", fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                             </div>
                           )}
                           {ev.missionMapUrl && (
                             <div style={{ marginTop: 4 }}>
                               <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
-                                style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                                style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid var(--gd-border)' }}
                                 title="Нажмите для просмотра" />
                             </div>
                           )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                           {ev.eventType === "Campaign" && (
-                            <button style={{ ...btnStyle, background: "#7b3fa0", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
+                            <button style={{ ...btnStyle, background: "var(--gd-brass)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
                           )}
                           {user && (
                             isRegistered
-                              ? <button style={{ ...btnStyle, background: "#c0392b", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                              : <button style={{ ...btnStyle, background: isFull ? "#555" : "#28a745", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
+                              ? <button style={{ ...btnStyle, background: "var(--gd-danger)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                              : <button style={{ ...btnStyle, background: isFull ? "var(--gd-fg-muted)" : "var(--gd-success)", fontSize: 12, padding: "4px 10px", marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? "Мест нет" : "Записаться"}</button>
                           )}
                         </div>
                       </div>
@@ -1221,7 +1221,7 @@ export default function ClubPage() {
                   <select
                     value={playersSystemFilter}
                     onChange={e => setPlayersSystemFilter(e.target.value)}
-                    style={{ background: "#0f3460", color: "#ccc", border: "1px solid #1a4a8a", borderRadius: 4, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}
+                    style={{ background: "var(--gd-border)", color: "var(--gd-fg-secondary)", border: "1px solid var(--gd-border-brass)", borderRadius: 4, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}
                   >
                     <option value="">Все системы</option>
                     {availablePlayerSystems.map(sys => (
@@ -1230,12 +1230,12 @@ export default function ClubPage() {
                   </select>
                 </div>
                 {members.length === 0 ? (
-                  <p style={{ color: "#aaa", margin: 0 }}>Нет принятых игроков</p>
+                  <p style={{ color: "var(--gd-fg-muted)", margin: 0 }}>Нет принятых игроков</p>
                 ) : (
                   <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: "#ccc" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: "var(--gd-fg-secondary)" }}>
                       <thead>
-                        <tr style={{ borderBottom: "1px solid #0f3460", color: "#aaa" }}>
+                        <tr style={{ borderBottom: "1px solid var(--gd-border)", color: "var(--gd-fg-muted)" }}>
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Имя регистрации</th>
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Имя для отображения</th>
                           <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600 }}>Город</th>
@@ -1247,16 +1247,16 @@ export default function ClubPage() {
                       </thead>
                       <tbody>
                         {filteredMembers.map(m => (
-                          <tr key={m.id} style={{ borderBottom: "1px solid #1a2a4a" }}>
+                          <tr key={m.id} style={{ borderBottom: "1px solid var(--gd-border-soft)" }}>
                             <td style={{ padding: "6px 8px" }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
-                            <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "#666" }}>—</span>}</td>
-                            <td style={{ padding: "6px 8px" }}>{m.city || <span style={{ color: "#666" }}>—</span>}</td>
+                            <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
+                            <td style={{ padding: "6px 8px" }}>{m.city || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
                             <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
-                            <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "#666" }}>—</span>}</td>
+                            <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
                             <td style={{ padding: "6px 8px" }}>
                               <button
                                 onClick={() => setPlayerSystemsModal(m)}
-                                style={{ background: "#0f3460", color: "#ccc", border: "1px solid #1a4a8a", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 12 }}
+                                style={{ background: "var(--gd-border)", color: "var(--gd-fg-secondary)", border: "1px solid var(--gd-border-brass)", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 12 }}
                               >
                                 Системы
                               </button>
@@ -1266,7 +1266,7 @@ export default function ClubPage() {
                                 <button
                                   onClick={() => navigate('/messages', { state: { openDirectWithUserId: m.id } })}
                                   title="Написать сообщение"
-                                  style={{ background: "#0f3460", color: "#4a9eff", border: "1px solid #1a4a8a", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                                  style={{ background: "var(--gd-border)", color: "var(--gd-brass)", border: "1px solid var(--gd-border-brass)", borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontSize: 14, lineHeight: 1 }}
                                 >
                                   💬
                                 </button>
@@ -1299,7 +1299,7 @@ export default function ClubPage() {
               <div>
                 <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Галерея клуба</h3>
                 {clubGallery.length === 0 ? (
-                  <p style={{ color: "#aaa", margin: 0 }}>Фотографий нет.</p>
+                  <p style={{ color: "var(--gd-fg-muted)", margin: 0 }}>Фотографий нет.</p>
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {clubGallery.map(photo => (
@@ -1315,17 +1315,17 @@ export default function ClubPage() {
               <div>
                 <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Чаты клуба</h3>
                 {clubChats.length === 0 ? (
-                  <p style={{ color: "#aaa", margin: 0 }}>Нет публичных чатов.</p>
+                  <p style={{ color: "var(--gd-fg-muted)", margin: 0 }}>Нет публичных чатов.</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {clubChats.map(chat => (
-                      <div key={chat.id} style={{ background: "#0f1b2d", border: "1px solid #0f3460", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div key={chat.id} style={{ background: "var(--gd-surface)", border: "1px solid var(--gd-border)", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontWeight: "bold", fontSize: 14 }}>{chat.isPublic ? '🌐' : '🔒'} {chat.name}</span>
-                          <div style={{ color: "#888", fontSize: 12, marginTop: 2 }}>{chat.memberCount} участн.</div>
+                          <div style={{ color: "var(--gd-fg-muted)", fontSize: 12, marginTop: 2 }}>{chat.memberCount} участн.</div>
                         </div>
                         <button
-                          style={{ background: "#4a9eff", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}
+                          style={{ background: "var(--gd-brass)", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}
                           onClick={() => navigate("/messages")}
                         >Открыть</button>
                       </div>
@@ -1333,7 +1333,7 @@ export default function ClubPage() {
                   </div>
                 )}
                 <button
-                  style={{ marginTop: 16, background: "#1a6e3c", border: "none", color: "#fff", borderRadius: 6, padding: "8px 16px", cursor: "pointer", fontSize: 14 }}
+                  style={{ marginTop: 16, background: "var(--gd-success)", border: "none", color: "#fff", borderRadius: 6, padding: "8px 16px", cursor: "pointer", fontSize: 14 }}
                   onClick={() => navigate("/messages")}
                 >💬 Перейти в мессенджер</button>
               </div>
@@ -1375,7 +1375,7 @@ export default function ClubPage() {
             {desktopTab === 'booking' && (
               <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
                 <div style={{ flex: 1, overflowX: 'auto' }}>
-                  <div style={{ marginBottom: 12, color: '#ffc107', fontSize: 15, fontWeight: 'bold', textTransform: 'capitalize' }}>
+                  <div style={{ marginBottom: 12, color: 'var(--gd-warn)', fontSize: 15, fontWeight: 'bold', textTransform: 'capitalize' }}>
                     {formatDate(selectedDate)}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -1384,7 +1384,7 @@ export default function ClubPage() {
                         const hour = clubOpenHour + i
                         const top = (i / clubTotalHours) * RECT_HEIGHT + TABLE_HEADER_HEIGHT + 8
                         return (
-                          <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: '#888', whiteSpace: 'nowrap', transform: 'translateY(-30%)' }}>
+                          <div key={hour} style={{ position: 'absolute', top, right: 0, fontSize: 11, color: 'var(--gd-fg-muted)', whiteSpace: 'nowrap', transform: 'translateY(-30%)' }}>
                             {String(hour).padStart(2, '0')}:00
                           </div>
                         )
@@ -1409,27 +1409,27 @@ export default function ClubPage() {
                           />
                         </div>
                       ))}
-                      {tables.length === 0 && <p style={{ color: '#aaa', marginLeft: 8 }}>Столы не настроены администратором клуба.</p>}
+                      {tables.length === 0 && <p style={{ color: 'var(--gd-fg-muted)', marginLeft: 8 }}>Столы не настроены администратором клуба.</p>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                      <span style={{ width: 20, height: 14, background: bookingColors.freeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid var(--gd-fg-muted)' }} />
                       Свободно
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid #ffff00' }} />
+                      <span style={{ width: 20, height: 14, background: bookingColors.eventFreeSlot, display: 'inline-block', borderRadius: 2, border: '1px solid var(--gd-warn)' }} />
                       Свободно (событие)
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid #555' }} />
+                      <span style={{ width: 20, height: 14, background: bookingColors.othersBooking, display: 'inline-block', borderRadius: 2, border: '1px solid var(--gd-fg-muted)' }} />
                       Занято
                     </span>
-                    {user && !isSelectedDatePast && <span style={{ color: '#aaa' }}>Нажмите на свободный слот для бронирования</span>}
-                    {isSelectedDatePast && <span style={{ color: '#888', fontStyle: 'italic' }}>{PAST_DATE_HINT}</span>}
+                    {user && !isSelectedDatePast && <span style={{ color: 'var(--gd-fg-muted)' }}>Нажмите на свободный слот для бронирования</span>}
+                    {isSelectedDatePast && <span style={{ color: 'var(--gd-fg-muted)', fontStyle: 'italic' }}>{PAST_DATE_HINT}</span>}
                   </div>
                   {selectedTable && user && !isSelectedDatePast && (
-                    <div style={{ ...cardStyle, border: '1px solid #e94560', marginTop: 20, whiteSpace: 'normal' }}>
+                    <div style={{ ...cardStyle, border: '1px solid var(--gd-blood-red)', marginTop: 20, whiteSpace: 'normal' }}>
                       <BookingForm
                         key={`${selectedTable.id}-${bookingStart}-${bookingEnd}`}
                         table={selectedTable}
@@ -1467,12 +1467,12 @@ export default function ClubPage() {
             {desktopTab === 'upcoming' && (
               <div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <button style={{ ...btnStyle, background: upcomingTab === 'my' ? '#e94560' : '#0f3460', marginRight: 0 }} onClick={() => setUpcomingTab('my')}>Мои игры</button>
-                  <button style={{ ...btnStyle, background: upcomingTab === 'all' ? '#e94560' : '#0f3460', marginRight: 0 }} onClick={() => setUpcomingTab('all')}>Все игры</button>
+                  <button style={{ ...btnStyle, background: upcomingTab === 'my' ? 'var(--gd-blood-red)' : 'var(--gd-border)', marginRight: 0 }} onClick={() => setUpcomingTab('my')}>Мои игры</button>
+                  <button style={{ ...btnStyle, background: upcomingTab === 'all' ? 'var(--gd-blood-red)' : 'var(--gd-border)', marginRight: 0 }} onClick={() => setUpcomingTab('all')}>Все игры</button>
                 </div>
                 {(() => {
                   const list = upcomingTab === 'my' ? upcomingMyBookings : upcomingAllBookings
-                  if (list.length === 0) return <p style={{ color: '#aaa', margin: 0 }}>Нет предстоящих игр</p>
+                  if (list.length === 0) return <p style={{ color: 'var(--gd-fg-muted)', margin: 0 }}>Нет предстоящих игр</p>
                   const grouped: Record<string, UpcomingBooking[]> = {}
                   for (const b of list) {
                     const d = new Date(b.startTime)
@@ -1482,7 +1482,7 @@ export default function ClubPage() {
                   }
                   return Object.entries(grouped).map(([dateLabel, items]) => (
                     <div key={dateLabel} style={{ marginBottom: 16 }}>
-                      <div style={{ color: '#ffc107', fontWeight: 'bold', marginBottom: 6, textTransform: 'capitalize' }}>{dateLabel}</div>
+                      <div style={{ color: 'var(--gd-warn)', fontWeight: 'bold', marginBottom: 6, textTransform: 'capitalize' }}>{dateLabel}</div>
                       {items.map(b => {
                         const start = new Date(b.startTime)
                         const end = new Date(b.endTime)
@@ -1495,55 +1495,55 @@ export default function ClubPage() {
                         const maxPlayers = b.isDoubles ? 4 : MAX_BOOKING_PLAYERS
                         const canJoin = !isOwner && !myParticipant && acceptedCount < maxPlayers - 1
                         return (
-                          <div key={b.id} style={{ background: isInvited ? '#1a1a3d' : '#0f1e3d', borderRadius: 6, padding: '8px 12px', marginBottom: 6, border: isInvited ? '1px solid #7b2fff' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                          <div key={b.id} style={{ background: isInvited ? 'var(--gd-surface-active)' : 'var(--gd-surface)', borderRadius: 6, padding: '8px 12px', marginBottom: 6, border: isInvited ? '1px solid var(--gd-brass)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                             <div>
-                              <span style={{ color: '#eee', fontWeight: 'bold' }}>Стол {b.tableNumber}</span>
-                              <span style={{ color: '#aaa', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
-                              <span style={{ color: '#4caf50', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
-                              {b.gameSystem && <span style={{ color: '#888', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
-                              {b.isDoubles && <span style={{ color: '#7b2fff', marginLeft: 8, fontSize: 12, fontWeight: 'bold' }}>2×2</span>}
+                              <span style={{ color: 'var(--gd-fg)', fontWeight: 'bold' }}>Стол {b.tableNumber}</span>
+                              <span style={{ color: 'var(--gd-fg-muted)', marginLeft: 8, fontSize: 13 }}>{b.clubName}</span>
+                              <span style={{ color: 'var(--gd-success)', marginLeft: 8, fontSize: 13 }}>{fmt(start)}–{fmt(end)}</span>
+                              {b.gameSystem && <span style={{ color: 'var(--gd-fg-muted)', marginLeft: 8, fontSize: 12, fontStyle: 'italic' }}>{b.gameSystem}</span>}
+                              {b.isDoubles && <span style={{ color: 'var(--gd-brass)', marginLeft: 8, fontSize: 12, fontWeight: 'bold' }}>2×2</span>}
                               <div style={{ fontSize: 12, marginTop: 2 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                                  <span style={{ color: b.ownerRoster ? '#eee' : '#aaa' }}>{keyIcon(b.user.id)}{b.user.name}</span>
-                                  {isOwner && <span style={{ color: '#ff8c00', fontSize: 11 }}>(орг.)</span>}
+                                  <span style={{ color: b.ownerRoster ? 'var(--gd-fg)' : 'var(--gd-fg-muted)' }}>{keyIcon(b.user.id)}{b.user.name}</span>
+                                  {isOwner && <span style={{ color: 'var(--gd-warn)', fontSize: 11 }}>(орг.)</span>}
                                   <button
-                                    style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
+                                    style={{ background: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-bg)', color: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
                                     onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: user?.id === b.user.id, isAdminEdit: false }) }}
                                   >R</button>
                                 </div>
                                 {b.participants.filter(p => p.status !== 'Invited').map(p => (
                                   <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                                    <span style={{ color: p.roster ? '#eee' : '#aaa' }}>{keyIcon(p.id)}{p.name}</span>
+                                    <span style={{ color: p.roster ? 'var(--gd-fg)' : 'var(--gd-fg-muted)' }}>{keyIcon(p.id)}{p.name}</span>
                                     <button
-                                      style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
+                                      style={{ background: p.roster ? 'var(--gd-success)' : 'var(--gd-bg)', color: p.roster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${p.roster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px' }}
                                       onClick={e => { e.stopPropagation(); openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: user?.id === p.id, isAdminEdit: false }) }}
                                     >R</button>
                                   </div>
                                 ))}
                                 {b.participants.filter(p => p.status === 'Invited').map(p => (
-                                  <div key={p.participantId ?? p.id} style={{ color: '#7b2fff', fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
+                                  <div key={p.participantId ?? p.id} style={{ color: 'var(--gd-brass)', fontSize: 11, marginTop: 2 }}>{p.name} 📩</div>
                                 ))}
-                                {isAcceptedParticipant && <span style={{ color: '#4caf50', fontSize: 11 }}>(участник)</span>}
+                                {isAcceptedParticipant && <span style={{ color: 'var(--gd-success)', fontSize: 11 }}>(участник)</span>}
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                               {canJoin && (
-                                <button style={{ ...btnStyle, background: '#1565c0', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
+                                <button style={{ ...btnStyle, background: 'var(--gd-brass)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => joinBooking(b)}>Присоединиться</button>
                               )}
                               {isInvited && (
                                 <>
-                                  <button style={{ ...btnStyle, background: '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
-                                  <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
+                                  <button style={{ ...btnStyle, background: 'var(--gd-success)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => acceptInvite(b)}>✓ Принять</button>
+                                  <button style={{ ...btnStyle, background: 'var(--gd-danger)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => declineInvite(b)}>✗ Отклонить</button>
                                 </>
                               )}
                               {isOwner && (
                                 <>
-                                  <button style={{ ...btnStyle, background: '#e67e22', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
-                                  <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
+                                  <button style={{ ...btnStyle, background: 'var(--gd-warn)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => cancelBooking(b)}>Покинуть</button>
+                                  <button style={{ ...btnStyle, background: 'var(--gd-danger)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => annulBooking(b)}>Аннулировать</button>
                                 </>
                               )}
                               {isAcceptedParticipant && (
-                                <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
+                                <button style={{ ...btnStyle, background: 'var(--gd-danger)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => leaveBooking(b)}>Выйти</button>
                               )}
                             </div>
                           </div>
@@ -1559,63 +1559,63 @@ export default function ClubPage() {
             {desktopTab === 'events' && (
               <div>
                 {clubEvents.length === 0 ? (
-                  <p style={{ color: '#aaa' }}>События отсутствуют.</p>
+                  <p style={{ color: 'var(--gd-fg-muted)' }}>События отсутствуют.</p>
                 ) : (
                   clubEvents.map(ev => {
                     const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
                     const isFull = ev.participants.length >= ev.maxParticipants
                     return (
-                      <div key={ev.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '10px 14px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                      <div key={ev.id} style={{ background: 'var(--gd-surface)', borderRadius: 6, padding: '10px 14px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                         <div>
-                          <span style={{ color: '#eee', fontWeight: 'bold' }}>{ev.title}</span>
-                          <span style={{ marginLeft: 8, color: '#ffc107', fontSize: 12 }}>{ev.eventType}</span>
-                          {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 12, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
-                          <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                          <span style={{ color: 'var(--gd-fg)', fontWeight: 'bold' }}>{ev.title}</span>
+                          <span style={{ marginLeft: 8, color: 'var(--gd-warn)', fontSize: 12 }}>{ev.eventType}</span>
+                          {ev.gameSystem && <span style={{ marginLeft: 8, color: 'var(--gd-fg-muted)', fontSize: 12, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                          <div style={{ fontSize: 12, color: 'var(--gd-fg-muted)', marginTop: 4 }}>
                             📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             {' – '}
                             {new Date(ev.endTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
-                            {isRegistered && <span style={{ color: '#4caf50', marginLeft: 8 }}>✓ вы записаны</span>}
+                            {isRegistered && <span style={{ color: 'var(--gd-success)', marginLeft: 8 }}>✓ вы записаны</span>}
                           </div>
                           {ev.gameMasterName && (
-                            <div style={{ fontSize: 12, color: '#c0a060', marginTop: 3 }}>
+                            <div style={{ fontSize: 12, color: 'var(--gd-brass)', marginTop: 3 }}>
                               🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
                             </div>
                           )}
                           {ev.participants.length > 0 && (
-                            <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                            <div style={{ fontSize: 11, color: 'var(--gd-fg-muted)', marginTop: 2 }}>
                               {ev.participants.map(p => p.name).join(', ')}
                             </div>
                           )}
                           {ev.description && (
-                            <div style={{ fontSize: 12, color: '#bbb', marginTop: 4, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
+                            <div style={{ fontSize: 12, color: 'var(--gd-fg-secondary)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
                           )}
                           {ev.regulationUrl && (
                             <div style={{ marginTop: 4 }}>
-                              <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
+                              <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gd-brass)', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
                             </div>
                           )}
                           {ev.regulationUrl2 && (
                             <div style={{ marginTop: 2 }}>
-                              <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: '#7eb8f7', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
+                              <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gd-brass)', fontSize: 12 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
                             </div>
                           )}
                           {ev.missionMapUrl && (
                             <div style={{ marginTop: 4 }}>
                               <img src={ev.missionMapUrl} alt="Карта миссии" onClick={() => setMissionMapModal(ev.missionMapUrl ?? '')}
-                                style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                                style={{ maxHeight: 60, maxWidth: 100, borderRadius: 4, cursor: 'pointer', border: '1px solid var(--gd-border)' }}
                                 title="Нажмите для просмотра" />
                             </div>
                           )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                           {ev.eventType === 'Campaign' && (
-                            <button style={{ ...btnStyle, background: '#7b3fa0', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
+                            <button style={{ ...btnStyle, background: 'var(--gd-brass)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => setCampaignMapModal(ev)}>🗺️ Карта кампании</button>
                           )}
                           {user && (
                             isRegistered
-                              ? <button style={{ ...btnStyle, background: '#c0392b', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
-                              : <button style={{ ...btnStyle, background: isFull ? '#555' : '#28a745', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
+                              ? <button style={{ ...btnStyle, background: 'var(--gd-danger)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => unregisterEvent(ev.id)}>Отменить запись</button>
+                              : <button style={{ ...btnStyle, background: isFull ? 'var(--gd-fg-muted)' : 'var(--gd-success)', fontSize: 12, padding: '4px 10px', marginRight: 0 }} onClick={() => !isFull && registerEvent(ev.id)} disabled={isFull}>{isFull ? 'Мест нет' : 'Записаться'}</button>
                           )}
                         </div>
                       </div>
@@ -1665,7 +1665,7 @@ export default function ClubPage() {
                   <select
                     value={playersSystemFilter}
                     onChange={e => setPlayersSystemFilter(e.target.value)}
-                    style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}
+                    style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '4px 10px', fontSize: 13, cursor: 'pointer' }}
                   >
                     <option value=''>Все системы</option>
                     {availablePlayerSystems.map(sys => (
@@ -1674,12 +1674,12 @@ export default function ClubPage() {
                   </select>
                 </div>
                 {members.length === 0 ? (
-                  <p style={{ color: '#aaa', margin: 0 }}>Нет принятых игроков</p>
+                  <p style={{ color: 'var(--gd-fg-muted)', margin: 0 }}>Нет принятых игроков</p>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, color: '#ccc' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, color: 'var(--gd-fg-secondary)' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid #0f3460', color: '#aaa' }}>
+                        <tr style={{ borderBottom: '1px solid var(--gd-border)', color: 'var(--gd-fg-muted)' }}>
                           <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Имя регистрации</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Имя для отображения</th>
                            <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 600 }}>Город</th>
@@ -1691,16 +1691,16 @@ export default function ClubPage() {
                       </thead>
                       <tbody>
                         {filteredMembers.map(m => (
-                          <tr key={m.id} style={{ borderBottom: '1px solid #1a2a4a' }}>
+                          <tr key={m.id} style={{ borderBottom: '1px solid var(--gd-border-soft)' }}>
                             <td style={{ padding: '8px 12px' }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
-                            <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: '#666' }}>—</span>}</td>
-                            <td style={{ padding: '8px 12px' }}>{m.city || <span style={{ color: '#666' }}>—</span>}</td>
+                            <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
+                            <td style={{ padding: '8px 12px' }}>{m.city || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
                             <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
-                            <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: '#666' }}>—</span>}</td>
+                            <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
                             <td style={{ padding: '8px 12px' }}>
                               <button
                                 onClick={() => setPlayerSystemsModal(m)}
-                                style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
+                                style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
                               >
                                 Системы
                               </button>
@@ -1710,7 +1710,7 @@ export default function ClubPage() {
                                 <button
                                   onClick={() => navigate('/messages', { state: { openDirectWithUserId: m.id } })}
                                   title='Написать сообщение'
-                                  style={{ background: '#0f3460', color: '#4a9eff', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}
+                                  style={{ background: 'var(--gd-border)', color: 'var(--gd-brass)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}
                                 >
                                   💬
                                 </button>
@@ -1743,11 +1743,11 @@ export default function ClubPage() {
               <div>
                 <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Галерея клуба</h3>
                 {clubGallery.length === 0 ? (
-                  <p style={{ color: '#aaa', margin: 0 }}>Фотографий нет.</p>
+                  <p style={{ color: 'var(--gd-fg-muted)', margin: 0 }}>Фотографий нет.</p>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                     {clubGallery.map(photo => (
-                      <img key={photo.id} src={photo.url} alt="" onClick={() => setGalleryPhotoModal(photo.url)} style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid #0f3460', cursor: 'pointer' }} />
+                      <img key={photo.id} src={photo.url} alt="" onClick={() => setGalleryPhotoModal(photo.url)} style={{ width: 200, height: 150, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--gd-border)', cursor: 'pointer' }} />
                     ))}
                   </div>
                 )}
@@ -1759,17 +1759,17 @@ export default function ClubPage() {
               <div>
                 <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Чаты клуба</h3>
                 {clubChats.length === 0 ? (
-                  <p style={{ color: '#aaa', margin: 0 }}>Нет публичных чатов.</p>
+                  <p style={{ color: 'var(--gd-fg-muted)', margin: 0 }}>Нет публичных чатов.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                     {clubChats.map(chat => (
-                      <div key={chat.id} style={{ background: '#0f1b2d', border: '1px solid #0f3460', borderRadius: 8, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div key={chat.id} style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <span style={{ fontWeight: 'bold', fontSize: 14 }}>{chat.isPublic ? '🌐' : '🔒'} {chat.name}</span>
-                          <span style={{ color: '#888', fontSize: 13, marginLeft: 12 }}>{chat.memberCount} участн.</span>
+                          <span style={{ color: 'var(--gd-fg-muted)', fontSize: 13, marginLeft: 12 }}>{chat.memberCount} участн.</span>
                         </div>
                         <button
-                          style={{ background: '#4a9eff', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
+                          style={{ background: 'var(--gd-brass)', border: 'none', color: '#fff', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
                           onClick={() => navigate('/messages')}
                         >Открыть в мессенджере</button>
                       </div>
@@ -1777,7 +1777,7 @@ export default function ClubPage() {
                   </div>
                 )}
                 <button
-                  style={{ background: '#1a6e3c', border: 'none', color: '#fff', borderRadius: 6, padding: '8px 18px', cursor: 'pointer', fontSize: 14 }}
+                  style={{ background: 'var(--gd-success)', border: 'none', color: '#fff', borderRadius: 6, padding: '8px 18px', cursor: 'pointer', fontSize: 14 }}
                   onClick={() => navigate('/messages')}
                 >💬 Перейти в мессенджер</button>
               </div>
@@ -1817,25 +1817,25 @@ export default function ClubPage() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#16213e', border: '1px solid #e94560', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
+              style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-blood-red)', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
             >
-              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#e94560' }}>⭐ Управление резервом</h3>
-              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: 'var(--gd-blood-red)' }}>⭐ Управление резервом</h3>
+              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: 'var(--gd-fg-muted)' }}>
                 {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
               </p>
               <div style={{ marginBottom: 12 }}>
-                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14 }}>
-                    {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span>
+                <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                  <span style={{ color: 'var(--gd-fg)', fontSize: 14 }}>
+                    {keyIcon(b.user.id)}{b.user.name} <span style={{ color: 'var(--gd-warn)', fontSize: 12 }}>(организатор)</span>
                     <button
-                      style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                      style={{ background: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-bg)', color: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                       onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking, isAdminEdit: true })}
                     >R</button>
                   </span>
                   {!isModeratorOwner && !isPastBooking && (
                     <button
-                      style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                      style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
                       onClick={() => kickPlayerFromBooking(b, b.user.id)}
                     >
                       Удалить из игры
@@ -1843,17 +1843,17 @@ export default function ClubPage() {
                   )}
                 </div>
                 {acceptedParticipants.map(p => (
-                  <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                    <span style={{ color: '#eee', fontSize: 14 }}>
+                  <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                    <span style={{ color: 'var(--gd-fg)', fontSize: 14 }}>
                       {keyIcon(p.id)}{p.name}
                       <button
-                        style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                        style={{ background: p.roster ? 'var(--gd-success)' : 'var(--gd-bg)', color: p.roster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${p.roster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                         onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking, isAdminEdit: true })}
                       >R</button>
                     </span>
                     {!(user != null && p.id === user.id) && !isPastBooking && (
                       <button
-                        style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                        style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
                         onClick={() => kickPlayerFromBooking(b, p.id, p.participantId)}
                       >
                         Удалить из игры
@@ -1863,12 +1863,12 @@ export default function ClubPage() {
                 ))}
                 {invitedParticipants.length > 0 && !isPastBooking && (
                   <>
-                    <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
+                    <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
                     {invitedParticipants.map(p => (
-                      <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                        <span style={{ color: '#aaa', fontSize: 14 }}>{p.name} <span style={{ color: '#7b2fff', fontSize: 12 }}>📩</span></span>
+                      <div key={p.participantId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                        <span style={{ color: 'var(--gd-fg-muted)', fontSize: 14 }}>{p.name} <span style={{ color: 'var(--gd-brass)', fontSize: 12 }}>📩</span></span>
                         <button
-                          style={{ background: '#c0392b', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                          style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
                           onClick={() => kickPlayerFromBooking(b, p.id, p.participantId)}
                         >
                           Отозвать
@@ -1878,7 +1878,7 @@ export default function ClubPage() {
                   </>
                 )}
                 {acceptedParticipants.length === 0 && invitedParticipants.length === 0 && (
-                  <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
+                  <p style={{ color: 'var(--gd-fg-muted)', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
                 )}
               </div>
               {(() => {
@@ -1896,10 +1896,10 @@ export default function ClubPage() {
                 if (isPastBooking || acceptedCount >= maxPlayers2) return null
                 return (
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Добавить игрока:</div>
+                    <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Добавить игрока:</div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <select
-                        style={{ background: '#0f3460', color: '#eee', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
+                        style={{ background: 'var(--gd-border)', color: 'var(--gd-fg)', border: '1px solid var(--gd-success)', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
                         value={moderatorAddPlayerId}
                         onChange={e => setModeratorAddPlayerId(e.target.value)}
                       >
@@ -1912,7 +1912,7 @@ export default function ClubPage() {
                       <button
                         onClick={() => addPlayerToBooking(b, moderatorAddPlayerId)}
                         disabled={!moderatorAddPlayerId}
-                        style={{ background: '#1a4a2a', color: '#ccc', border: '1px solid #27ae60', borderRadius: 4, padding: '4px 12px', cursor: moderatorAddPlayerId ? 'pointer' : 'default', fontSize: 12, opacity: moderatorAddPlayerId ? 1 : 0.5 }}
+                        style={{ background: 'var(--gd-success)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-success)', borderRadius: 4, padding: '4px 12px', cursor: moderatorAddPlayerId ? 'pointer' : 'default', fontSize: 12, opacity: moderatorAddPlayerId ? 1 : 0.5 }}
                       >
                         Добавить
                       </button>
@@ -1939,16 +1939,16 @@ export default function ClubPage() {
                 })
                 return (
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Сменить стол:</div>
+                    <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Сменить стол:</div>
                     {availableTables.length === 0 ? (
-                      <p style={{ color: '#666', fontSize: 13, margin: 0 }}>Нет доступных столов для переноса</p>
+                      <p style={{ color: 'var(--gd-fg-muted)', fontSize: 13, margin: 0 }}>Нет доступных столов для переноса</p>
                     ) : (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {availableTables.map(t => (
                           <button
                             key={t.id}
                             onClick={() => moveBookingTable(b, t.id)}
-                            style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
+                            style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}
                           >
                             Стол {t.number}
                           </button>
@@ -1962,7 +1962,7 @@ export default function ClubPage() {
                 {canJoin && !isPastBooking && (
                   <button
                     onClick={handleModeratorJoin}
-                    style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-success)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Присоединиться
                   </button>
@@ -1970,7 +1970,7 @@ export default function ClubPage() {
                 {isModeratorParticipant && !isModeratorOwner && !isPastBooking && (
                   <button
                     onClick={async () => { setModeratorBookingModal(null); await leaveBooking(b) }}
-                    style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Выйти из игры
                   </button>
@@ -1978,7 +1978,7 @@ export default function ClubPage() {
                 {isModeratorOwner && !isPastBooking && (
                   <button
                     onClick={async () => { setModeratorBookingModal(null); await cancelBooking(b) }}
-                    style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Отменить бронирование
                   </button>
@@ -1986,14 +1986,14 @@ export default function ClubPage() {
                 {!isPastBooking && (
                   <button
                     onClick={() => openRescheduleModal(b)}
-                    style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     🕐 Изменить время
                   </button>
                 )}
                 <button
                   onClick={() => setModeratorBookingModal(null)}
-                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                  style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                 >
                   Закрыть
                 </button>
@@ -2035,29 +2035,29 @@ export default function ClubPage() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#16213e', border: '1px solid #ff8c00', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
+              style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-warn)', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 460, width: '90%' }}
             >
-              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#ff8c00' }}>🎮 Управление игрой</h3>
-              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: 'var(--gd-warn)' }}>🎮 Управление игрой</h3>
+              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: 'var(--gd-fg-muted)' }}>
                 {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
               </p>
               <div style={{ marginBottom: 12 }}>
-                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
-                <div style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14 }}>
-                    {keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(вы, организатор)</span>
+                <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки в игре:</div>
+                <div style={{ padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                  <span style={{ color: 'var(--gd-fg)', fontSize: 14 }}>
+                    {keyIcon(b.user.id)}{b.user.name} <span style={{ color: 'var(--gd-warn)', fontSize: 12 }}>(вы, организатор)</span>
                     <button
-                      style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                      style={{ background: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-bg)', color: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                       onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking, isAdminEdit: false })}
                     >R</button>
                   </span>
                 </div>
                 {acceptedParticipants.map(p => (
-                  <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                    <span style={{ color: '#eee', fontSize: 14 }}>
+                  <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                    <span style={{ color: 'var(--gd-fg)', fontSize: 14 }}>
                       {keyIcon(p.id)}{p.name}
                       <button
-                        style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
+                        style={{ background: p.roster ? 'var(--gd-success)' : 'var(--gd-bg)', color: p.roster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${p.roster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '1px 6px', fontSize: 11, cursor: 'pointer', fontWeight: 700, lineHeight: '16px', marginLeft: 6 }}
                         onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking && user?.id === p.id, isAdminEdit: false })}
                       >R</button>
                     </span>
@@ -2065,24 +2065,24 @@ export default function ClubPage() {
                 ))}
                 {invitedParticipants.length > 0 && (
                   <>
-                    <div style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
+                    <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: 600 }}>Приглашены (ещё не приняли):</div>
                     {invitedParticipants.map(p => (
-                      <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid #0f3460' }}>
-                        <span style={{ color: '#aaa', fontSize: 14 }}>{p.name} <span style={{ color: '#7b2fff', fontSize: 12 }}>📩</span></span>
+                      <div key={p.participantId} style={{ padding: '6px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                        <span style={{ color: 'var(--gd-fg-muted)', fontSize: 14 }}>{p.name} <span style={{ color: 'var(--gd-brass)', fontSize: 12 }}>📩</span></span>
                       </div>
                     ))}
                   </>
                 )}
                 {acceptedParticipants.length === 0 && invitedParticipants.length === 0 && (
-                  <p style={{ color: '#666', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
+                  <p style={{ color: 'var(--gd-fg-muted)', fontSize: 13, margin: '6px 0 0 0' }}>Других участников нет</p>
                 )}
               </div>
               {canInviteMore && !isPastBooking && (
                 <div style={{ marginBottom: 12 }}>
-                  <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Пригласить игрока:</div>
+                  <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Пригласить игрока:</div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select
-                      style={{ background: '#0f3460', color: '#eee', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
+                      style={{ background: 'var(--gd-border)', color: 'var(--gd-fg)', border: '1px solid var(--gd-brass)', borderRadius: 4, padding: '4px 8px', fontSize: 13, flex: 1 }}
                       value={ownerInvitePlayerId}
                       onChange={e => setOwnerInvitePlayerId(e.target.value)}
                     >
@@ -2095,7 +2095,7 @@ export default function ClubPage() {
                     <button
                       onClick={() => invitePlayerToBooking(b, ownerInvitePlayerId)}
                       disabled={!ownerInvitePlayerId}
-                      style={{ background: '#1a1a4a', color: '#ccc', border: '1px solid #7b2fff', borderRadius: 4, padding: '4px 12px', cursor: ownerInvitePlayerId ? 'pointer' : 'default', fontSize: 12, opacity: ownerInvitePlayerId ? 1 : 0.5 }}
+                      style={{ background: 'var(--gd-surface-active)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-brass)', borderRadius: 4, padding: '4px 12px', cursor: ownerInvitePlayerId ? 'pointer' : 'default', fontSize: 12, opacity: ownerInvitePlayerId ? 1 : 0.5 }}
                     >
                       Пригласить
                     </button>
@@ -2106,7 +2106,7 @@ export default function ClubPage() {
                 {!isPastBooking && (
                   <button
                     onClick={async () => { setOwnerBookingModal(null); await cancelBooking(b) }}
-                    style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Покинуть / Отменить
                   </button>
@@ -2114,7 +2114,7 @@ export default function ClubPage() {
                 {!isPastBooking && (
                   <button
                     onClick={() => openRescheduleModal(b)}
-                    style={{ background: '#0f3460', color: '#ccc', border: '1px solid #00bcd4', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     🕐 Изменить время
                   </button>
@@ -2127,7 +2127,7 @@ export default function ClubPage() {
                 </button>
                 <button
                   onClick={() => setOwnerBookingModal(null)}
-                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                  style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                 >
                   Закрыть
                 </button>
@@ -2157,26 +2157,26 @@ export default function ClubPage() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#16213e', border: '1px solid #27ae60', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 480, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
+              style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-success)', borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 480, width: '90%', maxHeight: '85vh', overflowY: 'auto' }}
             >
-              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#27ae60' }}>🎮 Игра</h3>
-              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: 'var(--gd-success)' }}>🎮 Игра</h3>
+              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: 'var(--gd-fg-muted)' }}>
                 {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
               </p>
               <div style={{ marginBottom: 14 }}>
-                <div style={{ color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки:</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
-                  <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(b.user.id)}{b.user.name} <span style={{ color: '#ff8c00', fontSize: 12 }}>(организатор)</span></span>
+                <div style={{ color: 'var(--gd-fg-muted)', fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Игроки:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                  <span style={{ color: 'var(--gd-fg)', fontSize: 14, flex: 1 }}>{keyIcon(b.user.id)}{b.user.name} <span style={{ color: 'var(--gd-warn)', fontSize: 12 }}>(организатор)</span></span>
                   <button
-                    style={{ background: b.ownerRoster ? '#1a4a2a' : '#222', color: b.ownerRoster ? '#27ae60' : '#666', border: `1px solid ${b.ownerRoster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                    style={{ background: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-bg)', color: b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${b.ownerRoster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
                     onClick={() => openPlayerRoster({ booking: b, playerName: b.user.name, isOwnerPlayer: true, roster: b.ownerRoster, canEdit: !isPastBooking && user?.id === b.user.id, isAdminEdit: false })}
                   >R</button>
                 </div>
                 {acceptedParticipants.map(p => (
-                  <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid #0f3460' }}>
-                    <span style={{ color: '#eee', fontSize: 14, flex: 1 }}>{keyIcon(p.id)}{p.name}</span>
+                  <div key={p.participantId ?? p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid var(--gd-border)' }}>
+                    <span style={{ color: 'var(--gd-fg)', fontSize: 14, flex: 1 }}>{keyIcon(p.id)}{p.name}</span>
                     <button
-                      style={{ background: p.roster ? '#1a4a2a' : '#222', color: p.roster ? '#27ae60' : '#666', border: `1px solid ${p.roster ? '#27ae60' : '#444'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                      style={{ background: p.roster ? 'var(--gd-success)' : 'var(--gd-bg)', color: p.roster ? 'var(--gd-success)' : 'var(--gd-fg-muted)', border: `1px solid ${p.roster ? 'var(--gd-success)' : 'var(--gd-border)'}`, borderRadius: 3, padding: '2px 8px', fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
                       onClick={() => openPlayerRoster({ booking: b, playerName: p.name, isOwnerPlayer: false, participantId: p.participantId, roster: p.roster, canEdit: !isPastBooking && user?.id === p.id, isAdminEdit: false })}
                     >R</button>
                   </div>
@@ -2186,7 +2186,7 @@ export default function ClubPage() {
                 {canJoin && !isPastBooking && (
                   <button
                     onClick={() => doJoinBooking(b)}
-                    style={{ background: '#27ae60', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-success)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Присоединиться
                   </button>
@@ -2194,14 +2194,14 @@ export default function ClubPage() {
                 {isParticipantAccepted && !isOwner && !isPastBooking && (
                   <button
                     onClick={async () => { setGameInfoModal(null); await leaveBooking(b) }}
-                    style={{ background: '#c0392b', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                    style={{ background: 'var(--gd-danger)', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                   >
                     Выйти из игры
                   </button>
                 )}
                 <button
                   onClick={() => setGameInfoModal(null)}
-                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                  style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                 >
                   Закрыть
                 </button>
@@ -2215,7 +2215,7 @@ export default function ClubPage() {
       {playerRosterModal && (() => {
         const { booking: b, playerName, isOwnerPlayer, canEdit, isAdminEdit } = playerRosterModal
         const fmt = (s: string) => { const d = new Date(s); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
-        const borderColor = isAdminEdit ? '#e94560' : '#27ae60'
+        const borderColor = isAdminEdit ? 'var(--gd-blood-red)' : 'var(--gd-success)'
         return (
           <div
             onClick={() => setPlayerRosterModal(null)}
@@ -2223,16 +2223,16 @@ export default function ClubPage() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#16213e', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 520, width: '92%', height: '96dvh', maxHeight: '96dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
+              style={{ background: 'var(--gd-surface)', border: `1px solid ${borderColor}`, borderRadius: 8, padding: '24px 28px', minWidth: 300, maxWidth: 520, width: '92%', height: '96dvh', maxHeight: '96dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
             >
               <h3 style={{ margin: '0 0 2px 0', fontSize: 16, color: borderColor, flexShrink: 0 }}>
                 {isOwnerPlayer ? '👑' : '🎮'} {playerName}
               </h3>
-              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#aaa', flexShrink: 0 }}>
+              <p style={{ margin: '0 0 12px 0', fontSize: 13, color: 'var(--gd-fg-muted)', flexShrink: 0 }}>
                 {fmt(b.startTime)}–{fmt(b.endTime)}{b.gameSystem && ` · ${b.gameSystem}`}{b.isDoubles && ' · 2×2'}
               </p>
               {playerRosterLoading ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 14 }}>Загрузка...</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gd-fg-muted)', fontSize: 14 }}>Загрузка...</div>
               ) : canEdit ? (
                 <>
                   <textarea
@@ -2241,22 +2241,22 @@ export default function ClubPage() {
                     value={playerRosterValue}
                     onChange={e => setPlayerRosterValue(e.target.value)}
                     maxLength={6000}
-                    style={{ flex: 1, width: '100%', background: '#0a1628', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '10px 12px', fontSize: 13, resize: 'none', boxSizing: 'border-box', fontFamily: 'monospace', lineHeight: 1.5 }}
+                    style={{ flex: 1, width: '100%', background: 'var(--gd-bg-raised)', color: 'var(--gd-fg)', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '10px 12px', fontSize: 13, resize: 'none', boxSizing: 'border-box', fontFamily: 'monospace', lineHeight: 1.5 }}
                   />
-                  <div style={{ textAlign: 'right', fontSize: 11, color: playerRosterValue.length > 5800 ? '#e94560' : '#666', marginTop: 3, flexShrink: 0 }}>
+                  <div style={{ textAlign: 'right', fontSize: 11, color: playerRosterValue.length > 5800 ? 'var(--gd-blood-red)' : 'var(--gd-fg-muted)', marginTop: 3, flexShrink: 0 }}>
                     {playerRosterValue.length} / 6000
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 10, flexShrink: 0 }}>
                     <button
                       onClick={saveCurrentPlayerRoster}
                       disabled={playerRosterSaving}
-                      style={{ background: borderColor === '#e94560' ? '#4a1a2a' : '#1a4a2a', color: '#eee', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 20px', fontSize: 13, cursor: 'pointer', flex: 1 }}
+                      style={{ background: borderColor === 'var(--gd-blood-red)' ? 'var(--gd-surface-active)' : 'var(--gd-success)', color: 'var(--gd-fg)', border: `1px solid ${borderColor}`, borderRadius: 4, padding: '6px 20px', fontSize: 13, cursor: 'pointer', flex: 1 }}
                     >
                       {playerRosterSaving ? 'Сохраняю...' : 'Сохранить ростер'}
                     </button>
                     <button
                       onClick={() => setPlayerRosterModal(null)}
-                      style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                      style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                     >
                       Закрыть
                     </button>
@@ -2265,13 +2265,13 @@ export default function ClubPage() {
               ) : (
                 <>
                   {playerRosterValue
-                    ? <pre style={{ flex: 1, color: '#ccc', fontSize: 13, background: '#0a1628', padding: '12px 14px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowY: 'auto', fontFamily: 'monospace', lineHeight: 1.5 }}>{playerRosterValue}</pre>
-                    : <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: 14 }}>Ростер не задан</div>
+                    ? <pre style={{ flex: 1, color: 'var(--gd-fg-secondary)', fontSize: 13, background: 'var(--gd-bg-raised)', padding: '12px 14px', borderRadius: 4, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowY: 'auto', fontFamily: 'monospace', lineHeight: 1.5 }}>{playerRosterValue}</pre>
+                    : <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gd-fg-muted)', fontSize: 14 }}>Ростер не задан</div>
                   }
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
                     <button
                       onClick={() => setPlayerRosterModal(null)}
-                      style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+                      style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
                     >
                       Закрыть
                     </button>
@@ -2318,15 +2318,15 @@ export default function ClubPage() {
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: '#16213e', border: '1px solid #00bcd4', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 400, width: '90%' }}
+              style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-brass)', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 400, width: '90%' }}
             >
-              <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: '#00bcd4' }}>🕐 Изменить время игры</h3>
-              <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#aaa' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: 16, color: 'var(--gd-brass)' }}>🕐 Изменить время игры</h3>
+              <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--gd-fg-muted)' }}>
                 Текущее время: {fmtHHMM(b.startTime)}–{fmtHHMM(b.endTime)}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <label style={{ color: '#aaa', fontSize: 13, minWidth: 70 }}>Начало:</label>
+                  <label style={{ color: 'var(--gd-fg-muted)', fontSize: 13, minWidth: 70 }}>Начало:</label>
                   <input
                     type="time"
                     value={rescheduleStartTime}
@@ -2334,11 +2334,11 @@ export default function ClubPage() {
                     min={selectedClubData?.openTime}
                     max={selectedClubData?.closeTime}
                     onChange={e => setRescheduleStartTime(e.target.value)}
-                    style={{ background: '#0f3460', color: '#eee', border: '1px solid #533483', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
+                    style={{ background: 'var(--gd-border)', color: 'var(--gd-fg)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <label style={{ color: '#aaa', fontSize: 13, minWidth: 70 }}>Конец:</label>
+                  <label style={{ color: 'var(--gd-fg-muted)', fontSize: 13, minWidth: 70 }}>Конец:</label>
                   <input
                     type="time"
                     value={rescheduleEndTime}
@@ -2346,21 +2346,21 @@ export default function ClubPage() {
                     min={selectedClubData?.openTime}
                     max={selectedClubData?.closeTime}
                     onChange={e => setRescheduleEndTime(e.target.value)}
-                    style={{ background: '#0f3460', color: '#eee', border: '1px solid #533483', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
+                    style={{ background: 'var(--gd-border)', color: 'var(--gd-fg)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 10px', fontSize: 14, flex: 1 }}
                   />
                 </div>
               </div>
-              {rescheduleError && <p style={{ color: '#e94560', fontSize: 13, margin: '10px 0 0 0' }}>{rescheduleError}</p>}
+              {rescheduleError && <p style={{ color: 'var(--gd-blood-red)', fontSize: 13, margin: '10px 0 0 0' }}>{rescheduleError}</p>}
               <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
                 <button
                   onClick={rescheduleBooking}
-                  style={{ background: '#00838f', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
+                  style={{ background: 'var(--gd-brass)', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
                 >
                   Сохранить
                 </button>
                 <button
                   onClick={() => setRescheduleModal(null)}
-                  style={{ background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontSize: 13 }}
+                  style={{ background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontSize: 13 }}
                 >
                   Отмена
                 </button>
@@ -2378,25 +2378,25 @@ export default function ClubPage() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 420, width: '90%' }}
+            style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: '24px 28px', minWidth: 280, maxWidth: 420, width: '90%' }}
           >
-            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: '#e0e0e0' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16, color: 'var(--gd-fg)' }}>
               {playerSystemsModal.displayName || playerSystemsModal.registrationName}
             </h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#888' }}>Игровые системы</p>
+            <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--gd-fg-muted)' }}>Игровые системы</p>
             {playerSystemsModal.enabledGameSystems
               ? (
-                <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#ccc', fontSize: 14, lineHeight: 1.8 }}>
+                <ul style={{ margin: 0, padding: '0 0 0 20px', color: 'var(--gd-fg-secondary)', fontSize: 14, lineHeight: 1.8 }}>
                   {playerSystemsModal.enabledGameSystems.split('|').filter(s => s.trim()).map((s, idx) => (
                     <li key={idx}>{s.trim()}</li>
                   ))}
                 </ul>
               )
-              : <p style={{ color: '#666', margin: 0, fontSize: 14 }}>Системы не указаны</p>
+              : <p style={{ color: 'var(--gd-fg-muted)', margin: 0, fontSize: 14 }}>Системы не указаны</p>
             }
             <button
               onClick={() => setPlayerSystemsModal(null)}
-              style={{ marginTop: 20, background: '#0f3460', color: '#ccc', border: '1px solid #1a4a8a', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
+              style={{ marginTop: 20, background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}
             >
               Закрыть
             </button>

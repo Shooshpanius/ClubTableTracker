@@ -118,7 +118,7 @@ export default function BookingCalendar({ bookings, selectedDate, onSelectDate, 
           ))}
         </tbody>
       </table>
-      <div style={{ marginTop: 8, fontSize: 11, color: '#666', textAlign: 'center' }}>
+      <div style={{ marginTop: 8, fontSize: 11, color: 'var(--gd-fg-muted)', textAlign: 'center' }}>
         Бронирование доступно на {MAX_BOOKING_DAYS_AHEAD} дней вперёд
         {maxCampaignDate && maxCampaignDate > maxDate && ' · кампании — до конца срока'}
       </div>

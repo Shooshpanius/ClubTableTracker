@@ -109,35 +109,35 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
   }, [dragging, draggingDeco, drawStart, drawPreview, drawMode, localPositions, localDecoPositions, onPositionChange, onMoveDecoration, onAddDecoration])
 
   const decoVisual = (type: 'wall' | 'window' | 'door') => {
-    if (type === 'wall') return { background: '#4a4a4a', border: '2px solid #222', color: '#ccc' }
-    if (type === 'window') return { background: 'rgba(100, 200, 255, 0.2)', border: '2px dashed #64c8ff', color: '#64c8ff' }
-    return { background: 'rgba(255, 200, 100, 0.2)', border: '2px dashed #ffc864', color: '#ffc864' }
+    if (type === 'wall') return { background: 'var(--gd-fg-muted)', border: '2px solid var(--gd-bg)', color: 'var(--gd-fg-secondary)' }
+    if (type === 'window') return { background: 'rgba(100, 200, 255, 0.2)', border: '2px dashed var(--gd-brass)', color: 'var(--gd-brass)' }
+    return { background: 'rgba(255, 200, 100, 0.2)', border: '2px dashed var(--gd-warn)', color: 'var(--gd-warn)' }
   }
 
   const decoLabel = (type: string) => type === 'wall' ? 'Стена' : type === 'window' ? 'Окно' : 'Дверь'
 
   const drawBtnStyle = (mode: DrawMode): React.CSSProperties => ({
-    background: drawMode === mode ? '#533483' : '#1a2a4a',
-    color: '#fff', border: '1px solid #533483', padding: '6px 14px',
+    background: drawMode === mode ? 'var(--gd-border-brass)' : 'var(--gd-border-soft)',
+    color: '#fff', border: '1px solid var(--gd-border-brass)', padding: '6px 14px',
     borderRadius: 4, cursor: 'pointer', fontSize: 13
   })
 
   const canvasCursor = drawMode ? 'crosshair' : (dragging || draggingDeco) ? 'grabbing' : 'default'
 
   return (
-    <div style={{ background: '#0a0a1a', border: '1px solid #0f3460', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{ padding: '8px 12px', background: '#16213e', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-        <span style={{ color: '#aaa', fontSize: 13 }}>Добавить:</span>
+    <div style={{ background: 'var(--gd-bg)', border: '1px solid var(--gd-border)', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ padding: '8px 12px', background: 'var(--gd-surface)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+        <span style={{ color: 'var(--gd-fg-muted)', fontSize: 13 }}>Добавить:</span>
         <button style={drawBtnStyle('wall')} onClick={() => setDrawMode(drawMode === 'wall' ? null : 'wall')}>🧱 Стена</button>
         <button style={drawBtnStyle('window')} onClick={() => setDrawMode(drawMode === 'window' ? null : 'window')}>🪟 Окно</button>
         <button style={drawBtnStyle('door')} onClick={() => setDrawMode(drawMode === 'door' ? null : 'door')}>🚪 Дверь</button>
         {selectedDecoId !== null && (
-          <button style={{ background: '#e94560', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 13, marginLeft: 8 }}
+          <button style={{ background: 'var(--gd-blood-red)', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 13, marginLeft: 8 }}
             onClick={() => { onDeleteDecoration(selectedDecoId); setSelectedDecoId(null) }}>
             🗑 Удалить
           </button>
         )}
-        <span style={{ color: drawMode ? '#ffc107' : '#555', fontSize: 12, marginLeft: 4 }}>
+        <span style={{ color: drawMode ? 'var(--gd-warn)' : 'var(--gd-fg-muted)', fontSize: 12, marginLeft: 4 }}>
           {drawMode ? 'Нарисуйте прямоугольник. Нажмите кнопку ещё раз для отмены.' : 'Перетаскивайте столы и элементы. Нажмите на элемент для выбора.'}
         </span>
       </div>
@@ -157,7 +157,7 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
                 position: 'absolute', left: pos.x, top: pos.y,
                 width: deco.width, height: deco.height,
                 ...visual,
-                outline: isSelected ? '2px solid #e94560' : 'none',
+                outline: isSelected ? '2px solid var(--gd-blood-red)' : 'none',
                 cursor: drawMode ? 'crosshair' : 'grab',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 11, userSelect: 'none', boxSizing: 'border-box', zIndex: 1
@@ -177,14 +177,14 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
               style={{
                 position: 'absolute', left: pos.x, top: pos.y,
                 width: table.width, height: table.height,
-                background: '#1a3a5c', border: '2px solid #533483',
+                background: 'var(--gd-surface-active)', border: '2px solid var(--gd-border-brass)',
                 borderRadius: 4, cursor: drawMode ? 'crosshair' : 'grab',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                color: '#eee', fontSize: 12, userSelect: 'none', zIndex: 2
+                color: 'var(--gd-fg)', fontSize: 12, userSelect: 'none', zIndex: 2
               }}>
               <div style={{ fontWeight: 'bold' }}>#{table.number}</div>
-              <div style={{ fontSize: 10, color: '#aaa' }}>{table.size}</div>
+              <div style={{ fontSize: 10, color: 'var(--gd-fg-muted)' }}>{table.size}</div>
             </div>
           )
         })}
@@ -196,7 +196,7 @@ export default function ClubMapEditor({ tables, decorations, onPositionChange, o
           }} />
         )}
         {tables.length === 0 && decorations.length === 0 && (
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#555', fontSize: 18 }}>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: 'var(--gd-fg-muted)', fontSize: 18 }}>
             Add tables using the form below
           </div>
         )}

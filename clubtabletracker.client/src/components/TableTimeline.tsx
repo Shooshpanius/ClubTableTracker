@@ -101,7 +101,7 @@ export default function TableTimeline({ table, bookings, openTime, closeTime, se
                 cursor: (isFree && onSlotClick) || (!isFree && onBookingClick) ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'center', alignItems: 'center',
-                fontSize: 11, color: '#222', overflow: 'hidden',
+                fontSize: 11, color: 'var(--gd-bg)', overflow: 'hidden',
                 padding: '2px 4px', boxSizing: 'border-box',
                 borderBottom: i < segments.length - 1 ? '1px solid rgba(0,0,0,0.15)' : 'none'
               }}>

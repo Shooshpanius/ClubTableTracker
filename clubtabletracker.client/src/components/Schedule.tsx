@@ -7,13 +7,13 @@ interface Props {
 }
 
 export default function Schedule({ bookings, tables }: Props) {
-  const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 12, marginBottom: 8 }
+  const cardStyle: React.CSSProperties = { background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, padding: 12, marginBottom: 8 }
   const sorted = [...bookings].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
   return (
     <div>
       <h3>📅 Schedule</h3>
-      {sorted.length === 0 && <p style={{ color: '#aaa' }}>No bookings scheduled.</p>}
+      {sorted.length === 0 && <p style={{ color: 'var(--gd-fg-muted)' }}>No bookings scheduled.</p>}
       {sorted.map(b => {
         const table = tables.find(t => t.id === b.tableId)
         return (
@@ -21,12 +21,12 @@ export default function Schedule({ bookings, tables }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <strong>Table #{table?.number ?? b.tableId}</strong> — {table?.size}
-                <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                <div style={{ color: 'var(--gd-fg-muted)', fontSize: 13, marginTop: 4 }}>
                   {new Date(b.startTime).toLocaleString()} → {new Date(b.endTime).toLocaleString()}
                 </div>
                 <div style={{ marginTop: 4 }}>
-                  <span style={{ color: '#4caf50' }}>👤 {b.user.name}</span>
-                  {b.participants.map(p => <span key={p.id} style={{ color: '#4caf50', marginLeft: 8 }}>+ {p.name}</span>)}
+                  <span style={{ color: 'var(--gd-success)' }}>👤 {b.user.name}</span>
+                  {b.participants.map(p => <span key={p.id} style={{ color: 'var(--gd-success)', marginLeft: 8 }}>+ {p.name}</span>)}
                 </div>
               </div>
             </div>
