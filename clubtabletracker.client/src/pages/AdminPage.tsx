@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Button, Dataslate, Badge, GothicDivider } from '../components/ui'
 
 interface Club {
   id: number
@@ -14,6 +15,7 @@ export default function AdminPage() {
   const [newDesc, setNewDesc] = useState('')
   const [error, setError] = useState('')
   const [authed, setAuthed] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const login = () => {
     sessionStorage.setItem('masterKey', masterKey)
@@ -27,7 +29,7 @@ export default function AdminPage() {
       setAuthed(true)
       setError('')
     } else {
-      setError('Invalid master key')
+      setError('Неверный мастер-ключ')
       setAuthed(false)
     }
   }
@@ -49,6 +51,7 @@ export default function AdminPage() {
       setClubs([...clubs, club])
       setNewName('')
       setNewDesc('')
+      setShowCreateModal(false)
     }
   }
 
@@ -63,55 +66,102 @@ export default function AdminPage() {
     }
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: '#16213e', border: '1px solid #0f3460', borderRadius: 8,
-    padding: 16, marginBottom: 16
-  }
-  const inputStyle: React.CSSProperties = {
-    background: '#0f3460', border: '1px solid #533483', color: '#eee',
-    padding: '8px 12px', borderRadius: 4, marginRight: 8, width: 200
-  }
-  const btnStyle: React.CSSProperties = {
-    background: '#533483', color: '#fff', border: 'none',
-    padding: '8px 16px', borderRadius: 4, cursor: 'pointer'
-  }
-
   if (!authed) {
     return (
-      <div style={{ padding: 40 }}>
-        <h1 style={{ color: '#e94560' }}>🎲 ClubTableTracker Admin</h1>
-        <div style={cardStyle}>
-          <h2>Master Key Login</h2>
-          <input style={inputStyle} type="password" placeholder="Master Key"
-            value={masterKey} onChange={e => setMasterKey(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && login()} />
-          <button style={btnStyle} onClick={login}>Login</button>
-          {error && <p style={{ color: '#e94560' }}>{error}</p>}
+      <div className="gd-app" style={{ minHeight: '100vh' }}>
+        <div className="gd-gadmin-container">
+          <div style={{ marginBottom: 'var(--gd-s4)' }}>
+            <h1 className="gd-gadmin-title">Глобальное управление</h1>
+            <p className="gd-gadmin-sub">Панель системного администратора · Авторизация</p>
+          </div>
+          <Dataslate title="Вход по мастер-ключу">
+            <input
+              className="gd-input"
+              type="password"
+              placeholder="Мастер-ключ"
+              value={masterKey}
+              onChange={e => setMasterKey(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && login()}
+              style={{ width: '100%' }}
+            />
+            {error && <p style={{ color: 'var(--gd-danger)', fontSize: '0.8rem' }}>{error}</p>}
+            <Button variant="primary" onClick={login}>Войти</Button>
+          </Dataslate>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1 style={{ color: '#e94560' }}>🎲 ClubTableTracker Admin</h1>
-      <div style={cardStyle}>
-        <h2>Create Club</h2>
-        <input style={inputStyle} placeholder="Club Name" value={newName} onChange={e => setNewName(e.target.value)} />
-        <input style={inputStyle} placeholder="Description" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
-        <button style={btnStyle} onClick={createClub}>Create Club</button>
-      </div>
-      <h2>Clubs</h2>
-      {clubs.map(club => (
-        <div key={club.id} style={cardStyle}>
-          <h3>{club.name}</h3>
-          <p style={{ color: '#aaa' }}>{club.description}</p>
-          <p>Access Key: <code style={{ background: '#0f3460', padding: '2px 8px', borderRadius: 3 }}>{club.accessKey}</code></p>
-          <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => regenerateKey(club.id)}>
-            Regenerate Key
-          </button>
+    <div className="gd-app" style={{ minHeight: '100vh' }}>
+      <div className="gd-gadmin-container">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s4)' }}>
+          <div>
+            <h1 className="gd-gadmin-title">Глобальное управление</h1>
+            <p className="gd-gadmin-sub">Панель системного администратора · Все клубы платформы</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => { sessionStorage.removeItem('masterKey'); setAuthed(false); setMasterKey('') }}>← Выход</Button>
         </div>
-      ))}
+        <GothicDivider />
+
+        <Dataslate title={`Клубы (${clubs.length})`}>
+          {clubs.length === 0 ? (
+            <p className="gd-text-muted">Клубов пока нет</p>
+          ) : (
+            <table className="gd-gadmin-table">
+              <thead>
+                <tr>
+                  <th>Название</th>
+                  <th>Описание</th>
+                  <th>Ключ доступа</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {clubs.map(club => (
+                  <tr key={club.id}>
+                    <td><strong>{club.name}</strong></td>
+                    <td className="gd-text-secondary">{club.description || '—'}</td>
+                    <td>
+                      <code className="gd-gadmin-code">{club.accessKey}</code>
+                      {' '}
+                      <Badge tone="brass">Активен</Badge>
+                    </td>
+                    <td>
+                      <Button variant="secondary" size="xs" onClick={() => regenerateKey(club.id)}>
+                        Сгенерировать
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <Button variant="primary" size="sm" style={{ marginTop: 'var(--gd-s3)' }} onClick={() => setShowCreateModal(true)}>
+            + Создать клуб
+          </Button>
+        </Dataslate>
+
+        {showCreateModal && (
+          <div className="gd-gadmin-modal-overlay" onClick={() => setShowCreateModal(false)}>
+            <div className="gd-gadmin-modal" onClick={e => e.stopPropagation()}>
+              <h3>Создать клуб</h3>
+              <div style={{ marginBottom: 'var(--gd-s3)' }}>
+                <label className="gd-gadmin-form-label">Название</label>
+                <input className="gd-input" style={{ width: '100%' }} placeholder="Название ордена" value={newName} onChange={e => setNewName(e.target.value)} />
+              </div>
+              <div style={{ marginBottom: 'var(--gd-s3)' }}>
+                <label className="gd-gadmin-form-label">Описание</label>
+                <input className="gd-input" style={{ width: '100%' }} placeholder="Краткое описание" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: 'var(--gd-s2)', justifyContent: 'flex-end' }}>
+                <Button variant="secondary" onClick={() => setShowCreateModal(false)}>Отмена</Button>
+                <Button variant="primary" onClick={createClub}>Создать</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -98,11 +98,11 @@ const LOG_ACTION_LABEL: Record<string, string> = {
  
 const LOG_ACTION_COLOR: Record<string, string> = {
   Booked: 'var(--gd-success)',
-  Joined: '#4a9eff',
+  Joined: 'var(--gd-brass)',
   Left: 'var(--gd-warn)',
   Cancelled: 'var(--gd-danger)',
-  MovedTable: '#9c27b0',
-  Rescheduled: '#00bcd4'
+  MovedTable: 'var(--gd-fg)',
+  Rescheduled: 'var(--gd-brass)'
 }
 
 export default function ClubPage() {
@@ -1179,14 +1179,14 @@ export default function ClubPage() {
             {mobileTab === "log" && (
               <div>
                 {!user ? (
-                  <p style={{ color: "#aaa" }}>Войдите, чтобы видеть журнал действий.</p>
+                  <p className="gd-text-muted">Войдите, чтобы видеть журнал действий.</p>
                 ) : (
                   <>
-                    <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>Журнал за последний месяц</h3>
+                    <h3 className="gd-h3">Журнал за последний месяц</h3>
                     {activityLog.length === 0 ? (
-                      <p style={{ color: "#aaa", margin: 0 }}>Нет записей за последний месяц</p>
+                      <p className="gd-text-muted" style={{ margin: 0 }}>Нет записей за последний месяц</p>
                     ) : (
-                      <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                      <div className="gd-log-list">
                         {activityLog.map(entry => {
                           const ts = new Date(entry.timestamp)
                           const start = new Date(entry.bookingStartTime)
@@ -1194,15 +1194,15 @@ export default function ClubPage() {
                           const fmtDt = (d: Date) => d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
                           const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
                           return (
-                            <div key={entry.id} style={{ fontSize: 13, padding: "5px 0", borderBottom: "1px solid #1a2a4a", color: "#ccc" }}>
-                              <span style={{ color: "#666", marginRight: 8 }}>{fmtDt(ts)}</span>
-                              <span style={{ color: "#eee", fontWeight: "bold" }}>{entry.userName}</span>
+                            <div key={entry.id} className="gd-log-entry">
+                              <span className="gd-log-time">{fmtDt(ts)}</span>
+                              <span className="gd-log-actor">{entry.userName}</span>
                               {" "}
-                              <span style={{ color: LOG_ACTION_COLOR[entry.action] || "#aaa" }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
+                              <span style={{ color: LOG_ACTION_COLOR[entry.action] || 'var(--gd-fg-muted)' }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
                               {" резерв стола "}
-                              <span style={{ color: "#ffc107" }}>{entry.tableNumber}</span>
+                              <span style={{ color: "var(--gd-warn)" }}>{entry.tableNumber}</span>
                               {" на "}
-                              <span style={{ color: "#4caf50" }}>{fmtDt(start).split(",")[0]} {fmtTime(start)}–{fmtTime(end)}</span>
+                              <span style={{ color: "var(--gd-success)" }}>{fmtDt(start).split(",")[0]} {fmtTime(start)}–{fmtTime(end)}</span>
                             </div>
                           )
                         })}
@@ -1628,11 +1628,11 @@ export default function ClubPage() {
             {/* Tab: Журнал действий */}
             {desktopTab === 'log' && (
               <div>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>Журнал за последний месяц</h3>
+                <h3 className="gd-h3">Журнал за последний месяц</h3>
                 {activityLog.length === 0 ? (
-                  <p style={{ color: '#aaa', margin: 0 }}>Нет записей за последний месяц</p>
+                  <p className="gd-text-muted" style={{ margin: 0 }}>Нет записей за последний месяц</p>
                 ) : (
-                  <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  <div className="gd-log-list">
                     {activityLog.map(entry => {
                       const ts = new Date(entry.timestamp)
                       const start = new Date(entry.bookingStartTime)
@@ -1640,15 +1640,15 @@ export default function ClubPage() {
                       const fmtDt = (d: Date) => d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                       const fmtTime = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
                       return (
-                        <div key={entry.id} style={{ fontSize: 13, padding: '5px 0', borderBottom: '1px solid #1a2a4a', color: '#ccc' }}>
-                          <span style={{ color: '#666', marginRight: 8 }}>{fmtDt(ts)}</span>
-                          <span style={{ color: '#eee', fontWeight: 'bold' }}>{entry.userName}</span>
+                        <div key={entry.id} className="gd-log-entry">
+                          <span className="gd-log-time">{fmtDt(ts)}</span>
+                          <span className="gd-log-actor">{entry.userName}</span>
                           {' '}
-                          <span style={{ color: LOG_ACTION_COLOR[entry.action] || '#aaa' }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
+                          <span style={{ color: LOG_ACTION_COLOR[entry.action] || 'var(--gd-fg-muted)' }}>{LOG_ACTION_LABEL[entry.action] || entry.action}</span>
                           {' резерв стола '}
-                          <span style={{ color: '#ffc107' }}>{entry.tableNumber}</span>
+                          <span style={{ color: 'var(--gd-warn)' }}>{entry.tableNumber}</span>
                           {' на '}
-                          <span style={{ color: '#4caf50' }}>{fmtDt(start).split(',')[0]} {fmtTime(start)}–{fmtTime(end)}</span>
+                          <span style={{ color: 'var(--gd-success)' }}>{fmtDt(start).split(',')[0]} {fmtTime(start)}–{fmtTime(end)}</span>
                         </div>
                       )
                     })}

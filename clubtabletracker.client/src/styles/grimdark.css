@@ -1013,3 +1013,24 @@
 .gd-table-accordion-btn:hover { background: var(--gd-surface-hover); }
 .gd-table-accordion-btn.active { background: var(--gd-surface-active); }
 .gd-h3 { font-size: 0.95rem; color: var(--gd-fg); font-family: var(--gd-font-display); margin: 0 0 var(--gd-s3) 0; }
+
+/* ── Activity log list ── */
+.gd-log-list { max-height: 400px; overflow-y: auto; }
+.gd-log-actor { color: var(--gd-fg); font-weight: bold; }
+
+/* ── Global admin (AdminPage) ── */
+.gd-gadmin-container { max-width: 1000px; margin: 0 auto; padding: var(--gd-s8) var(--gd-s6); }
+.gd-gadmin-title { font-family: var(--gd-font-display); font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gd-brass); margin-bottom: 2px; }
+.gd-gadmin-sub { font-size: 0.7rem; color: var(--gd-fg-muted); }
+.gd-gadmin-code { color: var(--gd-brass); font-size: 0.65rem; }
+.gd-gadmin-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.gd-gadmin-table th { padding: var(--gd-s2) var(--gd-s3); color: var(--gd-fg-muted); font-family: var(--gd-font-display); font-size: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; border-bottom: 2px solid var(--gd-border); }
+.gd-gadmin-table td { padding: var(--gd-s2) var(--gd-s3); border-bottom: 1px solid var(--gd-border-soft); color: var(--gd-fg-secondary); }
+.gd-gadmin-table tr:hover td { background: var(--gd-surface-hover); }
+.gd-gadmin-key-row { display: flex; align-items: center; gap: var(--gd-s2); padding: var(--gd-s2) var(--gd-s3); background: var(--gd-bg); border: 1px solid var(--gd-border); font-family: var(--gd-font-mono); font-size: 0.65rem; color: var(--gd-fg-secondary); }
+.gd-gadmin-key-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-gadmin-key-action { flex-shrink: 0; }
+.gd-gadmin-modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(4, 4, 6, 0.7); display: flex; align-items: center; justify-content: center; }
+.gd-gadmin-modal { background: linear-gradient(180deg, var(--gd-surface), var(--gd-bg-raised)); border: 2px solid; border-image: linear-gradient(135deg, var(--gd-blood-red), var(--gd-border-brass), var(--gd-border)) 1; padding: var(--gd-s6); max-width: 400px; width: 90%; }
+.gd-gadmin-modal h3 { font-family: var(--gd-font-display); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gd-brass); margin-bottom: var(--gd-s4); }
+.gd-gadmin-form-label { display: block; font-family: var(--gd-font-display); font-size: 0.5rem; color: var(--gd-fg-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
