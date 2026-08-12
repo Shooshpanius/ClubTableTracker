@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import ClubMapEditor from '../components/ClubMapEditor'
 import CampaignMapEditor from '../components/CampaignMapEditor'
+import { Button, Dataslate, Badge, GothicDivider } from '../components/ui'
 import { GAME_SYSTEMS_MAIN, GAME_SYSTEMS_BOTTOM, ALL_GAME_SYSTEMS } from '../constants'
 import { getAttachmentDisplayName } from '../utils/attachmentName'
 import { isTokenExpired } from '../utils/auth'
@@ -646,90 +647,66 @@ export default function ClubAdminPage() {
     if (res.ok) setGalleryPhotos(prev => prev.filter(p => p.id !== id))
   }
 
-  const membershipStatusColor = (status: string) => {
-    if (status === 'Approved') return '#4caf50'
-    if (status === 'Rejected') return '#e94560'
-    if (status === 'Kicked') return '#ff5722'
-    return '#ffc107'
-  }
   const membershipStatusLabel = (status: string) => status === 'Kicked' ? 'Исключён' : status
-
-  const cardStyle: React.CSSProperties = { background: '#16213e', border: '1px solid #0f3460', borderRadius: 8, padding: 16, marginBottom: 16 }
-  const inputStyle: React.CSSProperties = { background: '#0f3460', border: '1px solid #533483', color: '#eee', padding: '8px 12px', borderRadius: 4, marginRight: 8, marginBottom: 8 }
-  const btnStyle: React.CSSProperties = { background: '#533483', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', marginRight: 8 }
-  const tabBarStyle: React.CSSProperties = { display: 'flex', borderBottom: '2px solid #0f3460', marginBottom: 24 }
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    background: 'none',
-    color: active ? '#e94560' : '#aaa',
-    border: 'none',
-    borderBottom: active ? '2px solid #e94560' : '2px solid transparent',
-    padding: '10px 20px',
-    cursor: 'pointer',
-    fontSize: 14,
-    marginBottom: -2,
-    transition: 'color 0.15s',
-  })
-  const thStyle: React.CSSProperties = { textAlign: 'left', padding: '8px 12px', color: '#aaa', fontWeight: 600, fontSize: 13, borderBottom: '1px solid #0f3460' }
-  const tdStyle: React.CSSProperties = { padding: '8px 12px', fontSize: 13, borderBottom: '1px solid #16213e', verticalAlign: 'middle' }
 
   if (!club) {
     // Admin-role-based access: auto-login in progress or failed
     if (adminClubId && token) {
       return (
-        <div style={{ padding: 40 }}>
-          <h1 style={{ color: '#e94560' }}>🎲 Club Admin</h1>
+        <div className="gd-app gd-admin-login">
+          <h1 className="gd-admin-title">Панель управления</h1>
+          <GothicDivider />
           {error
-            ? <div style={cardStyle}>
-                <p style={{ color: '#e94560' }}>{error}</p>
-                <button style={btnStyle} onClick={() => { setAdminClubId(null); setError('') }}>Войти по ключу</button>
-              </div>
-            : <p style={{ color: '#aaa' }}>Авторизация...</p>
+            ? <Dataslate>
+                <p className="gd-error-text">{error}</p>
+                <Button variant="secondary" size="sm" onClick={() => { setAdminClubId(null); setError('') }}>Войти по ключу</Button>
+              </Dataslate>
+            : <p className="gd-text-muted">Авторизация…</p>
           }
         </div>
       )
     }
     // Key-based login form
     return (
-      <div style={{ padding: 40 }}>
-        <h1 style={{ color: '#e94560' }}>🎲 Club Admin</h1>
-        <div style={cardStyle}>
-          <h2>Club Key Login</h2>
-          <input style={inputStyle} type="password" placeholder="Club Access Key"
+      <div className="gd-app gd-admin-login">
+        <h1 className="gd-admin-title">Панель управления</h1>
+        <GothicDivider />
+        <Dataslate title="Доступ по ключу">
+          <input className="gd-input" type="password" placeholder="Ключ доступа к клубу"
             value={clubKey} onChange={e => setClubKey(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()} />
-          <button style={btnStyle} onClick={login}>Login</button>
-          {error && <p style={{ color: '#e94560' }}>{error}</p>}
-        </div>
+          <Button onClick={login}>Войти</Button>
+          {error && <p className="gd-error-text">{error}</p>}
+        </Dataslate>
       </div>
     )
   }
 
   return (
     <>
-    <div style={{ padding: 40 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <h1 style={{ color: '#e94560' }}>🎲 {club.name} — Club Admin</h1>
-        <button
-          onClick={() => navigate(`/club/${club.id}`)}
-          style={{ background: '#0f3460', color: '#4a9eff', border: '1px solid #4a9eff', borderRadius: 4, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-        >
-          ← К клубу
-        </button>
+    <div className="gd-app gd-admin-container">
+      <div className="gd-flex-between gd-flex-wrap" style={{ gap: 'var(--gd-s3)', marginBottom: 'var(--gd-s4)' }}>
+        <div>
+          <h1 className="gd-admin-title">{club.name}</h1>
+          <p className="gd-admin-sub">Панель управления · Магистр</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => navigate(`/club/${club.id}`)}>← К клубу</Button>
       </div>
-      <div style={tabBarStyle}>
-        <button style={tabStyle(tab === 'map')} onClick={() => setTab('map')}>Map Editor</button>
-        <button style={tabStyle(tab === 'members')} onClick={() => setTab('members')}>
-          Members{memberships.filter(m => m.status === 'Pending').length > 0 && <span style={{ marginLeft: 6, background: '#e94560', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{memberships.filter(m => m.status === 'Pending').length}</span>}
+      <GothicDivider />
+      <div className="gd-tabs">
+        <button className={`gd-tab${tab === 'map' ? ' active' : ''}`} onClick={() => setTab('map')}>Столы</button>
+        <button className={`gd-tab${tab === 'members' ? ' active' : ''}`} onClick={() => setTab('members')}>
+          Участники{memberships.filter(m => m.status === 'Pending').length > 0 && <span className="gd-tab-cnt">{memberships.filter(m => m.status === 'Pending').length}</span>}
         </button>
-        <button style={tabStyle(tab === 'events')} onClick={() => setTab('events')}>
-          События{events.length > 0 && <span style={{ marginLeft: 6, background: '#533483', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{events.length}</span>}
+        <button className={`gd-tab${tab === 'events' ? ' active' : ''}`} onClick={() => setTab('events')}>
+          События{events.length > 0 && <span className="gd-tab-cnt">{events.length}</span>}
         </button>
-        <button style={tabStyle(tab === 'settings')} onClick={() => setTab('settings')}>Настройки</button>
-        <button style={tabStyle(tab === 'gallery')} onClick={() => setTab('gallery')}>
-          Галерея{galleryPhotos.length > 0 && <span style={{ marginLeft: 6, background: '#1a6e3c', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{galleryPhotos.length}</span>}
+        <button className={`gd-tab${tab === 'settings' ? ' active' : ''}`} onClick={() => setTab('settings')}>Настройки</button>
+        <button className={`gd-tab${tab === 'gallery' ? ' active' : ''}`} onClick={() => setTab('gallery')}>
+          Галерея{galleryPhotos.length > 0 && <span className="gd-tab-cnt">{galleryPhotos.length}</span>}
         </button>
-        <button style={tabStyle(tab === 'chats')} onClick={() => setTab('chats')}>
-          Чаты{groupChats.length > 0 && <span style={{ marginLeft: 6, background: '#0f3460', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{groupChats.length}</span>}
+        <button className={`gd-tab${tab === 'chats' ? ' active' : ''}`} onClick={() => setTab('chats')}>
+          Чаты{groupChats.length > 0 && <span className="gd-tab-cnt">{groupChats.length}</span>}
         </button>
       </div>
 
@@ -744,217 +721,213 @@ export default function ClubAdminPage() {
             onMoveDecoration={moveDecoration}
             onDeleteDecoration={deleteDecoration}
           />
-          <div style={{ ...cardStyle, marginTop: 16 }}>
-            <h3>Add New Table</h3>
-            <button style={btnStyle} onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60, eventsOnly: false }); setSelectedGames([]) }}>+ Add Table</button>
-          </div>
+          <Dataslate style={{ marginTop: 'var(--gd-s4)' }}>
+            <h3 className="gd-h3">Добавить стол</h3>
+            <Button size="sm" onClick={() => { setEditingTable({ number: '', size: 'Medium', x: 50, y: 50, width: 100, height: 60, eventsOnly: false }); setSelectedGames([]) }}>+ Добавить стол</Button>
+          </Dataslate>
           {editingTable && (
-            <div style={{ ...cardStyle, border: '1px solid #e94560' }}>
-              <h3>{editingTable.id ? 'Edit Table' : 'New Table'}</h3>
-              <div>
-                <input style={inputStyle} placeholder="Table Number" value={editingTable.number || ''} onChange={e => setEditingTable({ ...editingTable, number: e.target.value })} />
-                <select style={inputStyle} value={editingTable.size || 'Medium'} onChange={e => setEditingTable({ ...editingTable, size: e.target.value })}>
+            <Dataslate style={{ borderColor: 'var(--gd-blood-red)' }}>
+              <h3 className="gd-h3">{editingTable.id ? 'Редактировать стол' : 'Новый стол'}</h3>
+              <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
+                <input className="gd-input" placeholder="Номер" value={editingTable.number || ''} onChange={e => setEditingTable({ ...editingTable, number: e.target.value })} />
+                <select className="gd-input gd-select" value={editingTable.size || 'Medium'} onChange={e => setEditingTable({ ...editingTable, size: e.target.value })}>
                   <option value="Small">Small</option>
                   <option value="Medium">Medium</option>
                   <option value="Large">Large</option>
                 </select>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, color: '#aaa' }}>Supported Games:</label>
-                {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(game => (
-                  <label key={game} style={{ display: 'inline-block', margin: '4px 8px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={selectedGames.includes(game)}
-                      onChange={e => setSelectedGames(e.target.checked ? [...selectedGames, game] : selectedGames.filter(g => g !== game))} />
-                    {' '}{game}
-                  </label>
-                ))}
+              <div className="gd-form-row">
+                <label className="gd-form-label">Поддерживаемые системы</label>
+                <div className="gd-game-systems">
+                  {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(game => (
+                    <label key={game}>
+                      <input type="checkbox" checked={selectedGames.includes(game)}
+                        onChange={e => setSelectedGames(e.target.checked ? [...selectedGames, game] : selectedGames.filter(g => g !== game))} />
+                      {' '}{game}
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div style={{ marginTop: 16 }}>
-                <label style={{ cursor: 'pointer', color: '#eee' }}>
+              <div className="gd-form-row">
+                <label style={{ cursor: 'pointer' }}>
                   <input type="checkbox" checked={editingTable.eventsOnly || false}
                     onChange={e => setEditingTable({ ...editingTable, eventsOnly: e.target.checked })} />
                   {' '}Только для событий
                 </label>
               </div>
-              <div style={{ marginTop: 16 }}>
-                <button style={btnStyle} onClick={saveTable}>Save</button>
-                <button style={{ ...btnStyle, background: '#555' }} onClick={() => setEditingTable(null)}>Cancel</button>
-                {editingTable.id && <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => { deleteTable(editingTable.id!); setEditingTable(null) }}>Delete</button>}
+              <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)' }}>
+                <Button size="sm" onClick={saveTable}>Сохранить</Button>
+                <Button variant="secondary" size="sm" onClick={() => setEditingTable(null)}>Отмена</Button>
+                {editingTable.id && <Button variant="danger" size="sm" onClick={() => { deleteTable(editingTable.id!); setEditingTable(null) }}>Удалить</Button>}
               </div>
-            </div>
+            </Dataslate>
           )}
-          <h3 style={{ marginTop: 24 }}>Tables</h3>
+          <h3 className="gd-h3" style={{ marginTop: 'var(--gd-s6)' }}>Столы ({tables.length})</h3>
           {tables.map(t => (
-            <div key={t.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Dataslate key={t.id} bodyClassName="gd-flex-between">
               <div>
-                <strong>Table #{t.number}</strong> — {t.size}
-                <div style={{ color: '#aaa', fontSize: 13 }}>{t.supportedGames ? t.supportedGames.split('|').filter(Boolean).join(', ') : ''}</div>
+                <strong>Стол #{t.number}</strong> — {t.size}
+                <div className="gd-text-muted gd-text-xs">{t.supportedGames ? t.supportedGames.split('|').filter(Boolean).join(', ') : ''}</div>
               </div>
-              <div>
-                <button style={btnStyle} onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }}>Edit</button>
-                <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => copyTable(t.id)}>Copy</button>
+              <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)' }}>
+                <Button variant="secondary" size="sm" onClick={() => { setEditingTable(t); setSelectedGames(t.supportedGames ? t.supportedGames.split('|').filter(g => ALL_GAME_SYSTEMS.includes(g)) : []) }}>Ред.</Button>
+                <Button variant="secondary" size="sm" onClick={() => copyTable(t.id)}>Копировать</Button>
               </div>
-            </div>
+            </Dataslate>
           ))}
         </>
       )}
 
       {tab === 'members' && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0 }}>Участники клуба</h3>
-            <button style={{ ...btnStyle, background: '#1a5a3c' }} onClick={() => { setShowAddManualForm(v => !v); setAddManualError('') }}>
-              {showAddManualForm ? '✕ Отмена' : '+ Добавить игрока вручную'}
-            </button>
+          <div className="gd-section-header">
+            <h2 className="gd-section-title">Участники ({memberships.length})</h2>
+            <Button size="sm" onClick={() => { setShowAddManualForm(v => !v); setAddManualError('') }}>
+              {showAddManualForm ? '✕ Отмена' : '+ Ручной участник'}
+            </Button>
           </div>
           {showAddManualForm && (
-            <div style={{ ...cardStyle, border: '1px solid #1a5a3c', marginBottom: 16 }}>
-              <h4 style={{ margin: '0 0 12px', color: '#4caf50' }}>Ручное добавление игрока</h4>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input style={inputStyle} placeholder="Имя игрока *" value={manualName}
+            <Dataslate style={{ borderColor: 'var(--gd-success)' }}>
+              <h3 className="gd-h3">Ручное добавление игрока</h3>
+              <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+                <input className="gd-input" placeholder="Имя игрока *" value={manualName}
                   onChange={e => { setManualName(e.target.value); setAddManualError('') }} />
-                <input style={inputStyle} placeholder="Email (необязательно)" value={manualEmail}
+                <input className="gd-input" placeholder="Email (необязательно)" value={manualEmail}
                   onChange={e => setManualEmail(e.target.value)} />
-                <button style={{ ...btnStyle, background: '#4caf50' }} onClick={addManualMember}>Добавить</button>
+                <Button size="sm" onClick={addManualMember}>Добавить</Button>
               </div>
-              {addManualError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{addManualError}</p>}
-            </div>
+              {addManualError && <p className="gd-error-text">{addManualError}</p>}
+            </Dataslate>
           )}
           {memberships.length === 0 ? (
-            <p style={{ color: '#aaa' }}>No applications yet.</p>
+            <p className="gd-text-muted">Заявок пока нет.</p>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: '#16213e', borderRadius: 8, overflow: 'hidden' }}>
+            <Dataslate bodyClassName="gd-table-scroll">
+              <table className="gd-table">
                 <thead>
-                  <tr style={{ background: '#0f3460' }}>
-                    <th style={thStyle}>Имя</th>
-                    <th style={thStyle}>Email</th>
-                    <th style={thStyle}>Дата заявки</th>
-                    <th style={thStyle}>Статус</th>
-                    <th style={thStyle}>Модератор</th>
-                    <th style={thStyle}>Ключ</th>
-                    <th style={thStyle}>Админ</th>
-                    <th style={thStyle}>Действия</th>
+                  <tr>
+                    <th>Воин</th>
+                    <th>Email</th>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                    <th>Роль</th>
+                    <th>Ключ</th>
+                    <th>Админ</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
                   {memberships.map(m => (
-                    <React.Fragment key={m.id}>
-                    <tr style={{ background: '#16213e' }}>
-                      <td style={tdStyle}>
+                    <Fragment key={m.id}>
+                    <tr>
+                      <td>
                         <strong>{m.user.name}</strong>
-                        {m.isManualEntry && <span style={{ marginLeft: 6, background: '#1a3a2a', color: '#4caf50', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 600 }}>вручную</span>}
+                        {m.isManualEntry && <Badge tone="success" className="gd-ml-1">вручную</Badge>}
                       </td>
-                      <td style={{ ...tdStyle, color: '#aaa' }}>{m.user.email}</td>
-                      <td style={{ ...tdStyle, color: '#aaa' }}>{new Date(m.appliedAt).toLocaleDateString()}</td>
-                      <td style={{ ...tdStyle, color: membershipStatusColor(m.status) }}>{membershipStatusLabel(m.status)}</td>
-                      <td style={tdStyle}>
+                      <td>{m.user.email || '—'}</td>
+                      <td>{new Date(m.appliedAt).toLocaleDateString()}</td>
+                      <td>
+                        <Badge tone={m.status === 'Approved' ? 'success' : m.status === 'Pending' ? 'warn' : 'danger'}>
+                          {membershipStatusLabel(m.status)}
+                        </Badge>
+                      </td>
+                      <td>
                         {m.status === 'Approved' && (
-                          <span style={{ color: m.isModerator ? '#ffc107' : '#555', fontSize: 16 }} title={m.isModerator ? 'Модератор' : 'Не модератор'}>
+                          <span title={m.isModerator ? 'Капеллан' : '—'}>
                             {m.isModerator ? '⭐' : '—'}
                           </span>
                         )}
                       </td>
-                      <td style={tdStyle}>
+                      <td>
                         {m.status === 'Approved' && (
-                          <span style={{ color: m.hasKey ? '#ffd700' : '#555', fontSize: 16 }} title={m.hasKey ? 'С ключом' : 'Без ключа'}>
+                          <span title={m.hasKey ? 'С ключом' : 'Без ключа'}>
                             {m.hasKey ? '🗝️' : '—'}
                           </span>
                         )}
                       </td>
-                      <td style={tdStyle}>
+                      <td>
                         {m.status === 'Approved' && (
-                          <span style={{ color: m.isAdmin ? '#e94560' : '#555', fontSize: 16 }} title={m.isAdmin ? 'Админ' : 'Не админ'}>
+                          <span title={m.isAdmin ? 'Магистр' : '—'}>
                             {m.isAdmin ? '👑' : '—'}
                           </span>
                         )}
                       </td>
-                      <td style={tdStyle}>
-                        {m.status === 'Pending' && (
-                          <>
-                            <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => updateMembership(m.id, 'approve')}>Approve</button>
-                            <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => updateMembership(m.id, 'reject')}>Reject</button>
-                          </>
-                        )}
-                        {m.status === 'Approved' && (
-                          <>
-                            {m.isManualEntry && (
-                              <button
-                                style={{ ...btnStyle, background: editingManualMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
-                                onClick={() => editingManualMemberId === m.id ? setEditingManualMemberId(null) : startEditManualMember(m)}
-                                title="Редактировать запись"
-                              >✏️ Изменить</button>
-                            )}
-                            {!m.isManualEntry && (
-                              <button
-                                style={{ ...btnStyle, background: m.isModerator ? '#7b4a00' : '#1a5a3c' }}
-                                onClick={() => toggleModerator(m.id, m.isModerator)}
-                                title={m.isModerator ? 'Снять роль модератора' : 'Назначить модератором'}
-                              >
-                                {m.isModerator ? '⭐ Снять' : '⭐ Модератор'}
-                              </button>
-                            )}
-                            <button
-                              style={{ ...btnStyle, background: expandedGsMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
-                              onClick={() => toggleGsEditor(m)}
-                              title="Редактировать игровые системы"
-                            >🎲 Системы</button>
-                            <button
-                              style={{ ...btnStyle, background: expandedCityMemberId === m.id ? '#1a3a6a' : '#0f3460' }}
-                              onClick={() => toggleCityEditor(m)}
-                              title="Редактировать город"
-                            >🏙️ Город</button>
-                            <button
-                              style={{ ...btnStyle, background: m.hasKey ? '#7b6200' : '#3a3010' }}
-                              onClick={() => toggleKey(m.id, m.hasKey)}
-                              title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
-                              aria-label={m.hasKey ? 'Снять статус «С ключом»' : 'Назначить статус «С ключом»'}
-                            ><span aria-hidden="true">{m.hasKey ? '🗝️ Снять' : '🗝️ Ключ'}</span></button>
-                            {!m.isManualEntry && (
-                              <button
-                                style={{ ...btnStyle, background: m.isAdmin ? '#7b1a3a' : '#3a1a4a' }}
-                                onClick={() => toggleAdmin(m.id, m.isAdmin)}
-                                title={m.isAdmin ? 'Снять роль админа' : 'Назначить админом'}
-                              >
-                                {m.isAdmin ? '👑 Снять' : '👑 Админ'}
-                              </button>
-                            )}
-                            <button style={{ ...btnStyle, background: '#ff5722' }} onClick={() => kickMember(m.id)}>Исключить</button>
-                          </>
-                        )}
+                      <td>
+                        <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s1)' }}>
+                          {m.status === 'Pending' && (
+                            <>
+                              <Button variant="secondary" size="sm" onClick={() => updateMembership(m.id, 'approve')}>Approve</Button>
+                              <Button variant="danger" size="sm" onClick={() => updateMembership(m.id, 'reject')}>Reject</Button>
+                            </>
+                          )}
+                          {m.status === 'Approved' && (
+                            <>
+                              {m.isManualEntry && (
+                                <Button variant="secondary" size="sm"
+                                  onClick={() => editingManualMemberId === m.id ? setEditingManualMemberId(null) : startEditManualMember(m)}
+                                  title="Редактировать запись"
+                                >✏️</Button>
+                              )}
+                              {!m.isManualEntry && (
+                                <Button variant={m.isModerator ? 'brass' : 'secondary'} size="sm"
+                                  onClick={() => toggleModerator(m.id, m.isModerator)}
+                                  title={m.isModerator ? 'Снять модератора' : 'Назначить модератором'}
+                                >⭐</Button>
+                              )}
+                              <Button variant={expandedGsMemberId === m.id ? 'brass' : 'secondary'} size="sm"
+                                onClick={() => toggleGsEditor(m)}
+                                title="Игровые системы"
+                              >🎲</Button>
+                              <Button variant={expandedCityMemberId === m.id ? 'brass' : 'secondary'} size="sm"
+                                onClick={() => toggleCityEditor(m)}
+                                title="Город"
+                              >🏙️</Button>
+                              <Button variant={m.hasKey ? 'brass' : 'secondary'} size="sm"
+                                onClick={() => toggleKey(m.id, m.hasKey)}
+                                title={m.hasKey ? 'Снять ключ' : 'Выдать ключ'}
+                                aria-label={m.hasKey ? 'Снять статус «С ключом»' : 'Назначить статус «С ключом»'}
+                              >🗝️</Button>
+                              {!m.isManualEntry && (
+                                <Button variant={m.isAdmin ? 'danger' : 'secondary'} size="sm"
+                                  onClick={() => toggleAdmin(m.id, m.isAdmin)}
+                                  title={m.isAdmin ? 'Снять админа' : 'Назначить админом'}
+                                >👑</Button>
+                              )}
+                              <Button variant="danger" size="sm" onClick={() => kickMember(m.id)}>Исключить</Button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     {editingManualMemberId === m.id && m.isManualEntry && (
                       <tr>
-                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <input style={inputStyle} placeholder="Имя игрока *" value={editingManualName}
+                        <td colSpan={8}>
+                          <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', padding: 'var(--gd-s2) 0' }}>
+                            <input className="gd-input" placeholder="Имя игрока *" value={editingManualName}
                               onChange={e => { setEditingManualName(e.target.value); setEditingManualError('') }} />
-                            <input style={inputStyle} placeholder="Email (необязательно)" value={editingManualEmail}
+                            <input className="gd-input" placeholder="Email (необязательно)" value={editingManualEmail}
                               onChange={e => setEditingManualEmail(e.target.value)} />
-                            <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveManualMemberEdit(m.id)}>Сохранить</button>
-                            <button style={{ ...btnStyle, background: '#555' }} onClick={() => setEditingManualMemberId(null)}>Отмена</button>
+                            <Button size="sm" onClick={() => saveManualMemberEdit(m.id)}>Сохранить</Button>
+                            <Button variant="secondary" size="sm" onClick={() => setEditingManualMemberId(null)}>Отмена</Button>
                           </div>
-                          {editingManualError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{editingManualError}</p>}
+                          {editingManualError && <p className="gd-error-text">{editingManualError}</p>}
                         </td>
                       </tr>
                     )}
                     {expandedGsMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
-                          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                            <button
-                              style={{ ...btnStyle, background: '#1a5a3c', fontSize: 12, padding: '4px 12px' }}
+                        <td colSpan={8}>
+                          <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
+                            <Button variant="secondary" size="sm"
                               onClick={() => setMemberGameSystems(prev => ({ ...prev, [m.id]: [...ALL_GAME_SYSTEMS] }))}
-                            >✓ Все включить</button>
-                            <button
-                              style={{ ...btnStyle, background: '#7b1a1a', fontSize: 12, padding: '4px 12px' }}
+                            >✓ Все</Button>
+                            <Button variant="secondary" size="sm"
                               onClick={() => setMemberGameSystems(prev => ({ ...prev, [m.id]: [] }))}
-                            >✗ Все выключить</button>
+                            >✗ Очистить</Button>
                           </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', marginBottom: 10 }}>
+                          <div className="gd-game-systems" style={{ marginBottom: 'var(--gd-s3)' }}>
                             {GAME_SYSTEMS_MAIN.map(gs => (
-                              <label key={gs} style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#eee', fontSize: 13, cursor: 'pointer', padding: '3px 0' }}>
+                              <label key={gs}>
                                 <input
                                   type="checkbox"
                                   checked={(memberGameSystems[m.id] || []).includes(gs)}
@@ -964,9 +937,9 @@ export default function ClubAdminPage() {
                               </label>
                             ))}
                           </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 16px', borderTop: '1px solid #0f3460', paddingTop: 8, marginBottom: 10 }}>
+                          <div className="gd-game-systems" style={{ borderTop: '1px solid var(--gd-border)', paddingTop: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
                             {GAME_SYSTEMS_BOTTOM.map(gs => (
-                              <label key={gs} style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#eee', fontSize: 13, cursor: 'pointer', padding: '3px 0' }}>
+                              <label key={gs}>
                                 <input
                                   type="checkbox"
                                   checked={(memberGameSystems[m.id] || []).includes(gs)}
@@ -976,83 +949,81 @@ export default function ClubAdminPage() {
                               </label>
                             ))}
                           </div>
-                          <button
-                            style={{ ...btnStyle, background: '#e94560', opacity: savingGsMemberId === m.id ? 0.7 : 1 }}
+                          <Button size="sm"
                             onClick={() => saveMemberGameSystems(m.id)}
                             disabled={savingGsMemberId === m.id}
                           >
                             {savingGsMemberId === m.id ? 'Сохраняем...' : 'Сохранить'}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     )}
                     {expandedCityMemberId === m.id && m.status === 'Approved' && (
                       <tr>
-                        <td colSpan={8} style={{ padding: '12px 16px', background: '#101c36', borderBottom: '1px solid #0f3460' }}>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <span style={{ color: '#aaa', fontSize: 13 }}>Город:</span>
+                        <td colSpan={8}>
+                          <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+                            <span className="gd-text-muted gd-text-xs">Город:</span>
                             <input
-                              style={{ ...inputStyle, marginBottom: 0 }}
+                              className="gd-input"
                               placeholder="Город (необязательно)"
                               maxLength={50}
                               value={editingCityValue}
                               onChange={e => { setEditingCityValue(e.target.value); setCityError('') }}
                             />
-                            <button
-                              style={{ ...btnStyle, background: '#e94560', opacity: savingCityMemberId === m.id ? 0.7 : 1 }}
+                            <Button size="sm"
                               onClick={() => saveMemberCity(m.id)}
                               disabled={savingCityMemberId === m.id}
                             >
                               {savingCityMemberId === m.id ? 'Сохраняем...' : 'Сохранить'}
-                            </button>
-                            <button style={{ ...btnStyle, background: '#555' }} onClick={() => { setExpandedCityMemberId(null); setCityError('') }}>Отмена</button>
+                            </Button>
+                            <Button variant="secondary" size="sm" onClick={() => { setExpandedCityMemberId(null); setCityError('') }}>Отмена</Button>
                           </div>
-                          {cityError && <p style={{ color: '#e94560', margin: '8px 0 0', fontSize: 13 }}>{cityError}</p>}
+                          {cityError && <p className="gd-error-text">{cityError}</p>}
                         </td>
                       </tr>
                     )}
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Dataslate>
           )}
         </>
       )}
 
       {tab === 'settings' && (
         <>
-          <div style={cardStyle}>
-            <h3>Часы работы клуба</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <Dataslate title="Настройки клуба">
+            <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s4)', marginBottom: 'var(--gd-s4)' }}>
               <div>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Открытие</label>
-                <input style={inputStyle} type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
+                <label className="gd-form-label">Время открытия</label>
+                <input className="gd-input" type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} />
               </div>
               <div>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Закрытие</label>
-                <input style={inputStyle} type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
+                <label className="gd-form-label">Время закрытия</label>
+                <input className="gd-input" type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} />
               </div>
             </div>
-            <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+            <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s4)', alignItems: 'flex-end', marginBottom: 'var(--gd-s4)' }}>
               <div>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Краткое наименование <span style={{ color: '#666', fontWeight: 'normal' }}>(до 20 символов, отображается на бейдже чатов)</span></label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label className="gd-form-label">Короткое имя <span className="gd-text-muted">(до 20 символов)</span></label>
+                <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)' }}>
                   <input
-                    style={{ ...inputStyle, width: 160 }}
+                    className="gd-input"
                     type="text"
                     maxLength={20}
                     placeholder="Напр.: МГК или Warhammer"
                     value={shortName}
                     onChange={e => setShortName(e.target.value)}
+                    style={{ width: 160 }}
                   />
                   <div>
-                    <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 4 }}>Цвет бейджа</label>
+                    <label className="gd-form-label">Цвет бейджа</label>
                     <input
                       type="color"
                       value={badgeColor || '#4a9eff'}
                       onChange={e => setBadgeColor(e.target.value)}
-                      style={{ width: 40, height: 32, padding: 2, border: '1px solid #555', borderRadius: 6, background: 'none', cursor: 'pointer' }}
+                      className="gd-color-input"
                     />
                   </div>
                   {shortName.trim() && (
@@ -1064,82 +1035,81 @@ export default function ClubAdminPage() {
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button style={btnStyle} onClick={saveSettings}>Сохранить</button>
-              {settingsSaved && <span style={{ color: '#4caf50' }}>✓ Сохранено</span>}
+            <div className="gd-flex-row" style={{ gap: 'var(--gd-s3)' }}>
+              <Button onClick={saveSettings}>Сохранить</Button>
+              {settingsSaved && <span className="gd-text-xs" style={{ color: 'var(--gd-success)' }}>✓ Сохранено</span>}
             </div>
-          </div>
-          <div style={cardStyle}>
-            <h3>Логотип клуба</h3>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+          </Dataslate>
+          <Dataslate>
+            <h3 className="gd-h3">Логотип клуба</h3>
+            <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s5)' }}>
               {club?.logoUrl && (
                 <div style={{ position: 'relative' }}>
-                  <img src={club.logoUrl} alt="Лого клуба" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 8, background: '#0f3460', border: '1px solid #533483' }} />
+                  <img src={club.logoUrl} alt="Лого клуба" style={{ width: 120, height: 120, objectFit: 'contain' }} />
                   <button
-                    style={{ position: 'absolute', top: -8, right: -8, background: '#e94560', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', fontSize: 14, lineHeight: '24px', padding: 0, textAlign: 'center' }}
+                    className="gd-gallery-del"
+                    style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, fontSize: '0.7rem', lineHeight: '24px' }}
                     onClick={deleteLogo} title="Удалить лого">×</button>
                 </div>
               )}
               <div>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 8 }}>
+                <label className="gd-form-label">
                   {club?.logoUrl ? 'Заменить лого' : 'Загрузить лого'} (jpeg, png, webp, gif, до 5 МБ)
                 </label>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  style={{ color: '#eee' }}
                   disabled={logoUploading}
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = '' }}
                 />
-                {logoUploading && <p style={{ color: '#aaa', fontSize: 13, margin: '8px 0 0' }}>Загрузка...</p>}
-                {logoError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{logoError}</p>}
+                {logoUploading && <p className="gd-text-xs gd-text-muted">Загрузка…</p>}
+                {logoError && <p className="gd-error-text">{logoError}</p>}
               </div>
             </div>
-          </div>
+          </Dataslate>
         </>
       )}
 
       {tab === 'gallery' && (
         <>
-          <div style={cardStyle}>
-            <h3>Галерея клуба ({galleryPhotos.length}/10)</h3>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 8 }}>
+          <Dataslate title={`Галерея (${galleryPhotos.length}/10)`}>
+            <div style={{ marginBottom: 'var(--gd-s4)' }}>
+              <label className="gd-form-label">
                 Добавить фото (jpeg, png, webp, gif, до 5 МБ)
               </label>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
-                style={{ color: '#eee' }}
                 disabled={galleryUploading || galleryPhotos.length >= 10}
                 onChange={e => { const f = e.target.files?.[0]; if (f) uploadGalleryPhoto(f); e.target.value = '' }}
               />
-              {galleryPhotos.length >= 10 && <p style={{ color: '#ffc107', fontSize: 13, margin: '8px 0 0' }}>Достигнут лимит в 10 фото</p>}
-              {galleryUploading && <p style={{ color: '#aaa', fontSize: 13, margin: '8px 0 0' }}>Загрузка...</p>}
-              {galleryError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{galleryError}</p>}
+              {galleryPhotos.length >= 10 && <p className="gd-text-xs" style={{ color: 'var(--gd-warn)' }}>Достигнут лимит в 10 фото</p>}
+              {galleryUploading && <p className="gd-text-xs gd-text-muted">Загрузка…</p>}
+              {galleryError && <p className="gd-error-text">{galleryError}</p>}
             </div>
             {galleryPhotos.length === 0 ? (
-              <p style={{ color: '#aaa' }}>Фотографий пока нет.</p>
+              <p className="gd-text-muted">Фотографий пока нет.</p>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              <div className="gd-gallery-grid">
                 {galleryPhotos.map(photo => (
-                  <div key={photo.id} style={{ position: 'relative' }}>
-                    <img src={photo.url} alt="" style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 6, background: '#0f3460', border: '1px solid #533483', display: 'block' }} />
+                  <div key={photo.id} className="gd-gallery-item" style={{ position: 'relative' }}>
+                    <img src={photo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     <button
-                      style={{ position: 'absolute', top: -8, right: -8, background: '#e94560', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', fontSize: 14, lineHeight: '24px', padding: 0, textAlign: 'center' }}
+                      className="gd-gallery-del"
+                      style={{ width: 20, height: 20, fontSize: '0.6rem', lineHeight: '20px' }}
                       onClick={() => deleteGalleryPhoto(photo.id)} title="Удалить фото">×</button>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Dataslate>
         </>
       )}
 
       {tab === 'events' && (
         <>
-          <div style={{ marginBottom: 16 }}>
-            <button style={btnStyle} onClick={() => {
+          <div style={{ marginBottom: 'var(--gd-s4)' }}>
+            <Button size="sm" onClick={() => {
               if (!showEventForm && club?.openTime) {
                 const [h, m = 0] = club.openTime.split(':').map(Number)
                 const now = new Date()
@@ -1153,41 +1123,42 @@ export default function ClubAdminPage() {
               setShowEventForm(v => !v)
             }}>
               {showEventForm ? '✕ Отмена' : '+ Создать событие'}
-            </button>
+            </Button>
           </div>
 
           {showEventForm && (
-            <div style={{ ...cardStyle, border: '1px solid #e94560' }}>
-              <h3>Новое событие</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <input style={inputStyle} placeholder="Название" value={newEvent.title}
+            <Dataslate style={{ borderColor: 'var(--gd-blood-red)' }}>
+              <h3 className="gd-h3">Новое событие</h3>
+              <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
+                <input className="gd-input" placeholder="Название" value={newEvent.title}
                   onChange={e => setNewEvent({ ...newEvent, title: e.target.value })} />
-                <label style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>Начало:</label>
-                <input style={inputStyle} type="datetime-local" step={3600} value={newEvent.startTime}
+                <label className="gd-text-xs gd-text-muted">Начало:</label>
+                <input className="gd-input" type="datetime-local" step={3600} value={newEvent.startTime}
                   onChange={e => setNewEvent({ ...newEvent, startTime: e.target.value })} />
-                <label style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>Конец:</label>
-                <input style={inputStyle} type="datetime-local" step={3600} value={newEvent.endTime}
+                <label className="gd-text-xs gd-text-muted">Конец:</label>
+                <input className="gd-input" type="datetime-local" step={3600} value={newEvent.endTime}
                   onChange={e => setNewEvent({ ...newEvent, endTime: e.target.value })} />
-                <input style={{ ...inputStyle, width: 80 }} type="number" min={2} placeholder="Макс. участников"
+                <input className="gd-input" type="number" min={2} placeholder="Макс. уч."
+                  style={{ width: 80 }}
                   value={newEvent.maxParticipants}
                   onChange={e => setNewEvent({ ...newEvent, maxParticipants: parseInt(e.target.value) || 2 })} />
-                <select style={inputStyle} value={newEvent.eventType}
+                <select className="gd-input gd-select" value={newEvent.eventType}
                   onChange={e => setNewEvent({ ...newEvent, eventType: e.target.value })}>
                   <option value="Tournament">Турнир</option>
                   <option value="Campaign">Кампания</option>
                   <option value="Event">Ивент</option>
                 </select>
-                <select style={inputStyle} value={newEvent.gameSystem}
+                <select className="gd-input gd-select" value={newEvent.gameSystem}
                   onChange={e => setNewEvent({ ...newEvent, gameSystem: e.target.value })}>
                   <option value="">— Игровая система —</option>
                   {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <div style={{ marginTop: 10 }}>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Столы события:</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div className="gd-form-row">
+                <label className="gd-form-label">Столы события</label>
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
                   {tables.map(t => (
-                    <label key={t.id} style={{ cursor: 'pointer', color: '#eee', fontSize: 13 }}>
+                    <label key={t.id} className="gd-gs-tag">
                       <input type="checkbox" checked={selectedEventTables.includes(t.id)}
                         onChange={e => setSelectedEventTables(e.target.checked
                           ? [...selectedEventTables, t.id]
@@ -1197,18 +1168,18 @@ export default function ClubAdminPage() {
                   ))}
                 </div>
               </div>
-              <div style={{ marginTop: 10 }}>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Описание (до 500 символов):</label>
-                <textarea style={{ ...inputStyle, width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
+              <div className="gd-form-row">
+                <label className="gd-form-label">Описание (до 500 символов)</label>
+                <textarea className="gd-input" style={{ width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
                   placeholder="Описание события..."
                   maxLength={500}
                   value={newEvent.description}
                   onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} />
-                <span style={{ color: '#888', fontSize: 11 }}>{newEvent.description.length}/500</span>
+                <span className="gd-text-xs gd-text-muted">{newEvent.description.length}/500</span>
               </div>
-              <div style={{ marginTop: 10 }}>
-                <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>Гейм-мастер (необязательно):</label>
-                <select style={inputStyle} value={newEvent.gameMasterId}
+              <div className="gd-form-row">
+                <label className="gd-form-label">Гейм-мастер (необязательно)</label>
+                <select className="gd-input gd-select" value={newEvent.gameMasterId}
                   onChange={e => setNewEvent({ ...newEvent, gameMasterId: e.target.value })}>
                   <option value="">— Не назначен —</option>
                   {memberships.filter(m => m.status === 'Approved' && !m.isManualEntry).map(m => (
@@ -1216,28 +1187,28 @@ export default function ClubAdminPage() {
                   ))}
                 </select>
               </div>
-              <div style={{ marginTop: 14 }}>
-                <button style={btnStyle} onClick={createEvent} disabled={!newEvent.title || !newEvent.startTime || !newEvent.endTime}>Создать</button>
-                <button style={{ ...btnStyle, background: '#555' }} onClick={() => setShowEventForm(false)}>Отмена</button>
+              <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)' }}>
+                <Button size="sm" onClick={createEvent} disabled={!newEvent.title || !newEvent.startTime || !newEvent.endTime}>Создать</Button>
+                <Button variant="secondary" size="sm" onClick={() => setShowEventForm(false)}>Отмена</Button>
               </div>
-            </div>
+            </Dataslate>
           )}
 
-          <h3>Список событий</h3>
-          {events.length === 0 && <p style={{ color: '#aaa' }}>Событий пока нет.</p>}
+          <h3 className="gd-h3" style={{ margin: 'var(--gd-s6) 0 var(--gd-s4)' }}>Существующие события</h3>
+          {events.length === 0 && <p className="gd-text-muted">Событий пока нет.</p>}
           {events.map(ev => {
             const tableNumbers = ev.tableIds
               ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
               : ''
             const approvedMembers = memberships.filter(m => m.status === 'Approved' && !m.isManualEntry && !ev.participants.some(p => p.id === m.user.id))
             return (
-              <div key={ev.id} style={{ ...cardStyle, flexDirection: 'column', display: 'flex', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+              <Dataslate key={ev.id}>
+                <div className="gd-flex-between gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
                   <div>
-                    <strong style={{ fontSize: 15, color: '#eee' }}>{ev.title}</strong>
-                    <span style={{ marginLeft: 10, color: '#ffc107', fontSize: 13 }}>{ev.eventType}</span>
-                    {ev.gameSystem && <span style={{ marginLeft: 8, color: '#888', fontSize: 13, fontStyle: 'italic' }}>{ev.gameSystem}</span>}
-                    <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>
+                    <strong style={{ fontSize: '0.95rem' }}>{ev.title}</strong>
+                    <Badge tone="warn" className="gd-ml-1">{ev.eventType}</Badge>
+                    {ev.gameSystem && <span className="gd-text-xs gd-text-muted gd-ml-1" style={{ fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                    <div className="gd-text-xs gd-text-muted" style={{ marginTop: 4 }}>
                       📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       {' – '}
                       {new Date(ev.endTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1245,92 +1216,92 @@ export default function ClubAdminPage() {
                       {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
                     </div>
                     {ev.gameMasterName && (
-                      <div style={{ fontSize: 12, color: '#c0a060', marginTop: 3 }}>
+                      <div className="gd-text-xs" style={{ color: 'var(--gd-brass)', marginTop: 3 }}>
                         🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button style={{ ...btnStyle, background: '#533483' }} onClick={() => {
+                  <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s1)' }}>
+                    <Button variant="secondary" size="sm" onClick={() => {
                       if (editingTitleEventId === ev.id) { setEditingTitleEventId(null) }
                       else { setEditingTitleEventId(ev.id); setEditingTitleValue(ev.title) }
                     }}>
-                      {editingTitleEventId === ev.id ? '✕' : '✏️ Название'}
-                    </button>
-                    <button style={{ ...btnStyle, background: '#1a6e3c' }} onClick={() => editingEventId === ev.id ? setEditingEventId(null) : startEditingEventDate(ev)}>
-                      {editingEventId === ev.id ? '✕' : '📅 Дата'}
-                    </button>
-                    <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => { setInviteEventId(inviteEventId === ev.id ? null : ev.id); setInviteUserId('') }}>
-                      {inviteEventId === ev.id ? '✕' : '+ Пригласить'}
-                    </button>
-                    <button style={{ ...btnStyle, background: '#1a5276' }} onClick={() => {
+                      {editingTitleEventId === ev.id ? '✕' : '✏️'}
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => editingEventId === ev.id ? setEditingEventId(null) : startEditingEventDate(ev)}>
+                      {editingEventId === ev.id ? '✕' : '📅'}
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => { setInviteEventId(inviteEventId === ev.id ? null : ev.id); setInviteUserId('') }}>
+                      {inviteEventId === ev.id ? '✕' : '+👤'}
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => {
                       if (editingDescEventId === ev.id) { setEditingDescEventId(null) }
                       else { setEditingDescEventId(ev.id); setEditingDescValue(ev.description ?? '') }
                     }}>
-                      {editingDescEventId === ev.id ? '✕' : '📝 Описание'}
-                    </button>
-                    <button style={{ ...btnStyle, background: '#e94560' }} onClick={() => deleteEvent(ev.id)}>Удалить</button>
+                      {editingDescEventId === ev.id ? '✕' : '📝'}
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => deleteEvent(ev.id)}>Удалить</Button>
                     {ev.eventType === 'Campaign' && (
-                      <button style={{ ...btnStyle, background: '#7b3fa0' }} onClick={() => setCampaignMapEditorEvent(ev)}>🗺️ Карта кампании</button>
+                      <Button variant="brass" size="sm" onClick={() => setCampaignMapEditorEvent(ev)}>🗺️ Карта</Button>
                     )}
                   </div>
                 </div>
 
                 {editingTitleEventId === ev.id && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                    <input style={{ ...inputStyle, minWidth: 220 }} value={editingTitleValue}
+                  <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', paddingTop: 'var(--gd-s2)' }}>
+                    <input className="gd-input" style={{ minWidth: 220 }} value={editingTitleValue}
                       onChange={e => setEditingTitleValue(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Enter') saveEventTitle(ev.id)
                         if (e.key === 'Escape') setEditingTitleEventId(null)
                       }}
                       placeholder="Название события" autoFocus />
-                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventTitle(ev.id)} disabled={!editingTitleValue.trim()}>Сохранить</button>
+                    <Button size="sm" onClick={() => saveEventTitle(ev.id)} disabled={!editingTitleValue.trim()}>Сохранить</Button>
                   </div>
                 )}
 
                 {editingEventId === ev.id && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                    <label style={{ color: '#aaa', fontSize: 13 }}>Начало:</label>
-                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventStartTime}
+                  <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', paddingTop: 'var(--gd-s2)' }}>
+                    <label className="gd-text-xs gd-text-muted">Начало:</label>
+                    <input className="gd-input" type="datetime-local" step={3600} value={editingEventStartTime}
                       onChange={e => { setEditingEventStartTime(e.target.value); setEditingEventDateError('') }} />
-                    <label style={{ color: '#aaa', fontSize: 13 }}>Конец:</label>
-                    <input style={inputStyle} type="datetime-local" step={3600} value={editingEventEndTime}
+                    <label className="gd-text-xs gd-text-muted">Конец:</label>
+                    <input className="gd-input" type="datetime-local" step={3600} value={editingEventEndTime}
                       onChange={e => { setEditingEventEndTime(e.target.value); setEditingEventDateError('') }} />
-                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDate(ev.id)}>Сохранить</button>
-                    {editingEventDateError && <span style={{ color: '#e94560', fontSize: 13 }}>{editingEventDateError}</span>}
+                    <Button size="sm" onClick={() => saveEventDate(ev.id)}>Сохранить</Button>
+                    {editingEventDateError && <span className="gd-error-text" style={{ margin: 0 }}>{editingEventDateError}</span>}
                   </div>
                 )}
 
                 {editingDescEventId === ev.id && (
-                  <div style={{ paddingTop: 4 }}>
-                    <textarea style={{ ...inputStyle, width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
+                  <div style={{ paddingTop: 'var(--gd-s2)' }}>
+                    <textarea className="gd-input" style={{ width: '100%', minHeight: 90, resize: 'vertical', fontFamily: 'inherit' }}
                       placeholder="Описание события..."
                       maxLength={500}
                       value={editingDescValue}
                       onChange={e => setEditingDescValue(e.target.value)} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#888', fontSize: 11 }}>{editingDescValue.length}/500</span>
-                      <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => saveEventDescription(ev.id)}>Сохранить</button>
+                    <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 6 }}>
+                      <span className="gd-text-xs gd-text-muted">{editingDescValue.length}/500</span>
+                      <Button size="sm" onClick={() => saveEventDescription(ev.id)}>Сохранить</Button>
                     </div>
                   </div>
                 )}
 
                 {inviteEventId === ev.id && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                    <select style={inputStyle} value={inviteUserId} onChange={e => setInviteUserId(e.target.value)}>
+                  <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', paddingTop: 'var(--gd-s2)' }}>
+                    <select className="gd-input gd-select" value={inviteUserId} onChange={e => setInviteUserId(e.target.value)}>
                       <option value="">— Выберите игрока —</option>
                       {approvedMembers.map(m => (
                         <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
                       ))}
                     </select>
-                    <button style={{ ...btnStyle, background: '#4caf50' }} onClick={() => inviteParticipant(ev.id)} disabled={!inviteUserId}>Пригласить</button>
-                    {approvedMembers.length === 0 && <span style={{ color: '#aaa', fontSize: 13 }}>Все одобренные участники уже в событии</span>}
+                    <Button size="sm" onClick={() => inviteParticipant(ev.id)} disabled={!inviteUserId}>Пригласить</Button>
+                    {approvedMembers.length === 0 && <span className="gd-text-xs gd-text-muted">Все одобренные участники уже в событии</span>}
                   </div>
                 )}
 
                 {ev.participants.length > 0 && (
-                  <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>
+                  <div className="gd-text-xs gd-text-muted" style={{ marginTop: 2 }}>
                     Участники:{' '}
                     {ev.participants.map((p, i) => (
                       <span key={p.id}>
@@ -1338,7 +1309,7 @@ export default function ClubAdminPage() {
                         {p.name}
                         <button onClick={() => removeParticipant(ev.id, p.id)}
                           aria-label={`Удалить ${p.name} из события`}
-                          style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', marginLeft: 2, padding: '0 2px', fontSize: 11 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--gd-danger)', cursor: 'pointer', marginLeft: 2, padding: '0 2px', fontSize: 11 }}
                           title="Удалить из события">×</button>
                       </span>
                     ))}
@@ -1346,27 +1317,25 @@ export default function ClubAdminPage() {
                 )}
 
                 {ev.description && editingDescEventId !== ev.id && (
-                  <div style={{ fontSize: 13, color: '#ccc', marginTop: 2, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
+                  <div className="gd-text-xs" style={{ color: 'var(--gd-fg-secondary)', marginTop: 2, whiteSpace: 'pre-wrap' }}>{ev.description}</div>
                 )}
 
-                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 4 }}>
                   {ev.regulationUrl ? (
                     <>
-                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
-                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                        {regulationUploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                      <a href={ev.regulationUrl} target="_blank" rel="noopener noreferrer" className="gd-link">📄 {getAttachmentDisplayName(ev.regulationUrl, 'Регламент 1')}</a>
+                      <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                        {regulationUploading === ev.id ? 'Загрузка…' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                           disabled={regulationUploading === ev.id}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
                       </label>
-                      <button onClick={() => deleteRegulation(ev.id)}
-                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                      <button onClick={() => deleteRegulation(ev.id)} className="gd-link-danger"
                         title="Удалить регламент">× Удалить</button>
                     </>
                   ) : (
-                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                      {regulationUploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент 1 (PDF / Word, до 10 МБ)'}
+                    <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                      {regulationUploading === ev.id ? 'Загрузка…' : '📎 Регламент 1 (PDF / Word, до 10 МБ)'}
                       <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                         disabled={regulationUploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation(ev.id, f); e.target.value = '' }} />
@@ -1374,24 +1343,22 @@ export default function ClubAdminPage() {
                   )}
                 </div>
 
-                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 4 }}>
                   {ev.regulationUrl2 ? (
                     <>
-                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#7eb8f7', fontSize: 13 }}>📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
-                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                        {regulation2Uploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                      <a href={ev.regulationUrl2} target="_blank" rel="noopener noreferrer" className="gd-link">📄 {getAttachmentDisplayName(ev.regulationUrl2, 'Регламент 2')}</a>
+                      <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                        {regulation2Uploading === ev.id ? 'Загрузка…' : 'Заменить'}
                         <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                           disabled={regulation2Uploading === ev.id}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation2(ev.id, f); e.target.value = '' }} />
                       </label>
-                      <button onClick={() => deleteRegulation2(ev.id)}
-                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                      <button onClick={() => deleteRegulation2(ev.id)} className="gd-link-danger"
                         title="Удалить регламент 2">× Удалить</button>
                     </>
                   ) : (
-                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                      {regulation2Uploading === ev.id ? 'Загрузка...' : '📎 Прикрепить регламент 2 (PDF / Word, до 10 МБ)'}
+                    <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                      {regulation2Uploading === ev.id ? 'Загрузка…' : '📎 Регламент 2 (PDF / Word, до 10 МБ)'}
                       <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" style={{ display: 'none' }}
                         disabled={regulation2Uploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadRegulation2(ev.id, f); e.target.value = '' }} />
@@ -1399,32 +1366,31 @@ export default function ClubAdminPage() {
                   )}
                 </div>
 
-                <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 4 }}>
                   {ev.missionMapUrl ? (
                     <>
-                      <span style={{ color: '#aaa', fontSize: 13 }}>🗺️ Карта миссии:</span>
-                      <img src={ev.missionMapUrl} alt="Карта миссии" style={{ maxHeight: 48, maxWidth: 80, borderRadius: 4, cursor: 'pointer', border: '1px solid #334' }}
+                      <span className="gd-text-xs gd-text-muted">🗺️ Карта миссии:</span>
+                      <img src={ev.missionMapUrl} alt="Карта миссии" style={{ maxHeight: 48, maxWidth: 80, borderRadius: 4, cursor: 'pointer', border: '1px solid var(--gd-border)' }}
                         title="Просмотреть" />
-                      <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                        {missionMapUploading === ev.id ? 'Загрузка...' : 'Заменить'}
+                      <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                        {missionMapUploading === ev.id ? 'Загрузка…' : 'Заменить'}
                         <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
                           disabled={missionMapUploading === ev.id}
                           onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
                       </label>
-                      <button onClick={() => deleteMissionMap(ev.id)}
-                        style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', fontSize: 12, padding: 0 }}
+                      <button onClick={() => deleteMissionMap(ev.id)} className="gd-link-danger"
                         title="Удалить карту миссии">× Удалить</button>
                     </>
                   ) : (
-                    <label style={{ cursor: 'pointer', color: '#aaa', fontSize: 12 }}>
-                      {missionMapUploading === ev.id ? 'Загрузка...' : '🗺️ Прикрепить карту миссии (JPG/PNG/WebP, до 10 МБ)'}
+                    <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                      {missionMapUploading === ev.id ? 'Загрузка…' : '🗺️ Карта миссии (JPG/PNG/WebP, до 10 МБ)'}
                       <input type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
                         disabled={missionMapUploading === ev.id}
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
                     </label>
                   )}
                 </div>
-              </div>
+              </Dataslate>
             )
           })}
         </>
@@ -1432,28 +1398,27 @@ export default function ClubAdminPage() {
 
       {tab === 'chats' && (
         <>
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Создать групповой чат</h3>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Dataslate title="Создать групповой чат">
+            <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
               <input
-                style={inputStyle}
+                className="gd-input"
                 placeholder="Название чата"
                 value={newChatName}
                 onChange={e => setNewChatName(e.target.value)}
                 maxLength={100}
               />
-              <div style={{ display: 'flex', gap: 12 }}>
-                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+              <div className="gd-flex-row" style={{ gap: 'var(--gd-s4)' }}>
+                <label className="gd-gs-tag">
                   <input type="radio" name="chatVisibility" checked={!newChatIsPublic} onChange={() => setNewChatIsPublic(false)} />
                   <span>🔒 Приватный</span>
                 </label>
-                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                <label className="gd-gs-tag">
                   <input type="radio" name="chatVisibility" checked={newChatIsPublic} onChange={() => setNewChatIsPublic(true)} />
                   <span>🌐 Публичный</span>
                 </label>
               </div>
-              <button
-                style={btnStyle}
+              <Button
+                size="sm"
                 onClick={async () => {
                   setChatError('')
                   if (!newChatName.trim()) { setChatError('Введите название'); return }
@@ -1471,72 +1436,72 @@ export default function ClubAdminPage() {
                     setChatError(await res.text())
                   }
                 }}
-              >Создать</button>
+              >Создать</Button>
             </div>
-            {chatError && <p style={{ color: '#e94560', fontSize: 13, margin: '8px 0 0' }}>{chatError}</p>}
-          </div>
+            {chatError && <p className="gd-error-text">{chatError}</p>}
+          </Dataslate>
 
-          {groupChats.length === 0 && <p style={{ color: '#555' }}>Нет групповых чатов</p>}
+          {groupChats.length === 0 && <p className="gd-text-muted">Нет групповых чатов</p>}
 
           {groupChats.map(chat => {
             const approvedMembers = memberships.filter(m => m.status === 'Approved' && !m.user.id.startsWith('manual:'))
             return (
-              <div key={chat.id} style={cardStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Dataslate key={chat.id}>
+                <div className="gd-flex-between gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
+                  <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)' }}>
                     {chat.logoUrl
-                      ? <img src={chat.logoUrl} alt="logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #444' }} />
-                      : <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#0f3460', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 'bold', color: '#4a9eff', border: '2px solid #444' }}>{chat.name.slice(0, 2).toUpperCase()}</div>
+                      ? <img src={chat.logoUrl} alt="logo" className="gd-admin-avatar" style={{ width: 40, height: 40 }} />
+                      : <div className="gd-admin-avatar" style={{ background: 'var(--gd-blood-red)', width: 40, height: 40 }}>✠</div>
                     }
-                    <h4 style={{ margin: 0 }}>{chat.name}</h4>
-                    <span style={{ fontSize: 12, background: chat.isPublic ? '#1a4a2a' : '#2a2a4a', color: chat.isPublic ? '#4caf50' : '#9b8fcc', borderRadius: 10, padding: '2px 8px' }}>
+                    <h4 className="gd-h3" style={{ margin: 0 }}>{chat.name}</h4>
+                    <Badge tone={chat.isPublic ? 'success' : 'neutral'}>
                       {chat.isPublic ? '🌐 Публичный' : '🔒 Приватный'}
-                    </span>
+                    </Badge>
                   </div>
-                  <button
-                    style={{ ...btnStyle, background: '#e94560' }}
+                  <Button
+                    variant="danger" size="sm"
                     onClick={async () => {
                       if (!confirm(`Удалить чат «${chat.name}»?`)) return
                       const res = await fetch(`/api/clubadmin/chats/${chat.id}`, { method: 'DELETE', headers: authH() })
                       if (res.ok) setGroupChats(groupChats.filter(c => c.id !== chat.id))
                     }}
-                  >Удалить</button>
+                  >Удалить</Button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <label style={{ fontSize: 13, color: '#aaa' }}>Лого чата:</label>
-                  <label style={{ ...btnStyle, background: '#555', cursor: 'pointer', padding: '4px 10px', fontSize: 12 }}>
-                    📷 Загрузить
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const fd = new FormData()
-                      fd.append('file', file)
-                      const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'POST', headers: authH(), body: fd })
-                      if (res.ok) {
-                        const data = await res.json()
-                        setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: data.logoUrl } : c))
-                      }
-                      e.target.value = ''
-                    }} />
-                  </label>
+                <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)', marginBottom: 'var(--gd-s3)' }}>
+                  <span className="gd-text-xs gd-text-muted">Лого чата:</span>
+                  <Button variant="secondary" size="sm"
+                    onClick={() => (document.getElementById(`chat-logo-${chat.id}`) as HTMLInputElement | null)?.click()}
+                  >📷 Загрузить</Button>
+                  <input id={`chat-logo-${chat.id}`} type="file" accept="image/*" style={{ display: 'none' }} onChange={async e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'POST', headers: authH(), body: fd })
+                    if (res.ok) {
+                      const data = await res.json()
+                      setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: data.logoUrl } : c))
+                    }
+                    e.target.value = ''
+                  }} />
                   {chat.logoUrl && (
-                    <button
-                      style={{ ...btnStyle, background: '#555', padding: '4px 10px', fontSize: 12 }}
+                    <Button variant="secondary" size="sm"
                       onClick={async () => {
                         const res = await fetch(`/api/clubadmin/chats/${chat.id}/logo`, { method: 'DELETE', headers: authH() })
                         if (res.ok) setGroupChats(groupChats.map(c => c.id === chat.id ? { ...c, logoUrl: undefined } : c))
                       }}
-                    >🗑 Удалить лого</button>
+                    >🗑 Удалить лого</Button>
                   )}
                 </div>
-                <div style={{ marginBottom: 8 }}>
-                  <strong style={{ fontSize: 13 }}>Участники ({chat.members.length}):</strong>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                <div style={{ marginBottom: 'var(--gd-s2)' }}>
+                  <strong className="gd-text-xs">Участники ({chat.members.length}):</strong>
+                  <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s1)', marginTop: 6 }}>
                     {chat.members.map(m => (
-                      <span key={m.userId} style={{ background: '#0f3460', borderRadius: 12, padding: '3px 10px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span key={m.userId} className="gd-gs-tag">
                         {m.name}
                         <button
-                          style={{ background: 'none', border: 'none', color: '#e94560', cursor: 'pointer', padding: 0, fontSize: 13 }}
+                          className="gd-link-danger"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13 }}
                           title="Удалить из чата"
                           onClick={async () => {
                             const res = await fetch(`/api/clubadmin/chats/${chat.id}/members/${m.userId}`, { method: 'DELETE', headers: authH() })
@@ -1549,11 +1514,11 @@ export default function ClubAdminPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
                   {addMemberChatId === chat.id ? (
                     <>
                       <select
-                        style={{ ...inputStyle, marginBottom: 0 }}
+                        className="gd-input gd-select"
                         value={addMemberUserId}
                         onChange={e => setAddMemberUserId(e.target.value)}
                       >
@@ -1565,8 +1530,8 @@ export default function ClubAdminPage() {
                           ))
                         }
                       </select>
-                      <button
-                        style={btnStyle}
+                      <Button
+                        size="sm"
                         onClick={async () => {
                           if (!addMemberUserId) return
                           const res = await fetch(`/api/clubadmin/chats/${chat.id}/members`, {
@@ -1585,14 +1550,14 @@ export default function ClubAdminPage() {
                             setAddMemberUserId('')
                           }
                         }}
-                      >Добавить</button>
-                      <button style={{ ...btnStyle, background: '#555' }} onClick={() => { setAddMemberChatId(null); setAddMemberUserId('') }}>Отмена</button>
+                      >Добавить</Button>
+                      <Button variant="secondary" size="sm" onClick={() => { setAddMemberChatId(null); setAddMemberUserId('') }}>Отмена</Button>
                     </>
                   ) : (
-                    <button style={btnStyle} onClick={() => { setAddMemberChatId(chat.id); setAddMemberUserId('') }}>+ Добавить участника</button>
+                    <Button size="sm" onClick={() => { setAddMemberChatId(chat.id); setAddMemberUserId('') }}>+ Добавить участника</Button>
                   )}
                 </div>
-              </div>
+              </Dataslate>
             )
           })}
         </>
