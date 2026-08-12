@@ -5,36 +5,7 @@ import type { BookingColors } from '../constants'
 import { isTokenExpired } from '../utils/auth'
 import { GoogleLogin } from '@react-oauth/google'
 import { isGoogleConfigured } from '../oauthConfig'
-
-const cardStyle: React.CSSProperties = {
-  background: '#16213e',
-  border: '1px solid #0f3460',
-  borderRadius: 8,
-  padding: 24,
-  marginBottom: 16,
-  maxWidth: 480,
-}
-
-const inputStyle: React.CSSProperties = {
-  background: '#0f3460',
-  border: '1px solid #1a4080',
-  borderRadius: 6,
-  color: '#eee',
-  padding: '8px 12px',
-  fontSize: 15,
-  width: '100%',
-  boxSizing: 'border-box',
-}
-
-const btnStyle: React.CSSProperties = {
-  border: 'none',
-  borderRadius: 6,
-  padding: '8px 18px',
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-  color: '#fff',
-}
+import { Button, Dataslate, Badge } from '../components/ui'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -56,9 +27,6 @@ export default function SettingsPage() {
   const [savingColors, setSavingColors] = useState(false)
   const [savedColors, setSavedColors] = useState(false)
   const [errorColors, setErrorColors] = useState('')
-
-  const [gsExpanded, setGsExpanded] = useState(false)
-  const [colorsExpanded, setColorsExpanded] = useState(false)
 
   const [bioInput, setBioInput] = useState('')
   const [savingBio, setSavingBio] = useState(false)
@@ -267,261 +235,186 @@ export default function SettingsPage() {
   const effectiveName = displayName || googleName
 
   return (
-    <div style={{ padding: 40 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-        <button style={{ ...btnStyle, background: '#0f3460' }} onClick={() => navigate('/')}>
-          ← Назад
-        </button>
-        <h1 style={{ color: '#e94560', margin: 0, fontSize: 28 }}>⚙️ Настройки профиля</h1>
-      </div>
-
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>Имя для отображения</h2>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Имя из аккаунта (Google/Яндекс/VK)
-          </label>
-          <div style={{ color: '#eee', fontSize: 15, padding: '8px 0' }}>{googleName || '—'}</div>
-        </div>
-
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Своё имя для отображения
-          </label>
-          <input
-            style={inputStyle}
-            type="text"
-            placeholder={`Оставьте пустым, чтобы использовать «${googleName}»`}
-            value={inputValue}
-            maxLength={60}
-            onChange={e => { setInputValue(e.target.value); setSaved(false) }}
-          />
-          <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
-            Будет отображаться везде вместо имени Google. Максимум 60 символов.
+    <div className="gd-app">
+      <div className="gd-settings-container">
+        {/* Header */}
+        <div className="gd-flex-between" style={{ marginBottom: 'var(--gd-s8)' }}>
+          <div>
+            <h1 className="gd-h1">Когитатор</h1>
+            <p className="gd-text-xs gd-text-muted">Настройки профиля и предпочтений</p>
           </div>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>← К клубам</Button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: saving ? 0.7 : 1 }}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          {saved && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {error && <span style={{ color: '#e94560', fontSize: 14 }}>{error}</span>}
-        </div>
-      </div>
+        <div className="gd-section-grid">
+          {/* ── Profile ── */}
+          <Dataslate>
+            <h2 className="gd-h2 gd-mb-4">Профиль воина</h2>
+            <div className="gd-form-row">
+              <label className="gd-form-label">Имя из аккаунта</label>
+              <div className="gd-text-sm" style={{ padding: '8px 0' }}>{googleName || '—'}</div>
+            </div>
+            <div className="gd-form-row">
+              <label className="gd-form-label">Имя для отображения</label>
+              <input
+                className="gd-input"
+                type="text"
+                placeholder={`Оставьте пустым, чтобы использовать «${googleName}»`}
+                value={inputValue}
+                maxLength={60}
+                onChange={e => { setInputValue(e.target.value); setSaved(false) }}
+              />
+              <p className="gd-text-xs gd-text-muted gd-mt-2">Будет отображаться везде. Максимум 60 символов.</p>
+            </div>
+            <div className="gd-form-row">
+              <label className="gd-form-label">О себе</label>
+              <textarea
+                className="gd-input"
+                style={{ resize: 'vertical', minHeight: 80 }}
+                placeholder="Расскажите о своём ордене…"
+                value={bioInput}
+                maxLength={500}
+                onChange={e => { setBioInput(e.target.value); setSavedBio(false) }}
+              />
+              <p className="gd-text-xs gd-text-muted gd-mt-2">{bioInput.length} / 500 символов</p>
+            </div>
+            <div className="gd-form-row">
+              <label className="gd-form-label">Город</label>
+              <input
+                className="gd-input"
+                type="text"
+                placeholder="Например: Москва"
+                value={cityInput}
+                maxLength={50}
+                onChange={e => { setCityInput(e.target.value); setSavedCity(false) }}
+              />
+            </div>
+            <div className="gd-flex-row gd-flex-wrap gd-gap-2">
+              <Button variant="primary" size="sm" onClick={() => { void handleSave(); void handleSaveBio(); void handleSaveCity() }} disabled={saving || savingBio || savingCity}>
+                {(saving || savingBio || savingCity) ? 'Сохраняем…' : 'Сохранить профиль'}
+              </Button>
+              {saved && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>✓ Имя</span>}
+              {savedBio && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>✓ Био</span>}
+              {savedCity && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>✓ Город</span>}
+              {error && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{error}</span>}
+              {errorBio && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{errorBio}</span>}
+              {errorCity && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{errorCity}</span>}
+            </div>
+            <div style={{ marginTop: 'var(--gd-s4)', paddingTop: 'var(--gd-s4)', borderTop: '1px solid var(--gd-border)' }}>
+              <p className="gd-text-xs gd-text-muted gd-mb-2">Как вас видят другие:</p>
+              <div className="gd-h3 gd-text-brass">👤 {effectiveName}</div>
+            </div>
+          </Dataslate>
 
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>Способы входа</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-          <span style={{ background: googleLinked ? '#1a6e3c' : '#333', color: '#eee', padding: '4px 12px', borderRadius: 12, fontSize: 13 }}>
-            {googleLinked ? '✓ Google' : '✗ Google'}
-          </span>
-          <span style={{ background: yandexLinked ? '#1a6e3c' : '#333', color: '#eee', padding: '4px 12px', borderRadius: 12, fontSize: 13 }}>
-            {yandexLinked ? '✓ Яндекс' : '✗ Яндекс'}
-          </span>
-        </div>
-        {!googleLinked && isGoogleConfigured && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <GoogleLogin
-              onSuccess={cred => { if (cred.credential) handleLinkGoogle(cred.credential) }}
-              onError={() => setLinkError('Не удалось получить Google-креденшал')}
-              text="continue_with"
-              width={280}
-            />
-            {linking && <span style={{ color: '#aaa', fontSize: 13 }}>Привязываем…</span>}
-            {linkSuccess && <span style={{ color: '#4caf50', fontSize: 13 }}>{linkSuccess}</span>}
-            {linkError && <span style={{ color: '#e94560', fontSize: 13 }}>{linkError}</span>}
-          </div>
-        )}
-        {googleLinked && (
-          <div style={{ color: '#aaa', fontSize: 13 }}>
-            Google-аккаунт привязан. Вход доступен и по Google, и по Яндексу.
-          </div>
-        )}
-      </div>
-
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>О себе</h2>
-
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Информация о себе
-          </label>
-          <textarea
-            style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }}
-            placeholder="Расскажите немного о себе..."
-            value={bioInput}
-            maxLength={500}
-            onChange={e => { setBioInput(e.target.value); setSavedBio(false) }}
-          />
-          <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
-            Будет отображаться в таблице игроков клуба. Максимум 500 символов.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: savingBio ? 0.7 : 1 }}
-            onClick={handleSaveBio}
-            disabled={savingBio}
-          >
-            {savingBio ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          {savedBio && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {errorBio && <span style={{ color: '#e94560', fontSize: 14 }}>{errorBio}</span>}
-        </div>
-      </div>
-
-      <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: '#eee', fontSize: 18 }}>Город</h2>
-
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 6 }}>
-            Город проживания
-          </label>
-          <input
-            style={inputStyle}
-            type="text"
-            placeholder="Например: Москва"
-            value={cityInput}
-            maxLength={50}
-            onChange={e => { setCityInput(e.target.value); setSavedCity(false) }}
-          />
-          <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
-            Будет отображаться в таблице игроков клуба. Максимум 50 символов.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            style={{ ...btnStyle, background: '#e94560', opacity: savingCity ? 0.7 : 1 }}
-            onClick={handleSaveCity}
-            disabled={savingCity}
-          >
-            {savingCity ? 'Сохраняем...' : 'Сохранить'}
-          </button>
-          {savedCity && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-          {errorCity && <span style={{ color: '#e94560', fontSize: 14 }}>{errorCity}</span>}
-        </div>
-      </div>
-
-      <div style={cardStyle}>
-        <h3 style={{ marginTop: 0, color: '#aaa', fontSize: 15, fontWeight: 400 }}>
-          Как вас сейчас видят другие:
-        </h3>
-        <div style={{ color: '#eee', fontSize: 20, fontWeight: 600 }}>👤 {effectiveName}</div>
-      </div>
-
-      <div style={{ ...cardStyle, maxWidth: 600, padding: 0, overflow: 'hidden' }}>
-        <button
-          aria-expanded={gsExpanded}
-          aria-controls="gs-accordion-body"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 24px', color: '#eee' }}
-          onClick={() => setGsExpanded(v => !v)}
-        >
-          <span style={{ fontSize: 18, fontWeight: 700 }}>🎲 Игровые системы</span>
-          <span style={{ fontSize: 18, color: '#888' }}>{gsExpanded ? '▲' : '▼'}</span>
-        </button>
-        {gsExpanded && (
-          <div id="gs-accordion-body" style={{ padding: '0 24px 24px' }}>
-            <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-              Отметьте игровые системы, для которых другие игроки могут приглашать вас в партию.
-              Если система не отмечена — вас нельзя выбрать напарником в этой системе.
+          {/* ── Game Systems ── */}
+          <Dataslate>
+            <h2 className="gd-h2 gd-mb-4">Игровые системы</h2>
+            <p className="gd-text-xs gd-text-muted gd-mb-4">
+              Отметьте системы, в которые играете — это влияет на подбор соперников.
             </p>
-            <div style={{ marginBottom: 8 }}>
-              {GAME_SYSTEMS_MAIN.map(gs => (
-                <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
+            <div className="gd-gs-check gd-mb-4">
+              {[...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM].map(gs => (
+                <label key={gs} className="gd-gs-tag">
                   <input
                     type="checkbox"
                     checked={enabledGameSystems.includes(gs)}
                     onChange={() => toggleGameSystem(gs)}
-                    style={{ marginRight: 8 }}
                   />
                   {gs}
                 </label>
               ))}
             </div>
-            <div style={{ borderTop: '1px solid #0f3460', paddingTop: 8, marginTop: 4 }}>
-              {GAME_SYSTEMS_BOTTOM.map(gs => (
-                <label key={gs} style={{ display: 'block', color: '#eee', fontSize: 14, padding: '5px 0', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={enabledGameSystems.includes(gs)}
-                    onChange={() => toggleGameSystem(gs)}
-                    style={{ marginRight: 8 }}
-                  />
-                  {gs}
-                </label>
-              ))}
+            <div className="gd-flex-row gd-gap-2">
+              <Button variant="primary" size="sm" onClick={() => void handleSaveGameSystems()} disabled={savingGS}>
+                {savingGS ? 'Сохраняем…' : 'Сохранить системы'}
+              </Button>
+              {savedGS && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>✓ Сохранено</span>}
+              {errorGS && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{errorGS}</span>}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
-              <button
-                style={{ ...btnStyle, background: '#e94560', opacity: savingGS ? 0.7 : 1 }}
-                onClick={handleSaveGameSystems}
-                disabled={savingGS}
-              >
-                {savingGS ? 'Сохраняем...' : 'Сохранить'}
-              </button>
-              {savedGS && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-              {errorGS && <span style={{ color: '#e94560', fontSize: 14 }}>{errorGS}</span>}
-            </div>
-          </div>
-        )}
-      </div>
-      <div style={{ ...cardStyle, maxWidth: 600, padding: 0, overflow: 'hidden' }}>
-        <button
-          aria-expanded={colorsExpanded}
-          aria-controls="colors-accordion-body"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '16px 24px', color: '#eee' }}
-          onClick={() => setColorsExpanded(v => !v)}
-        >
-          <span style={{ fontSize: 18, fontWeight: 700 }}>🎨 Цвета бронирования</span>
-          <span style={{ fontSize: 18, color: '#888' }}>{colorsExpanded ? '▲' : '▼'}</span>
-        </button>
-        {colorsExpanded && (
-          <div id="colors-accordion-body" style={{ padding: '0 24px 24px' }}>
-            <p style={{ color: '#aaa', fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-              Настройте цвета, которыми обозначаются слоты на временной шкале столов.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+          </Dataslate>
+
+          {/* ── Booking Colors ── */}
+          <Dataslate>
+            <h2 className="gd-h2 gd-mb-4">Цвета брони</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gd-s3)', marginBottom: 'var(--gd-s4)' }}>
               {(Object.keys(DEFAULT_BOOKING_COLORS) as (keyof BookingColors)[]).map(key => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#eee', fontSize: 14 }}>
-                  <input
-                    type="color"
-                    value={bookingColors[key]}
-                    onChange={e => { setBookingColors(prev => ({ ...prev, [key]: e.target.value })); setSavedColors(false) }}
-                    style={{ width: 36, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'none', padding: 0 }}
-                  />
-                  <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 3, background: bookingColors[key], border: '1px solid #555', flexShrink: 0 }} />
-                  {BOOKING_COLORS_LABELS[key]}
-                </label>
+                <div key={key}>
+                  <label className="gd-form-label">{BOOKING_COLORS_LABELS[key]}</label>
+                  <div className="gd-flex-row gd-gap-2 gd-mt-2">
+                    <input
+                      type="color"
+                      value={bookingColors[key]}
+                      onChange={e => { setBookingColors(prev => ({ ...prev, [key]: e.target.value })); setSavedColors(false) }}
+                      style={{ width: 36, height: 28, border: 'none', cursor: 'pointer', background: 'none', padding: 0 }}
+                    />
+                    <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 3, background: bookingColors[key], border: '1px solid var(--gd-border)', flexShrink: 0 }} />
+                  </div>
+                </div>
               ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <button
-                style={{ ...btnStyle, background: '#e94560', opacity: savingColors ? 0.7 : 1 }}
-                onClick={() => handleSaveColors(bookingColors)}
-                disabled={savingColors}
-              >
-                {savingColors ? 'Сохраняем...' : 'Сохранить'}
-              </button>
-              <button
-                style={{ ...btnStyle, background: '#0f3460' }}
-                onClick={handleResetColors}
-                disabled={savingColors}
-              >
+            <div className="gd-flex-row gd-flex-wrap gd-gap-2">
+              <Button variant="primary" size="sm" onClick={() => void handleSaveColors(bookingColors)} disabled={savingColors}>
+                {savingColors ? 'Сохраняем…' : 'Сохранить цвета'}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleResetColors} disabled={savingColors}>
                 По умолчанию
-              </button>
-              {savedColors && <span style={{ color: '#4caf50', fontSize: 14 }}>✓ Сохранено</span>}
-              {errorColors && <span style={{ color: '#e94560', fontSize: 14 }}>{errorColors}</span>}
+              </Button>
+              {savedColors && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>✓ Сохранено</span>}
+              {errorColors && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{errorColors}</span>}
             </div>
-          </div>
-        )}
+          </Dataslate>
+
+          {/* ── Linked accounts ── */}
+          <Dataslate>
+            <h2 className="gd-h2 gd-mb-4">Способы входа</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gd-s2)' }}>
+              <div className="gd-provider-row">
+                <span className="name">Яндекс</span>
+                {yandexLinked
+                  ? <Badge tone="success">Привязан ✓</Badge>
+                  : <Badge tone="brass">Не привязан</Badge>}
+              </div>
+              <div className="gd-provider-row">
+                <span className="name">Google</span>
+                {googleLinked
+                  ? <Badge tone="success">Привязан ✓</Badge>
+                  : <Badge tone="brass">Не привязан</Badge>}
+              </div>
+            </div>
+            {!googleLinked && isGoogleConfigured && (
+              <div style={{ marginTop: 'var(--gd-s4)', display: 'flex', flexDirection: 'column', gap: 'var(--gd-s2)', alignItems: 'flex-start' }}>
+                <GoogleLogin
+                  onSuccess={cred => { if (cred.credential) void handleLinkGoogle(cred.credential) }}
+                  onError={() => setLinkError('Не удалось получить Google-креденшал')}
+                  text="continue_with"
+                  width={280}
+                />
+                {linking && <span className="gd-text-sm gd-text-muted">Привязываем…</span>}
+                {linkSuccess && <span className="gd-text-sm" style={{ color: 'var(--gd-success)' }}>{linkSuccess}</span>}
+                {linkError && <span className="gd-text-sm" style={{ color: 'var(--gd-danger)' }}>{linkError}</span>}
+              </div>
+            )}
+            {googleLinked && (
+              <p className="gd-text-sm gd-text-muted gd-mt-4">
+                Google-аккаунт привязан. Вход доступен и по Google, и по Яндексу.
+              </p>
+            )}
+          </Dataslate>
+
+          {/* ── Danger zone ── */}
+          <Dataslate style={{ gridColumn: '1 / -1', borderColor: 'rgba(196, 40, 59, 0.3)' }}>
+            <div className="gd-flex-between">
+              <div>
+                <h2 className="gd-h2" style={{ color: 'var(--gd-danger)' }}>Опасная зона</h2>
+                <p className="gd-text-xs gd-text-muted">Выход из аккаунта. Все несохранённые данные будут потеряны.</p>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => {
+                localStorage.removeItem('token')
+                navigate('/login', { replace: true })
+              }}>Исторгнуть</Button>
+            </div>
+          </Dataslate>
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { isTokenExpired } from '../utils/auth'
+import { Button } from '../components/ui'
 
 interface ChatSummary {
   id: number
@@ -73,15 +74,16 @@ function getInitials(name: string): string {
 
 function Avatar({ name, url, size = 36, isGroup = false }: { name: string; url?: string; size?: number; isGroup?: boolean }) {
   const [imgError, setImgError] = useState(false)
-  const avatarColors = ['#4a9eff', '#e94560', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4']
+  const avatarColors = ['#c4283b', '#c4a35a', '#3a8a4a', '#c49030', '#7b4fa3', '#1a6e8a']
   const colorIdx = name.charCodeAt(0) % avatarColors.length
   const bg = avatarColors[colorIdx]
-  const borderRadius = isGroup ? `${Math.round(size * 0.22)}px` : '50%'
   const style: React.CSSProperties = {
-    width: size, height: size, borderRadius, flexShrink: 0,
+    width: size, height: size, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: Math.round(size * 0.38), fontWeight: 'bold', color: '#fff',
-    background: bg, overflow: 'hidden', userSelect: 'none',
+    fontSize: Math.round(size * 0.34), fontWeight: 'bold',
+    color: 'var(--gd-brass)', background: bg, overflow: 'hidden', userSelect: 'none',
+    fontFamily: 'var(--gd-font-display)',
+    clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
   }
   if (url && !imgError) {
     return (
@@ -90,7 +92,7 @@ function Avatar({ name, url, size = 36, isGroup = false }: { name: string; url?:
       </div>
     )
   }
-  return <div style={style}>{getInitials(name)}</div>
+  return <div style={style}>{isGroup ? '✠' : getInitials(name)}</div>
 }
 
 const MAX_TEXTAREA_HEIGHT = 120
@@ -510,124 +512,99 @@ export default function MessengerPage() {
   const isSameDay = (a: string, b: string) =>
     parseUtc(a).toDateString() === parseUtc(b).toDateString()
 
-  const containerStyle: React.CSSProperties = {
-    display: 'flex', position: 'fixed', top: vpTop, left: 0, right: 0, height: vpHeight,
-    fontFamily: 'Arial, sans-serif', background: '#1a1a2e', color: '#eee', overflow: 'hidden',
-  }
-
-  const sidebarStyle: React.CSSProperties = {
-    width: isMobile ? '100%' : '280px',
-    minWidth: isMobile ? undefined : '220px',
-    borderRight: isMobile ? 'none' : '1px solid #333',
-    display: isMobile && mobileView === 'chat' ? 'none' : 'flex',
-    flexDirection: 'column',
-    background: '#16213e',
-    flexShrink: 0,
-  }
-
-  const mainStyle: React.CSSProperties = {
-    flex: 1, display: isMobile && mobileView === 'list' ? 'none' : 'flex',
-    flexDirection: 'column', minWidth: 0,
-  }
-
   const truncateReply = (text: string, max = 60) =>
     text.length > max ? text.slice(0, max) + '…' : text
 
   return (
-    <div style={containerStyle}>
-      {/* Боковая панель */}
-      <div style={sidebarStyle}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Сообщения</span>
-          <button
-            style={{ background: '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px' }}
-            onClick={openNewChat}
-          >+ Новый</button>
+    <div className="gd-app gd-msg-app" style={{ position: 'fixed', top: vpTop, left: 0, right: 0, height: vpHeight }}>
+      {/* ── Боковая панель ── */}
+      <div className={['gd-msg-sidebar', isMobile && mobileView === 'chat' ? 'gd-msg-hidden' : ''].filter(Boolean).join(' ')}>
+        <div className="gd-msg-sidebar-header">
+          <h2>Вокс-канал</h2>
+          <Button size="sm" variant="primary" onClick={openNewChat}>+ Новый чат</Button>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="gd-msg-items">
           {chats.length === 0 && (
-            <div style={{ padding: '16px', color: '#555', fontSize: '13px' }}>Нет чатов</div>
+            <div className="gd-empty" style={{ padding: 'var(--gd-s8) var(--gd-s4)' }}>
+              <h3>Вокс-канал тих</h3>
+              <p className="gd-text-xs">Нет активных чатов</p>
+            </div>
           )}
           {chats.map(c => (
             <div
               key={c.id}
-              style={{
-                padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #222',
-                display: 'flex', alignItems: 'center', gap: '10px',
-                background: c.id === activeChatId ? '#0f3460' : 'transparent',
-              }}
+              className={['gd-msg-chat-item', c.id === activeChatId ? 'active' : ''].filter(Boolean).join(' ')}
               onClick={() => selectChat(c.id)}
             >
-              <Avatar name={c.name} url={c.avatarUrl} size={40} isGroup={c.isGroup} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Avatar name={c.name} url={c.avatarUrl} size={42} isGroup={c.isGroup} />
+              <div className="gd-msg-chat-info">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <span className="gd-msg-chat-name">
                     {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
                     {c.name}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gd-s1)', flexShrink: 0, marginLeft: 'var(--gd-s1)' }}>
                     {c.isGroup && c.clubShortName && (
-                      <span style={{
-                        background: c.clubBadgeColor || '#4a9eff', color: '#fff',
-                        borderRadius: '4px', padding: '1px 5px', fontSize: '10px', fontWeight: 'bold',
-                      }}>{c.clubShortName}</span>
+                      <span className="gd-msg-club-badge" style={{ background: c.clubBadgeColor || 'var(--gd-brass)' }}>
+                        {c.clubShortName}
+                      </span>
                     )}
                     {c.unreadCount > 0 && (
-                      <span style={{ background: '#4a9eff', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 'bold' }}>
-                        {c.unreadCount > 99 ? '99+' : c.unreadCount}
-                      </span>
+                      <span className="gd-msg-unread">{c.unreadCount > 99 ? '99+' : c.unreadCount}</span>
                     )}
                   </div>
                 </div>
                 {c.lastMessage && (
-                  <div style={{ fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.lastMessage.text.length > 35 ? c.lastMessage.text.slice(0, 35) + '…' : c.lastMessage.text}
-                    <span style={{ float: 'right', fontSize: '10px', color: '#666' }}>{formatDate(c.lastMessage.sentAt)}</span>
+                  <div className="gd-msg-chat-preview">
+                    {c.lastMessage.text.length > 40 ? c.lastMessage.text.slice(0, 40) + '…' : c.lastMessage.text}
+                    <span className="gd-msg-chat-time" style={{ float: 'right', marginLeft: 'var(--gd-s2)' }}>{formatDate(c.lastMessage.sentAt)}</span>
                   </div>
                 )}
               </div>
             </div>
           ))}
         </div>
-        <div style={{ padding: '10px 16px', borderTop: '1px solid #333' }}>
-          <button
-            style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '13px' }}
-            onClick={() => navigate('/')}
-          >← На главную</button>
+        <div className="gd-msg-sidebar-footer">
+          <button className="gd-btn gd-btn-ghost gd-btn-sm gd-btn-block" onClick={() => navigate('/')}>← На главную</button>
         </div>
       </div>
 
-      {/* Основная область */}
-      <div style={mainStyle}>
+      {/* ── Основная область ── */}
+      <div className={['gd-msg-main', isMobile && mobileView === 'chat' ? 'gd-msg-open' : ''].filter(Boolean).join(' ')}>
         {activeChatId == null ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '16px', textAlign: 'center', padding: '16px' }}>
-            Выберите чат или начните новый
+          <div className="gd-msg-empty">
+            <div style={{ fontSize: '3rem', opacity: 0.2, marginBottom: 'var(--gd-s4)' }}>✠</div>
+            <h3>Вокс-канал тих</h3>
+            <p className="gd-text-xs">Выберите чат слева или начните новый диалог</p>
           </div>
         ) : (
           <>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #333', background: '#16213e', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Chat header */}
+            <div className="gd-msg-chat-header">
               {isMobile && (
                 <button
-                  style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '22px', padding: '0 6px 0 0', lineHeight: 1, flexShrink: 0 }}
+                  className="gd-btn gd-btn-ghost gd-btn-sm"
                   onClick={() => { setMobileView('list'); setContextMenu(null); setReplyTo(null); setSelectedMessageIds(new Set()) }}
                 >‹</button>
               )}
-              <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={34} isGroup={activeChat?.isGroup} />
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
-                {activeChat?.name ?? 'Чат'}
-              </span>
+              <Avatar name={activeChat?.name ?? 'Чат'} url={activeChat?.avatarUrl} size={36} isGroup={activeChat?.isGroup} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="cv-name">
+                  {activeChat?.isGroup && <span style={{ marginRight: '6px' }}>{activeChat.isPublic ? '🌐' : '🔒'}</span>}
+                  {activeChat?.name ?? 'Чат'}
+                </div>
+              </div>
               {activeChat?.isGroup && activeChat.clubShortName && (
-                <span style={{
-                  background: activeChat.clubBadgeColor || '#4a9eff', color: '#fff',
-                  borderRadius: '4px', padding: '2px 7px', fontSize: '11px', fontWeight: 'bold', flexShrink: 0,
-                }}>{activeChat.clubShortName}</span>
+                <span className="gd-msg-club-badge" style={{ background: activeChat.clubBadgeColor || 'var(--gd-brass)', padding: '2px 7px', flexShrink: 0 }}>
+                  {activeChat.clubShortName}
+                </span>
               )}
             </div>
-            {/* Панель выделения (только десктоп) */}
+
+            {/* Selection toolbar (desktop only) */}
             {isSelectionMode && (
-              <div style={{ padding: '8px 14px', background: '#0f3460', borderBottom: '1px solid #1a3a6a', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '13px', flex: 1, color: '#aaa' }}>
+              <div className="gd-msg-sel-bar">
+                <span className="gd-text-sm" style={{ flex: 1, color: 'var(--gd-fg-secondary)' }}>
                   {selectedMessageIds.size} {selectedMessageIds.size === 1 ? 'сообщение' : selectedMessageIds.size < 5 ? 'сообщения' : 'сообщений'} выбрано
                 </span>
                 {selectedMessageIds.size === 1 && (() => {
@@ -635,36 +612,27 @@ export default function MessengerPage() {
                   if (!selMsg) return null
                   return (
                     <>
-                      <button
-                        style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
-                        onClick={() => { handleReply({ messageId: selMsg.id, text: selMsg.text, isMe: selMsg.sender.id === myId, senderName: selMsg.sender.name }); setSelectedMessageIds(new Set()) }}
-                      >↩ Ответить</button>
-                      <button
-                        style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
-                        onClick={() => { handleForward(selMsg.text); setSelectedMessageIds(new Set()) }}
-                      >↗ Переслать</button>
+                      <Button size="xs" variant="secondary" onClick={() => { handleReply({ messageId: selMsg.id, text: selMsg.text, isMe: selMsg.sender.id === myId, senderName: selMsg.sender.name }); setSelectedMessageIds(new Set()) }}>↩ Ответить</Button>
+                      <Button size="xs" variant="secondary" onClick={() => { handleForward(selMsg.text); setSelectedMessageIds(new Set()) }}>↪ Переслать</Button>
                     </>
                   )
                 })()}
-                <button
-                  style={{ background: 'none', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
-                  onClick={handleCopySelected}
-                >📋 Копировать</button>
+                <Button size="xs" variant="secondary" onClick={handleCopySelected}>⧉ Копировать</Button>
                 {messages.filter(m => selectedMessageIds.has(m.id)).every(m => m.sender.id === myId) && (
-                  <button
-                    style={{ background: 'none', border: '1px solid #e94560', color: '#e94560', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px' }}
-                    onClick={() => setDeleteSelectedConfirm(true)}
-                  >🗑 Удалить</button>
+                  <Button size="xs" variant="danger" onClick={() => setDeleteSelectedConfirm(true)}>✕ Удалить</Button>
                 )}
                 <button
-                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '18px', padding: '0 4px', lineHeight: 1 }}
+                  className="gd-btn gd-btn-ghost"
+                  style={{ fontSize: '1rem', padding: '2px 8px', lineHeight: 1 }}
                   onClick={() => setSelectedMessageIds(new Set())}
                 >✕</button>
               </div>
             )}
+
+            {/* Messages */}
             <div
               ref={messagesContainerRef}
-              style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+              className="gd-msg-messages"
               onClick={() => { setContextMenu(null); if (!isMobile) setSelectedMessageIds(new Set()) }}
             >
               {messages.map((m, idx) => {
@@ -680,24 +648,20 @@ export default function MessengerPage() {
                 }
                 const selectionCheckbox = isSelectionMode ? (
                   <div style={{
-                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                    border: '2px solid #4a9eff',
-                    background: isSelected ? '#4a9eff' : 'transparent',
+                    width: 20, height: 20, flexShrink: 0,
+                    border: '2px solid var(--gd-brass)',
+                    background: isSelected ? 'var(--gd-brass)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, color: '#fff',
+                    fontSize: 11, color: 'var(--gd-brass-on)',
+                    clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
                   }}>
                     {isSelected && '✓'}
                   </div>
                 ) : null
                 const showDateSep = idx === 0 || !isSameDay(messages[idx - 1].sentAt, m.sentAt)
                 const dateSeparator = showDateSep ? (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    margin: '8px 0', userSelect: 'none',
-                  }}>
-                    <div style={{ flex: 1, height: '1px', background: '#333' }} />
-                    <span style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap' }}>{getDateLabel(m.sentAt)}</span>
-                    <div style={{ flex: 1, height: '1px', background: '#333' }} />
+                  <div className="gd-msg-date-sep">
+                    <span>{getDateLabel(m.sentAt)}</span>
                   </div>
                 ) : null
                 if (isMe) {
@@ -705,38 +669,22 @@ export default function MessengerPage() {
                     <Fragment key={m.id}>
                       {dateSeparator}
                       <div
-                        style={{
-                          alignSelf: isSelectionMode ? 'stretch' : 'flex-end',
-                          display: 'flex', alignItems: 'center', gap: '8px',
-                          userSelect: 'none',
-                          ...(isSelectionMode ? {
-                            cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
-                            background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
-                          } : { alignItems: 'flex-end', gap: '4px' }),
-                        }}
+                        className={['gd-msg-row', 'mine', isSelectionMode ? 'gd-msg-sel-mode' : ''].filter(Boolean).join(' ')}
+                        style={isSelectionMode ? { alignSelf: 'stretch', cursor: 'pointer', background: isSelected ? 'var(--gd-blood-subtle)' : 'transparent', borderRadius: 3, padding: '2px 4px' } : undefined}
                         {...msgHandlers}
                       >
                         {selectionCheckbox}
-                        <div style={{ flex: isSelectionMode ? 1 : undefined, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '4px' }}>
-                          <div style={{
-                            background: '#0f3460',
-                            borderRadius: '12px 12px 2px 12px',
-                            padding: '8px 14px',
-                            maxWidth: '70%',
-                            wordBreak: 'break-word',
-                          }}>
+                        <div style={{ flex: isSelectionMode ? 1 : undefined }}>
+                          <div className="gd-msg-bubble">
                             {m.replyTo && (
-                              <div style={{
-                                borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
-                                fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
-                              }}>
-                                <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
-                                <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
+                              <div className="gd-msg-reply-quote">
+                                <div className="rq-name">{m.replyTo.senderName}</div>
+                                <div className="rq-text">{truncateReply(m.replyTo.text)}</div>
                               </div>
                             )}
-                            <div style={{ fontSize: '14px' }}>{m.text}</div>
-                            <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                            <div>{m.text}</div>
                           </div>
+                          <div className="gd-msg-meta"><span>{formatTime(m.sentAt)}</span></div>
                         </div>
                       </div>
                     </Fragment>
@@ -746,31 +694,24 @@ export default function MessengerPage() {
                   <Fragment key={m.id}>
                     {dateSeparator}
                     <div
-                      style={{
-                        display: 'flex', alignItems: isSelectionMode ? 'center' : 'flex-end', gap: '8px',
-                        userSelect: 'none',
-                        ...(isSelectionMode ? {
-                          cursor: 'pointer', borderRadius: '8px', padding: '2px 4px',
-                          background: isSelected ? 'rgba(74,158,255,0.12)' : 'transparent',
-                        } : {}),
-                      }}
+                      className={['gd-msg-row', 'theirs', isSelectionMode ? 'gd-msg-sel-mode' : ''].filter(Boolean).join(' ')}
+                      style={isSelectionMode ? { alignSelf: 'stretch', cursor: 'pointer', background: isSelected ? 'var(--gd-blood-subtle)' : 'transparent', borderRadius: 3, padding: '2px 4px', alignItems: 'center' } : undefined}
                       {...msgHandlers}
                     >
                       {selectionCheckbox}
                       <Avatar name={m.sender.name} url={m.sender.avatarUrl} size={28} />
-                      <div style={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: '12px 12px 12px 2px', padding: '8px 14px', maxWidth: '70%', wordBreak: 'break-word' }}>
-                        {m.replyTo && (
-                          <div style={{
-                            borderLeft: '3px solid #4a9eff', paddingLeft: '8px', marginBottom: '6px',
-                            fontSize: '12px', color: '#7bb3ff', borderRadius: '2px',
-                          }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{m.replyTo.senderName}</div>
-                            <div style={{ color: '#aaa' }}>{truncateReply(m.replyTo.text)}</div>
-                          </div>
-                        )}
-                        <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{m.sender.name}</div>
-                        <div style={{ fontSize: '14px' }}>{m.text}</div>
-                        <div style={{ fontSize: '10px', color: '#888', marginTop: '2px', textAlign: 'right' }}>{formatTime(m.sentAt)}</div>
+                      <div>
+                        <div className="gd-msg-sender-name">{m.sender.name}</div>
+                        <div className="gd-msg-bubble">
+                          {m.replyTo && (
+                            <div className="gd-msg-reply-quote">
+                              <div className="rq-name">{m.replyTo.senderName}</div>
+                              <div className="rq-text">{truncateReply(m.replyTo.text)}</div>
+                            </div>
+                          )}
+                          <div>{m.text}</div>
+                        </div>
+                        <div className="gd-msg-meta"><span>{formatTime(m.sentAt)}</span></div>
                       </div>
                     </div>
                   </Fragment>
@@ -779,84 +720,62 @@ export default function MessengerPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Превью ответа */}
+            {/* Reply preview */}
             {replyTo && (
-              <div style={{
-                padding: '6px 14px', borderTop: '1px solid #2a3a5e', background: '#16213e',
-                display: 'flex', alignItems: 'center', gap: '8px',
-              }}>
-                <div style={{ flex: 1, borderLeft: '3px solid #4a9eff', paddingLeft: '8px' }}>
-                  <div style={{ fontSize: '11px', color: '#4a9eff', fontWeight: 'bold' }}>{replyTo.senderName}</div>
-                  <div style={{ fontSize: '12px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {truncateReply(replyTo.text)}
-                  </div>
+              <div className="gd-msg-reply-preview">
+                <div className="rp-inner">
+                  <div className="rp-name">{replyTo.senderName}</div>
+                  <div className="rp-text">{truncateReply(replyTo.text)}</div>
                 </div>
                 <button
-                  style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '18px', lineHeight: 1, flexShrink: 0 }}
+                  className="gd-btn gd-btn-ghost gd-btn-xs"
                   onClick={() => setReplyTo(null)}
-                >×</button>
+                >✕</button>
               </div>
             )}
 
-            <div style={{ padding: '10px 14px', borderTop: '1px solid #333', display: 'flex', gap: '8px', background: '#16213e', alignItems: 'flex-end' }}>
+            {/* Input area */}
+            <div className="gd-msg-input-area">
               <textarea
                 ref={textareaRef}
-                style={{ flex: 1, background: '#0f1b2d', border: '1px solid #444', borderRadius: '6px', color: '#eee', padding: '8px 12px', fontSize: '14px', outline: 'none', resize: 'none', overflowY: 'auto', lineHeight: '1.4', minHeight: '36px', maxHeight: MAX_TEXTAREA_HEIGHT + 'px', fontFamily: 'inherit' }}
-                placeholder="Написать сообщение..."
+                placeholder="Вокс-сообщение…"
                 value={inputText}
                 rows={1}
+                style={{ maxHeight: MAX_TEXTAREA_HEIGHT }}
                 onChange={e => { setInputText(e.target.value); resizeTextarea() }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMessage() } }}
                 maxLength={4000}
               />
               <button
-                style={{ background: sending || !inputText.trim() ? '#2a4a6a' : '#4a9eff', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 14px', cursor: sending || !inputText.trim() ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, alignSelf: 'flex-end' }}
-                onClick={sendMessage}
+                className="gd-msg-send-btn"
+                onClick={() => void sendMessage()}
                 disabled={sending || !inputText.trim()}
               >
-                {sending ? '…' : '▶'}
+                {sending ? '…' : '✠'}
               </button>
             </div>
           </>
         )}
       </div>
 
-      {/* Контекстное меню (long press) */}
+      {/* ── Context menu (bottom sheet) ── */}
       {contextMenu && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1100 }}
-          onClick={() => setContextMenu(null)}
-        >
-          <div
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: '#1e2d4a', borderRadius: '16px 16px 0 0',
-              padding: '8px 0 24px',
-              boxShadow: '0 -4px 20px rgba(0,0,0,0.5)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Превью сообщения */}
-            <div style={{ padding: '10px 20px 14px', borderBottom: '1px solid #2a3a5e', color: '#aaa', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="gd-msg-ctx-overlay" onClick={() => setContextMenu(null)}>
+          <div className="gd-msg-ctx-sheet" onClick={e => e.stopPropagation()}>
+            <div className="gd-msg-ctx-preview">
               {contextMenu.text.length > 80 ? contextMenu.text.slice(0, 80) + '…' : contextMenu.text}
             </div>
-            {/* Кнопки */}
             {[
               { label: '↩ Ответить', action: () => handleReply(contextMenu) },
-              { label: '↗ Переслать', action: () => handleForward(contextMenu.text) },
-              { label: '📋 Скопировать', action: () => handleCopy(contextMenu.text) },
+              { label: '↪ Переслать', action: () => handleForward(contextMenu.text) },
+              { label: '⧉ Копировать', action: () => handleCopy(contextMenu.text) },
               ...(contextMenu.isMe
-                ? [{ label: '🗑 Удалить', action: () => { setDeleteTargetId(contextMenu.messageId); setContextMenu(null) }, danger: true }]
+                ? [{ label: '✕ Удалить', action: () => { setDeleteTargetId(contextMenu.messageId); setContextMenu(null) }, danger: true }]
                 : []),
             ].map(item => (
               <button
                 key={item.label}
-                style={{
-                  display: 'block', width: '100%', background: 'none', border: 'none',
-                  color: (item as { danger?: boolean }).danger ? '#e94560' : '#eee',
-                  fontSize: '16px', padding: '14px 20px', textAlign: 'left', cursor: 'pointer',
-                  borderBottom: '1px solid #1a2a40',
-                }}
+                className={['gd-msg-ctx-btn', (item as { danger?: boolean }).danger ? 'danger' : ''].filter(Boolean).join(' ')}
                 onClick={item.action}
               >{item.label}</button>
             ))}
@@ -864,73 +783,46 @@ export default function MessengerPage() {
         </div>
       )}
 
-      {/* Модальное окно нового чата */}
+      {/* ── Modal: new chat ── */}
       {showNewChat && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setShowNewChat(false)}
-        >
-          <div
-            style={{ background: '#16213e', borderRadius: '10px', padding: '20px', minWidth: '280px', maxWidth: '480px', width: '90%', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '16px' }}>Личное сообщение</div>
+        <div className="gd-msg-modal-overlay" onClick={() => setShowNewChat(false)}>
+          <div className="gd-msg-modal" onClick={e => e.stopPropagation()}>
+            <h3>Личное сообщение</h3>
             {loadingMembers ? (
-              <div style={{ color: '#aaa' }}>Загрузка участников...</div>
+              <div className="gd-text-secondary gd-text-sm">Загрузка участников…</div>
             ) : clubMembers.length === 0 ? (
-              <div style={{ color: '#aaa' }}>Нет доступных участников</div>
+              <div className="gd-text-muted gd-text-sm">Нет доступных участников</div>
             ) : (
-              <div style={{ overflowY: 'auto', flex: 1 }}>
+              <div className="gd-msg-modal-list">
                 {clubMembers.map(m => (
-                  <div
-                    key={m.id}
-                    style={{ padding: '8px 10px', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#0f3460')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    onClick={() => startDirectChat(m.id)}
-                  >
+                  <div key={m.id} className="gd-msg-modal-item" onClick={() => void startDirectChat(m.id)}>
                     <Avatar name={m.name} url={m.avatarUrl} size={32} />
-                    <span>{m.name}</span>
+                    <span className="gd-text-sm">{m.name}</span>
                   </div>
                 ))}
               </div>
             )}
-            <button
-              style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '14px', padding: '4px 0', marginTop: '16px' }}
-              onClick={() => setShowNewChat(false)}
-            >Закрыть</button>
+            <Button variant="secondary" size="sm" block onClick={() => setShowNewChat(false)} className="gd-mt-4">Закрыть</Button>
           </div>
         </div>
       )}
 
-      {/* Модальное окно пересылки */}
+      {/* ── Modal: forward ── */}
       {forwardText !== null && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setForwardText(null)}
-        >
-          <div
-            style={{ background: '#16213e', borderRadius: '10px', padding: '20px', minWidth: '280px', maxWidth: '480px', width: '90%', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>Переслать в чат</div>
-            <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="gd-msg-modal-overlay" onClick={() => setForwardText(null)}>
+          <div className="gd-msg-modal" onClick={e => e.stopPropagation()}>
+            <h3>Переслать в чат</h3>
+            <div className="gd-text-xs gd-text-muted gd-mb-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               «{forwardText.length > 60 ? forwardText.slice(0, 60) + '…' : forwardText}»
             </div>
             {chats.length === 0 ? (
-              <div style={{ color: '#aaa' }}>Нет доступных чатов</div>
+              <div className="gd-text-muted gd-text-sm">Нет доступных чатов</div>
             ) : (
-              <div style={{ overflowY: 'auto', flex: 1 }}>
+              <div className="gd-msg-modal-list">
                 {chats.map(c => (
-                  <div
-                    key={c.id}
-                    style={{ padding: '8px 10px', cursor: 'pointer', borderRadius: '6px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#0f3460')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    onClick={() => { void forwardToChat(c.id) }}
-                  >
+                  <div key={c.id} className="gd-msg-modal-item" onClick={() => { void forwardToChat(c.id) }}>
                     <Avatar name={c.name} url={c.avatarUrl} size={32} isGroup={c.isGroup} />
-                    <span style={{ fontSize: '14px' }}>
+                    <span className="gd-text-sm">
                       {c.isGroup && <span style={{ marginRight: '4px' }}>{c.isPublic ? '🌐' : '🔒'}</span>}
                       {c.name}
                     </span>
@@ -938,95 +830,48 @@ export default function MessengerPage() {
                 ))}
               </div>
             )}
-            <button
-              style={{ background: 'none', border: 'none', color: '#4a9eff', cursor: 'pointer', fontSize: '14px', padding: '4px 0', marginTop: '16px' }}
-              onClick={() => setForwardText(null)}
-            >Отмена</button>
+            <Button variant="secondary" size="sm" block onClick={() => setForwardText(null)} className="gd-mt-4">Отмена</Button>
           </div>
         </div>
       )}
 
-      {/* Модальное окно подтверждения удаления */}
+      {/* ── Modal: delete confirm ── */}
       {deleteTargetId !== null && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setDeleteTargetId(null)}
-        >
-          <div
-            style={{ background: '#16213e', borderRadius: '10px', padding: '24px 20px', minWidth: '260px', maxWidth: '400px', width: '90%' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>Удалить сообщение</div>
-            <div style={{ fontSize: '14px', color: '#ccc', marginBottom: '20px' }}>
-              Удалить сообщение? Это действие нельзя отменить.
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button
-                disabled={deletingMessage}
-                style={{ background: 'none', border: '1px solid #555', color: deletingMessage ? '#555' : '#ccc', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px' }}
-                onClick={() => setDeleteTargetId(null)}
-              >Отмена</button>
-              <button
-                disabled={deletingMessage}
-                style={{ background: deletingMessage ? '#7a2030' : '#e94560', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px', fontWeight: 'bold' }}
-                onClick={() => { void deleteMessage(deleteTargetId) }}
-              >{deletingMessage ? 'Удаление…' : 'Удалить'}</button>
+        <div className="gd-msg-modal-overlay" onClick={() => setDeleteTargetId(null)}>
+          <div className="gd-msg-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Удалить сообщение</h3>
+            <p className="gd-text-sm gd-text-secondary gd-mb-4">Удалить сообщение? Это действие нельзя отменить.</p>
+            <div style={{ display: 'flex', gap: 'var(--gd-s2)', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" size="sm" disabled={deletingMessage} onClick={() => setDeleteTargetId(null)}>Отмена</Button>
+              <Button variant="danger" size="sm" disabled={deletingMessage} onClick={() => { void deleteMessage(deleteTargetId) }}>
+                {deletingMessage ? 'Удаление…' : 'Удалить'}
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Модальное окно подтверждения удаления выбранных */}
+      {/* ── Modal: delete selected confirm ── */}
       {deleteSelectedConfirm && (
-        <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setDeleteSelectedConfirm(false)}
-        >
-          <div
-            style={{ background: '#16213e', borderRadius: '10px', padding: '24px 20px', minWidth: '260px', maxWidth: '400px', width: '90%' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '12px' }}>Удалить сообщения</div>
-            <div style={{ fontSize: '14px', color: '#ccc', marginBottom: '20px' }}>
+        <div className="gd-msg-modal-overlay" onClick={() => setDeleteSelectedConfirm(false)}>
+          <div className="gd-msg-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Удалить сообщения</h3>
+            <p className="gd-text-sm gd-text-secondary gd-mb-4">
               Удалить {selectedMessageIds.size} {selectedMessageIds.size === 1 ? 'сообщение' : selectedMessageIds.size < 5 ? 'сообщения' : 'сообщений'}? Это действие нельзя отменить.
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button
-                disabled={deletingMessage}
-                style={{ background: 'none', border: '1px solid #555', color: deletingMessage ? '#555' : '#ccc', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px' }}
-                onClick={() => setDeleteSelectedConfirm(false)}
-              >Отмена</button>
-              <button
-                disabled={deletingMessage}
-                style={{ background: deletingMessage ? '#7a2030' : '#e94560', border: 'none', color: '#fff', borderRadius: '6px', padding: '8px 16px', cursor: deletingMessage ? 'default' : 'pointer', fontSize: '14px', fontWeight: 'bold' }}
-                onClick={() => { void deleteSelectedMessages() }}
-              >{deletingMessage ? 'Удаление…' : 'Удалить'}</button>
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--gd-s2)', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" size="sm" disabled={deletingMessage} onClick={() => setDeleteSelectedConfirm(false)}>Отмена</Button>
+              <Button variant="danger" size="sm" disabled={deletingMessage} onClick={() => { void deleteSelectedMessages() }}>
+                {deletingMessage ? 'Удаление…' : 'Удалить'}
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toast «Скопировано» */}
-      {copyToast && (
-        <div style={{
-          position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(74,158,255,0.9)', color: '#fff', borderRadius: '20px',
-          padding: '8px 20px', fontSize: '14px', zIndex: 2000, pointerEvents: 'none',
-        }}>
-          Скопировано
-        </div>
-      )}
-
-      {/* Toast ошибки */}
-      {errorToast && (
-        <div style={{
-          position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(233,69,96,0.92)', color: '#fff', borderRadius: '20px',
-          padding: '8px 20px', fontSize: '14px', zIndex: 2000, pointerEvents: 'none',
-        }}>
-          {errorToast}
-        </div>
-      )}
+      {/* ── Toasts ── */}
+      {copyToast && <div className="gd-msg-toast info">Скопировано</div>}
+      {errorToast && <div className="gd-msg-toast error">{errorToast}</div>}
     </div>
   )
 }

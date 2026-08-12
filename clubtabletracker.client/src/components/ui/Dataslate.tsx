@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 export interface DataslateProps {
   /** Optional header row (renders the brass dataslate header). */
@@ -12,6 +12,8 @@ export interface DataslateProps {
   bodyClassName?: string
   /** Adds hover affordance (interactive card). */
   interactive?: boolean
+  /** Optional inline styles applied to the root element. */
+  style?: CSSProperties
 }
 
 export function Dataslate({
@@ -22,12 +24,14 @@ export function Dataslate({
   className,
   bodyClassName,
   interactive,
+  style,
 }: DataslateProps) {
   return (
     <div
       className={['gd-dataslate', interactive ? 'gd-card-interactive' : '', className]
         .filter(Boolean)
         .join(' ')}
+      style={style}
     >
       {title ? (
         <div className="gd-dataslate-header">
