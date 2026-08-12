@@ -429,7 +429,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
               <svg style={{ position: 'absolute', left: 0, top: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none', overflow: 'visible', zIndex: 1 }}>
                 <defs>
                   <marker id="arrow-ed" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                    <path d="M0,0 L8,4 L0,8 Z" fill="#7eb8f7" />
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#c4a35a" />
                   </marker>
                   <marker id="arrow-ed-hover" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
                     <path d="M0,0 L8,4 L0,8 Z" fill="var(--gd-blood-red)" />
@@ -447,7 +447,7 @@ export default function CampaignMapEditor({ eventId, eventTitle, onClose }: Prop
                   return (
                     <line key={link.id}
                       x1={fc.x} y1={fc.y} x2={tc.x} y2={tc.y}
-                      stroke={isHovered ? 'var(--gd-blood-red)' : '#7eb8f7'}
+                      stroke={isHovered ? 'var(--gd-blood-red)' : '#c4a35a'}
                       strokeWidth={isHovered ? 4 : 2}
                       markerEnd={isHovered ? 'url(#arrow-ed-hover)' : 'url(#arrow-ed)'}
                       style={{ pointerEvents: 'stroke', cursor: 'pointer' }}

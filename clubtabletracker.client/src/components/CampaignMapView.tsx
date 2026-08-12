@@ -199,7 +199,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
             <svg style={{ position: 'absolute', left: 0, top: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none', overflow: 'visible' }}>
               <defs>
                 <marker id="arrow-ro" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-                  <path d="M0,0 L8,4 L0,8 Z" fill="#7eb8f7" />
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#c4a35a" />
                 </marker>
               </defs>
               {mapData.links.map(link => {
@@ -211,7 +211,7 @@ export default function CampaignMapView({ eventId, eventTitle, onClose }: Props)
                 return (
                   <g key={link.id}>
                     <line x1={fc.x} y1={fc.y} x2={tc.x} y2={tc.y}
-                      stroke="#7eb8f7" strokeWidth={2} markerEnd="url(#arrow-ro)" />
+                      stroke="#c4a35a" strokeWidth={2} markerEnd="url(#arrow-ro)" />
                   </g>
                 )
               })}
