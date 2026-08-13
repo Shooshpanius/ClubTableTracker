@@ -61,8 +61,10 @@
   }
 }
 
+/* Stretched to full width to match the Grimdark design
+   (the original 1126px cap from index.css rendered narrower). */
 .design-legacy #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
