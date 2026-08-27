@@ -27,7 +27,7 @@ export interface Booking extends BookingBase { tableId: number; startTime: strin
 export interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 export interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 export interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; city?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isAdmin?: boolean; isManualEntry?: boolean }
-export interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
+export interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[] }
 export interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 export interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
@@ -288,6 +288,19 @@ export default function ClubPage() {
   }, [clubId, token, navigate])
 
   // === ФУНКЦИИ ===
+
+  const activeEvents = clubEvents.filter(ev => ev.status !== 'Archived')
+  const archivedEvents = clubEvents.filter(ev => ev.status === 'Archived')
+
+  const renderEventResults = (ev: ClubEventItem) => {
+    const placed = ev.participants.filter(p => p.place != null).sort((a, b) => (a.place! - b.place!))
+    if (placed.length === 0) return null
+    return (
+      <div style={{ fontSize: 12, color: '#c0a060', marginTop: 4 }}>
+        🏆 Итоги: {placed.map(p => `${p.place}-е место — ${p.name}`).join('; ')}
+      </div>
+    )
+  }
 
    
   const registerEvent = async (eventId: number) => {
@@ -1131,10 +1144,10 @@ export default function ClubPage() {
             {/* Tab: События */}
             {mobileTab === "events" && (
               <div>
-                {clubEvents.length === 0 ? (
+                {activeEvents.length === 0 ? (
                   <p style={{ color: "#aaa" }}>События отсутствуют.</p>
                 ) : (
-                  clubEvents.map(ev => {
+                  activeEvents.map(ev => {
                     const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
                     const isFull = ev.participants.length >= ev.maxParticipants
                     return (
@@ -1155,6 +1168,7 @@ export default function ClubPage() {
                               🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
                             </div>
                           )}
+                          {ev.status === "Completed" && renderEventResults(ev)}
                           {ev.participants.length > 0 && (
                             <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
                               {ev.participants.map(p => p.name).join(", ")}
@@ -1194,6 +1208,22 @@ export default function ClubPage() {
                       </div>
                     )
                   })
+                )}
+                {archivedEvents.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <h3 style={{ margin: "0 0 12px 0", fontSize: 15 }}>📦 Архив турниров</h3>
+                    {archivedEvents.map(ev => (
+                      <div key={ev.id} style={{ background: "#0f1e3d", borderRadius: 6, padding: "10px 14px", marginBottom: 10 }}>
+                        <span style={{ color: "#eee", fontWeight: "bold" }}>{ev.title}</span>
+                        <span style={{ marginLeft: 8, color: "#ffc107", fontSize: 12 }}>{ev.eventType}</span>
+                        <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
+                          📅 {new Date(ev.startTime).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                        </div>
+                        {renderEventResults(ev)}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -1581,10 +1611,10 @@ export default function ClubPage() {
             {/* Tab: События клуба */}
             {desktopTab === 'events' && (
               <div>
-                {clubEvents.length === 0 ? (
+                {activeEvents.length === 0 ? (
                   <p style={{ color: '#aaa' }}>События отсутствуют.</p>
                 ) : (
-                  clubEvents.map(ev => {
+                  activeEvents.map(ev => {
                     const isRegistered = user ? ev.participants.some(p => p.id === user.id) : false
                     const isFull = ev.participants.length >= ev.maxParticipants
                     return (
@@ -1605,6 +1635,7 @@ export default function ClubPage() {
                               🎖️ Гейм-мастер: <strong>{ev.gameMasterName}</strong>
                             </div>
                           )}
+                          {ev.status === 'Completed' && renderEventResults(ev)}
                           {ev.participants.length > 0 && (
                             <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
                               {ev.participants.map(p => p.name).join(', ')}
@@ -1644,6 +1675,22 @@ export default function ClubPage() {
                       </div>
                     )
                   })
+                )}
+                {archivedEvents.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: 15 }}>📦 Архив турниров</h3>
+                    {archivedEvents.map(ev => (
+                      <div key={ev.id} style={{ background: '#0f1e3d', borderRadius: 6, padding: '10px 14px', marginBottom: 10 }}>
+                        <span style={{ color: '#eee', fontWeight: 'bold' }}>{ev.title}</span>
+                        <span style={{ marginLeft: 8, color: '#ffc107', fontSize: 12 }}>{ev.eventType}</span>
+                        <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                          📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                        </div>
+                        {renderEventResults(ev)}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

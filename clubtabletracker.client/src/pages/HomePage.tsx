@@ -10,7 +10,7 @@ interface Club {
   id: number; name: string; description: string; openTime: string; closeTime: string; logoUrl?: string;
 }
 interface Membership { id: number; status: string; club: Club }
-interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
+interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string }[] }
 
 export default function HomePage() {
   const isMobile = useIsMobile()
@@ -148,7 +148,7 @@ export default function HomePage() {
     const isPending = membership?.status === 'Pending'
     const isRejected = membership?.status === 'Rejected'
     const isKicked = membership?.status === 'Kicked'
-    const events = clubEventsMap[club.id] ?? []
+    const events = (clubEventsMap[club.id] ?? []).filter(ev => ev.status !== 'Archived')
     const activeEvents = events.filter(ev =>
       new Date(ev.startTime) <= now && now <= new Date(ev.endTime)
     )

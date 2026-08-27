@@ -34,9 +34,9 @@ public class EventController : ControllerBase
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
-                e.GameMasterId,
+                e.GameMasterId, e.Status,
                 GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
-                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place })
             })
             .ToList();
         return Ok(events);

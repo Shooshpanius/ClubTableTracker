@@ -469,9 +469,9 @@ public class ClubAdminController : ControllerBase
             {
                 e.Id, e.Title, e.StartTime, e.EndTime, e.MaxParticipants, e.EventType, e.GameSystem, e.TableIds,
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
-                e.GameMasterId,
+                e.GameMasterId, e.Status,
                 GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
-                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name })
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place })
             })
             .ToList();
         return Ok(events);
@@ -830,6 +830,101 @@ public class ClubAdminController : ControllerBase
         ev.EndTime = req.EndTime;
         _db.SaveChanges();
         return Ok(new { ev.Id, ev.StartTime, ev.EndTime });
+    }
+
+    [HttpPut("events/{id}/tables")]
+    public IActionResult UpdateEventTables(int id, [FromBody] EventTablesRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (ev.Status == "Archived")
+            return BadRequest("Архивированное событие нельзя редактировать");
+
+        var tableIds = (req.TableIds ?? Array.Empty<int>()).Distinct().ToList();
+        if (tableIds.Count > 0)
+        {
+            var validCount = _db.GameTables.Count(t => t.ClubId == club.Id && tableIds.Contains(t.Id));
+            if (validCount != tableIds.Count)
+                return BadRequest("Один или несколько столов не найдены в этом клубе");
+        }
+
+        ev.TableIds = tableIds.Count > 0 ? string.Join(',', tableIds) : null;
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.TableIds });
+    }
+
+    [HttpPut("events/{id}/results")]
+    public IActionResult UpdateEventResults(int id, [FromBody] EventResultsRequest req)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.Include(e => e.Participants).FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (ev.Status == "Archived")
+            return BadRequest("Архивированное событие нельзя редактировать");
+
+        var places = req.Results ?? new List<EventResultEntry>();
+        var placesSet = new HashSet<int>();
+        foreach (var entry in places)
+        {
+            if (!ev.Participants.Any(p => p.UserId == entry.UserId))
+                return BadRequest("Пользователь не является участником события");
+            if (entry.Place < 1)
+                return BadRequest("Место должно быть не меньше 1");
+            if (!placesSet.Add(entry.Place))
+                return BadRequest($"Место {entry.Place} указано более чем одному участнику");
+        }
+
+        foreach (var participant in ev.Participants)
+            participant.Place = places.FirstOrDefault(r => r.UserId == participant.UserId)?.Place;
+
+        if (ev.Status == null && ev.EndTime <= DateTime.UtcNow)
+            ev.Status = "Completed";
+
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Status });
+    }
+
+    [HttpPost("events/{id}/complete")]
+    public IActionResult CompleteEvent(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (ev.Status != null)
+            return BadRequest("Событие уже завершено или архивировано");
+        if (ev.EndTime > DateTime.UtcNow)
+            return BadRequest("Событие ещё не закончилось");
+
+        ev.Status = "Completed";
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Status });
+    }
+
+    [HttpPost("events/{id}/archive")]
+    public IActionResult ArchiveEvent(int id)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+
+        if (ev.Status != "Completed")
+            return BadRequest("Сначала подведите итоги или завершите событие");
+
+        ev.Status = "Archived";
+        _db.SaveChanges();
+        return Ok(new { ev.Id, ev.Status });
     }
 
     [HttpPost("events/{id}/participants/{userId}")]
@@ -1239,6 +1334,9 @@ public record ClubEventRequest(string Title, DateTime StartTime, DateTime EndTim
 public record UpdateEventDateRequest(DateTime StartTime, DateTime EndTime);
 public record UpdateEventTitleRequest(string Title);
 public record UpdateEventDescriptionRequest(string? Description);
+public record EventTablesRequest(int[]? TableIds);
+public record EventResultEntry(string UserId, int Place);
+public record EventResultsRequest(List<EventResultEntry>? Results);
 public record SetModeratorRequest(bool IsModerator);
 public record SetKeyRequest(bool HasKey);
 public record SetAdminRequest(bool IsAdmin);

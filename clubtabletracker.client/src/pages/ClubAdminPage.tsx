@@ -12,7 +12,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; isAdmin: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; participants: { id: string; name: string }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -52,6 +52,12 @@ export default function ClubAdminPage() {
   const [editingEventDateError, setEditingEventDateError] = useState('')
   const [inviteEventId, setInviteEventId] = useState<number | null>(null)
   const [inviteUserId, setInviteUserId] = useState('')
+  const [editingTablesEventId, setEditingTablesEventId] = useState<number | null>(null)
+  const [editingTablesValue, setEditingTablesValue] = useState<number[]>([])
+  const [resultsEventId, setResultsEventId] = useState<number | null>(null)
+  const [resultsPlaces, setResultsPlaces] = useState<Record<string, number | ''>>({})
+  const [resultsError, setResultsError] = useState('')
+  const [showArchive, setShowArchive] = useState(false)
   const [editingTitleEventId, setEditingTitleEventId] = useState<number | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState('')
   const [editingDescEventId, setEditingDescEventId] = useState<number | null>(null)
@@ -436,6 +442,85 @@ export default function ClubAdminPage() {
     } else {
       const text = await res.text()
       setEditingEventDateError(text || 'Ошибка сохранения')
+    }
+  }
+
+  const startEditingEventTables = (ev: ClubEventData) => {
+    setEditingTablesEventId(ev.id)
+    setEditingTablesValue(ev.tableIds ? ev.tableIds.split(',').map(id => parseInt(id)).filter(n => !isNaN(n)) : [])
+  }
+
+  const saveEventTables = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/tables`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authH() },
+      body: JSON.stringify({ tableIds: editingTablesValue })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, tableIds: data.tableIds } : e))
+      setEditingTablesEventId(null)
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка при сохранении столов')
+    }
+  }
+
+  const startEditingResults = (ev: ClubEventData) => {
+    setResultsEventId(ev.id)
+    setResultsError('')
+    const places: Record<string, number | ''> = {}
+    ev.participants.forEach(p => { places[p.id] = p.place ?? '' })
+    setResultsPlaces(places)
+  }
+
+  const saveEventResults = async (id: number) => {
+    const results = Object.entries(resultsPlaces)
+      .filter(([, place]) => place !== '' && place !== null)
+      .map(([userId, place]) => ({ userId, place: place as number }))
+    const seen = new Set<number>()
+    for (const r of results) {
+      if (r.place < 1) { setResultsError('Место должно быть не меньше 1'); return }
+      if (seen.has(r.place)) { setResultsError(`Место ${r.place} указано более чем одному участнику`); return }
+      seen.add(r.place)
+    }
+    const res = await fetch(`/api/clubadmin/events/${id}/results`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authH() },
+      body: JSON.stringify({ results })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id
+        ? { ...e, status: data.status ?? e.status, participants: e.participants.map(p => ({ ...p, place: resultsPlaces[p.id] === '' ? null : Number(resultsPlaces[p.id]) || null })) }
+        : e))
+      setResultsEventId(null)
+      setResultsError('')
+    } else {
+      const text = await res.text()
+      setResultsError(text || 'Ошибка при сохранении итогов')
+    }
+  }
+
+  const completeEvent = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/complete`, { method: 'POST', headers: authH() })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, status: data.status } : e))
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка')
+    }
+  }
+
+  const archiveEvent = async (id: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/archive`, { method: 'POST', headers: authH() })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, status: data.status } : e))
+    } else {
+      const text = await res.text()
+      alert(text || 'Ошибка')
     }
   }
 
@@ -1195,8 +1280,9 @@ export default function ClubAdminPage() {
           )}
 
           <h3 className="gd-h3" style={{ margin: 'var(--gd-s6) 0 var(--gd-s4)' }}>Существующие события</h3>
-          {events.length === 0 && <p className="gd-text-muted">Событий пока нет.</p>}
-          {events.map(ev => {
+          {events.filter(ev => ev.status !== 'Archived').length === 0 && <p className="gd-text-muted">Событий пока нет.</p>}
+          {events.filter(ev => ev.status !== 'Archived').map(ev => {
+            const isFinished = new Date(ev.endTime) <= new Date()
             const tableNumbers = ev.tableIds
               ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
               : ''
@@ -1207,6 +1293,8 @@ export default function ClubAdminPage() {
                   <div>
                     <strong style={{ fontSize: '0.95rem' }}>{ev.title}</strong>
                     <Badge tone="warn" className="gd-ml-1">{ev.eventType}</Badge>
+                    {ev.status === 'Completed' && <Badge tone="brass" className="gd-ml-1">Завершён</Badge>}
+                    {ev.status === 'Archived' && <Badge tone="brass" className="gd-ml-1">Архив</Badge>}
                     {ev.gameSystem && <span className="gd-text-xs gd-text-muted gd-ml-1" style={{ fontStyle: 'italic' }}>{ev.gameSystem}</span>}
                     <div className="gd-text-xs gd-text-muted" style={{ marginTop: 4 }}>
                       📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -1241,6 +1329,22 @@ export default function ClubAdminPage() {
                       {editingDescEventId === ev.id ? '✕' : '📝'}
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => deleteEvent(ev.id)}>Удалить</Button>
+                    <Button variant="secondary" size="sm" onClick={() => editingTablesEventId === ev.id ? setEditingTablesEventId(null) : startEditingEventTables(ev)}
+                      title="Редактировать столы">
+                      {editingTablesEventId === ev.id ? '✕' : '🎲'}
+                    </Button>
+                    {isFinished && ev.status !== 'Archived' && (
+                      <Button variant="secondary" size="sm" onClick={() => resultsEventId === ev.id ? setResultsEventId(null) : startEditingResults(ev)}
+                        title="Подвести итоги">
+                        {resultsEventId === ev.id ? '✕' : '🏆'}
+                      </Button>
+                    )}
+                    {!ev.status && isFinished && (
+                      <Button variant="secondary" size="sm" onClick={() => completeEvent(ev.id)} title="Завершить без итогов">Завершить</Button>
+                    )}
+                    {ev.status === 'Completed' && (
+                      <Button variant="brass" size="sm" onClick={() => archiveEvent(ev.id)} title="Переместить в архив">📦 В архив</Button>
+                    )}
                     {ev.eventType === 'Campaign' && (
                       <Button variant="brass" size="sm" onClick={() => setCampaignMapEditorEvent(ev)}>🗺️ Карта</Button>
                     )}
@@ -1283,6 +1387,45 @@ export default function ClubAdminPage() {
                     <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 6 }}>
                       <span className="gd-text-xs gd-text-muted">{editingDescValue.length}/500</span>
                       <Button size="sm" onClick={() => saveEventDescription(ev.id)}>Сохранить</Button>
+                    </div>
+                  </div>
+                )}
+
+                {editingTablesEventId === ev.id && (
+                  <div style={{ paddingTop: 'var(--gd-s2)' }}>
+                    <div className="gd-text-xs gd-text-muted" style={{ marginBottom: 4 }}>Столы события</div>
+                    <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+                      {tables.map(t => (
+                        <label key={t.id} className="gd-gs-tag">
+                          <input type="checkbox" checked={editingTablesValue.includes(t.id)}
+                            onChange={e => setEditingTablesValue(e.target.checked
+                              ? [...editingTablesValue, t.id]
+                              : editingTablesValue.filter(id => id !== t.id))} />
+                          {' '}Стол {t.number}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)', marginTop: 6 }}>
+                      <Button size="sm" onClick={() => saveEventTables(ev.id)}>Сохранить</Button>
+                    </div>
+                  </div>
+                )}
+
+                {resultsEventId === ev.id && (
+                  <div style={{ paddingTop: 'var(--gd-s2)' }}>
+                    <div className="gd-text-xs gd-text-muted" style={{ marginBottom: 4 }}>Итоги: укажите места участников (можно не всем)</div>
+                    {ev.participants.length === 0 && <p className="gd-text-muted">Нет участников.</p>}
+                    {ev.participants.map(p => (
+                      <div key={p.id} className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginBottom: 4, alignItems: 'center' }}>
+                        <span className="gd-text-xs">{p.name}</span>
+                        <input className="gd-input" type="number" min={1} placeholder="—" style={{ width: 70 }}
+                          value={resultsPlaces[p.id] ?? ''}
+                          onChange={e => setResultsPlaces({ ...resultsPlaces, [p.id]: e.target.value === '' ? '' : parseInt(e.target.value) || '' })} />
+                      </div>
+                    ))}
+                    <div className="gd-flex-row" style={{ gap: 'var(--gd-s2)', marginTop: 6 }}>
+                      <Button size="sm" onClick={() => saveEventResults(ev.id)} disabled={ev.participants.length === 0}>Сохранить итоги</Button>
+                      {resultsError && <span className="gd-error-text" style={{ margin: 0 }}>{resultsError}</span>}
                     </div>
                   </div>
                 )}
@@ -1393,6 +1536,45 @@ export default function ClubAdminPage() {
               </Dataslate>
             )
           })}
+
+          {events.filter(ev => ev.status === 'Archived').length > 0 && (
+            <>
+              <div style={{ marginTop: 'var(--gd-s6)' }}>
+                <Button variant="secondary" size="sm" onClick={() => setShowArchive(v => !v)}>
+                  {showArchive ? '✕ Скрыть' : '📦 Архив'} ({events.filter(ev => ev.status === 'Archived').length})
+                </Button>
+              </div>
+              {showArchive && events.filter(ev => ev.status === 'Archived').map(ev => {
+                const tableNumbers = ev.tableIds
+                  ? ev.tableIds.split(',').map(id => tables.find(t => t.id === parseInt(id))?.number).filter(Boolean).join(', ')
+                  : ''
+                const placed = ev.participants.filter(p => p.place != null).sort((a, b) => (a.place! - b.place!))
+                return (
+                  <Dataslate key={ev.id}>
+                    <div className="gd-flex-between gd-flex-wrap" style={{ gap: 'var(--gd-s2)' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.95rem' }}>{ev.title}</strong>
+                        <Badge tone="warn" className="gd-ml-1">{ev.eventType}</Badge>
+                        <Badge tone="brass" className="gd-ml-1">Архив</Badge>
+                        {ev.gameSystem && <span className="gd-text-xs gd-text-muted gd-ml-1" style={{ fontStyle: 'italic' }}>{ev.gameSystem}</span>}
+                        <div className="gd-text-xs gd-text-muted" style={{ marginTop: 4 }}>
+                          📅 {new Date(ev.startTime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          &nbsp;·&nbsp;👥 {ev.participants.length}/{ev.maxParticipants}
+                          {tableNumbers && <>&nbsp;·&nbsp;🎲 {tableNumbers}</>}
+                        </div>
+                        {placed.length > 0 && (
+                          <div className="gd-text-xs" style={{ color: 'var(--gd-brass)', marginTop: 4 }}>
+                            🏆 Итоги: {placed.map(p => `${p.place}-е место — ${p.name}`).join('; ')}
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="danger" size="sm" onClick={() => deleteEvent(ev.id)}>Удалить</Button>
+                    </div>
+                  </Dataslate>
+                )
+              })}
+            </>
+          )}
         </>
       )}
 
