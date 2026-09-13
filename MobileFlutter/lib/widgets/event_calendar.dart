@@ -4,32 +4,29 @@ import '../app_colors.dart';
 import '../constants.dart';
 import '../models/club_event.dart';
 
-/// Календарь ивентов клуба: кампании — фоновые полосы цвета игровой системы
-/// (пересекающиеся кампании делят клетку на равные горизонтальные полосы),
-/// турниры — точки цвета системы. Легенда фильтрует системы, клик по дню
-/// открывает панель событий дня. Зеркалит веб-версию
-/// (clubtabletracker.client/src/components/EventCalendar.tsx).
+/// Календарь ивентов клуба. Цвет — у каждого события свой (детерминированно по id).
+/// Кампании — фоновые полосы (пересекающиеся делят клетку на равные полосы);
+/// под датой — бейджи всех событий дня (квадрат — кампания, круг — турнир);
+/// внизу — легенда мероприятий выбранного месяца, тап — переход к дате начала.
+/// Зеркалит веб-версию (clubtabletracker.client/src/components/EventCalendar.tsx).
 
 const List<String> _monthNames = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
 ];
-const List<String> _dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const List<String> _weekdayNames = [
-  'понедельник', 'вторник', 'среда', 'четверг',
-  'пятница', 'суббота', 'воскресенье',
+const List<String> _monthNamesShort = [
+  'янв', 'фев', 'мар', 'апр', 'мая', 'июн',
+  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
 ];
 const List<String> _monthNamesGenitive = [
   'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
   'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
 ];
-const List<String> _monthNamesShort = [
-  'янв', 'фев', 'мар', 'апр', 'мая', 'июн',
-  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+const List<String> _weekdayNames = [
+  'понедельник', 'вторник', 'среда', 'четверг',
+  'пятница', 'суббота', 'воскресенье',
 ];
-
-const String _noSystemColorHex = '#8A919C';
-const String _noSystemLabel = 'Без системы';
+const List<String> _dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 Color _hexToColor(String hex) {
   var raw = hex.replaceFirst('#', '');
@@ -41,30 +38,22 @@ Color _hexToColor(String hex) {
   return Color(0xFF000000 | n);
 }
 
+/// Цвет события: детерминированно по id (формула совпадает с вебом)
+Color eventColor(int id) {
+  final n = eventPalette.length;
+  final index = ((id % n) + n) % n;
+  return _hexToColor(eventPalette[index]);
+}
+
 String _systemLabel(String? system) {
   final s = system?.trim() ?? '';
-  return s.isEmpty ? _noSystemLabel : s;
+  return s.isEmpty ? 'Без системы' : s;
 }
-
-/// Цвет системы: известной — из палитры, свободному тексту —
-/// детерминированный хэш в палитру (как в вебе)
-Color systemColor(String? system) {
-  final s = system?.trim() ?? '';
-  if (s.isEmpty) return _hexToColor(_noSystemColorHex);
-  final hex = gameSystemColors[s];
-  if (hex != null) return _hexToColor(hex);
-  final palette = gameSystemColors.values.toList();
-  var h = 0;
-  for (var i = 0; i < s.length; i++) {
-    h = (h * 31 + s.codeUnitAt(i)) & 0xFFFFFFFF;
-  }
-  return _hexToColor(palette[h % palette.length]);
-}
-
-DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 bool _isCampaign(ClubEvent e) =>
     e.eventType.trim().toLowerCase() == 'campaign';
+
+DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 bool _coversDay(ClubEvent e, DateTime day) {
   final s = _dayOnly(e.startDateTime);
@@ -98,6 +87,19 @@ List<List<DateTime?>> _monthGrid(int year, int month) {
   return weeks;
 }
 
+/// События, пересекающиеся с месяцем (для легенды), по возрастанию даты начала
+List<ClubEvent> _eventsInMonth(List<ClubEvent> events, int year, int month) {
+  final monthStart = DateTime(year, month, 1);
+  final monthEnd = DateTime(year, month + 1, 0);
+  final result = events
+      .where((e) =>
+          !_dayOnly(e.startDateTime).isAfter(monthEnd) &&
+          !_dayOnly(e.endDateTime).isBefore(monthStart))
+      .toList()
+    ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
+  return result;
+}
+
 String _formatRange(DateTime s, DateTime en) {
   final sameYear = s.year == en.year;
   final sText = sameYear
@@ -105,6 +107,9 @@ String _formatRange(DateTime s, DateTime en) {
       : '${s.day} ${_monthNamesShort[s.month - 1]} ${s.year}';
   return '$sText – ${en.day} ${_monthNamesShort[en.month - 1]} ${en.year}';
 }
+
+String _formatDayShort(DateTime d) =>
+    '${d.day} ${_monthNamesShort[d.month - 1]}';
 
 String _formatTime(DateTime d) =>
     '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
@@ -123,7 +128,6 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
   late int _viewYear;
   late int _viewMonth;
   DateTime? _selected;
-  final Set<String> _hiddenSystems = {};
 
   @override
   void initState() {
@@ -131,10 +135,6 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
     _viewYear = _today.year;
     _viewMonth = _today.month;
   }
-
-  List<ClubEvent> get _visibleEvents => widget.events
-      .where((e) => !_hiddenSystems.contains(_systemLabel(e.gameSystem)))
-      .toList();
 
   void _prevMonth() => setState(() {
         if (_viewMonth == 1) {
@@ -159,15 +159,13 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
         _viewMonth = _today.month;
       });
 
-  // Легенда: системы, встречающиеся в событиях, с количеством
-  List<MapEntry<String, int>> get _legend {
-    final counts = <String, int>{};
-    for (final e in widget.events) {
-      final l = _systemLabel(e.gameSystem);
-      counts[l] = (counts[l] ?? 0) + 1;
-    }
-    return counts.entries.toList();
-  }
+  // Тап по легенде: перейти к месяцу начала события и выбрать день начала
+  void _goToEvent(ClubEvent e) => setState(() {
+        final s = _dayOnly(e.startDateTime);
+        _viewYear = s.year;
+        _viewMonth = s.month;
+        _selected = s;
+      });
 
   BoxDecoration _cellDecoration(DateTime day, List<ClubEvent> camps,
       bool isSelected, bool isToday) {
@@ -179,7 +177,7 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
       final stops = <double>[];
       for (var i = 0; i < n; i++) {
         final c = camps[i];
-        final col = systemColor(c.gameSystem)
+        final col = eventColor(c.id)
             .withOpacity(c.isCompleted ? 0.16 : 0.4);
         colors..add(col)..add(col);
         stops..add(i / n)..add((i + 1) / n);
@@ -208,7 +206,7 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
         .firstOrNull;
     if (starting != null && !isSelected) {
       border = Border(
-        left: BorderSide(color: systemColor(starting.gameSystem), width: 3),
+        left: BorderSide(color: eventColor(starting.id), width: 3),
         top: border.top,
         right: border.right,
         bottom: border.bottom,
@@ -218,33 +216,35 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
     return BoxDecoration(gradient: gradient, border: border);
   }
 
-  Widget _buildDots(List<ClubEvent> tournaments) {
-    if (tournaments.isEmpty) return const SizedBox.shrink();
-    final shown = tournaments.take(3).toList();
-    final rest = tournaments.length - shown.length;
+  // Бейджи событий дня: кампании — квадратики, турниры — кружки
+  Widget _buildDayBadges(List<ClubEvent> dayEvents) {
+    if (dayEvents.isEmpty) return const SizedBox.shrink();
+    final shown = dayEvents.take(4).toList();
+    final rest = dayEvents.length - shown.length;
     return Padding(
       padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 2,
+        runSpacing: 2,
         children: [
           for (final ev in shown)
             Container(
-              width: 6,
-              height: 6,
-              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: systemColor(ev.gameSystem),
+                shape: _isCampaign(ev) ? BoxShape.rectangle : BoxShape.circle,
+                borderRadius: _isCampaign(ev)
+                    ? BorderRadius.circular(2)
+                    : null,
+                color: eventColor(ev.id),
               ),
             ),
           if (rest > 0)
-            Padding(
-              padding: const EdgeInsets.only(left: 2),
-              child: Text(
-                '+$rest',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 9),
-              ),
+            Text(
+              '+$rest',
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 9),
             ),
         ],
       ),
@@ -252,7 +252,6 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
   }
 
   Widget _buildGrid() {
-    final events = _visibleEvents;
     final weeks = _monthGrid(_viewYear, _viewMonth);
 
     return Column(
@@ -290,7 +289,7 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
                               padding: const EdgeInsets.only(top: 3),
                               decoration: _cellDecoration(
                                 day,
-                                _campaignsCoveringDay(events, day),
+                                _campaignsCoveringDay(widget.events, day),
                                 _selected == day,
                                 day == _today,
                               ),
@@ -309,7 +308,11 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
                                           : FontWeight.normal,
                                     ),
                                   ),
-                                  _buildDots(_singleEventsOnDay(events, day)),
+                                  _buildDayBadges([
+                                    ..._campaignsCoveringDay(
+                                        widget.events, day),
+                                    ..._singleEventsOnDay(widget.events, day),
+                                  ]),
                                 ],
                               ),
                             ),
@@ -322,58 +325,68 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
     );
   }
 
+  // Легенда: мероприятия выбранного месяца, тап — к дате начала
   Widget _buildLegend() {
-    final legend = _legend;
-    if (legend.isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    final monthEvents = _eventsInMonth(widget.events, _viewYear, _viewMonth);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final entry in legend)
-          () {
-            final off = _hiddenSystems.contains(entry.key);
-            return GestureDetector(
-              onTap: () => setState(() {
-                off
-                    ? _hiddenSystems.remove(entry.key)
-                    : _hiddenSystems.add(entry.key);
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.panelBg,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                      color: off ? AppColors.border : AppColors.accent),
-                ),
-                child: Opacity(
-                  opacity: off ? 0.45 : 1,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          color: entry.key == _noSystemLabel
-                              ? _hexToColor(_noSystemColorHex)
-                              : systemColor(entry.key),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${entry.key} · ${entry.value}',
-                        style: const TextStyle(
-                            color: AppColors.textPrimary, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 4),
+          child: Text('Мероприятия месяца:',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+        ),
+        if (monthEvents.isEmpty)
+          const Text('В этом месяце событий нет',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        for (final e in monthEvents)
+          GestureDetector(
+            onTap: () => _goToEvent(e),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.panelBg,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(6),
               ),
-            );
-          }(),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      shape: _isCampaign(e)
+                          ? BoxShape.rectangle
+                          : BoxShape.circle,
+                      borderRadius:
+                          _isCampaign(e) ? BorderRadius.circular(2) : null,
+                      color: eventColor(e.id),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${_isCampaign(e) ? '⚔️' : '🏆'} ${e.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isCampaign(e)
+                        ? _formatRange(e.startDateTime, e.endDateTime)
+                        : '${_formatDayShort(e.startDateTime)}, '
+                            '${_formatTime(e.startDateTime)}',
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -381,59 +394,53 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
   Widget _buildDayPanel() {
     if (_selected == null) return const SizedBox.shrink();
     final day = _selected!;
-    final events = _visibleEvents;
-    final campaigns = _campaignsCoveringDay(events, day);
-    final tournaments = _singleEventsOnDay(events, day);
+    final campaigns = _campaignsCoveringDay(widget.events, day);
+    final tournaments = _singleEventsOnDay(widget.events, day);
     final nothing = campaigns.isEmpty && tournaments.isEmpty;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.only(top: 12),
-          padding: const EdgeInsets.only(top: 12),
-          decoration: const BoxDecoration(
-            border: Border(
-                top: BorderSide(color: AppColors.border, width: 1)),
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+            top: BorderSide(color: AppColors.border, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${_weekdayNames[day.weekday - 1]}, '
+            '${day.day} ${_monthNamesGenitive[day.month - 1]} ${day.year}',
+            style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.bold),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${_weekdayNames[day.weekday - 1]}, '
-                '${day.day} ${_monthNamesGenitive[day.month - 1]} ${day.year}',
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold),
+          if (nothing)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('В этот день событий нет',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12)),
+            ),
+          for (final e in campaigns) _buildDetailRow(e, isCampaign: true),
+          for (final e in tournaments) _buildDetailRow(e, isCampaign: false),
+          if (!nothing)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'Регистрация — во вкладке «События»',
+                style: TextStyle(
+                    color: AppColors.textMuted, fontSize: 11),
               ),
-              if (nothing)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('В этот день событий нет',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
-                ),
-              for (final e in campaigns) _buildDetailRow(e, isCampaign: true),
-              for (final e in tournaments) _buildDetailRow(e, isCampaign: false),
-              if (!nothing)
-                const Padding(
-                  padding: EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Регистрация — во вкладке «События»',
-                    style: TextStyle(
-                        color: AppColors.textMuted, fontSize: 11),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildDetailRow(ClubEvent e, {required bool isCampaign}) {
-    final color = systemColor(e.gameSystem);
+    final color = eventColor(e.id);
     final details = isCampaign
         ? 'кампания · ${_formatRange(e.startDateTime, e.endDateTime)}'
         : '${_formatTime(e.startDateTime)}–${_formatTime(e.endDateTime)}'
@@ -452,7 +459,9 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
             height: 12,
             margin: const EdgeInsets.only(top: 2, right: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(3),
+              shape: isCampaign ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius:
+                  isCampaign ? BorderRadius.circular(2) : null,
               color: color,
             ),
           ),
@@ -460,22 +469,15 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Opacity(
-                        opacity: e.isCompleted ? 0.6 : 1,
-                        child: Text(
-                          '${isCampaign ? '⚔️' : '🏆'} ${e.title}',
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                Opacity(
+                  opacity: e.isCompleted ? 0.6 : 1,
+                  child: Text(
+                    '${isCampaign ? '⚔️' : '🏆'} ${e.title}',
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -552,8 +554,8 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
           const Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text(
-              'Полосы — кампании, точки — турниры; '
-              'нажмите на чип легенды, чтобы скрыть систему',
+              'Полосы — кампании, бейджи под датой — события дня; '
+              'тап по легенде — к дате начала',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 11),
             ),

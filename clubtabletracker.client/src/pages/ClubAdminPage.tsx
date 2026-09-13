@@ -12,7 +12,7 @@ interface ClubInfo {
 }
 interface Membership { id: number; status: string; isModerator: boolean; hasKey: boolean; isAdmin: boolean; appliedAt: string; isManualEntry: boolean; user: { id: string; name: string; email: string; enabledGameSystems?: string; city?: string } }
 interface GameTable { id: number; clubId: number; number: string; size: string; supportedGames: string; x: number; y: number; width: number; height: number; eventsOnly: boolean }
-interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[] }
+interface ClubEventData { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[]; photos?: { id: number; url: string }[] }
 interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
 export default function ClubAdminPage() {
@@ -65,6 +65,8 @@ export default function ClubAdminPage() {
   const [regulationUploading, setRegulationUploading] = useState<number | null>(null)
   const [regulation2Uploading, setRegulation2Uploading] = useState<number | null>(null)
   const [missionMapUploading, setMissionMapUploading] = useState<number | null>(null)
+
+  const [eventPhotosUploading, setEventPhotosUploading] = useState<number | null>(null)
   const [expandedGsMemberId, setExpandedGsMemberId] = useState<number | null>(null)
   const [memberGameSystems, setMemberGameSystems] = useState<Record<number, string[]>>({})
   const [savingGsMemberId, setSavingGsMemberId] = useState<number | null>(null)
@@ -647,6 +649,30 @@ export default function ClubAdminPage() {
       headers: authH()
     })
     if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, missionMapUrl: undefined } : e))
+  }
+
+  const uploadEventPhoto = async (id: number, file: File) => {
+    setEventPhotosUploading(id)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`/api/clubadmin/events/${id}/photos`, {
+      method: 'POST',
+      headers: authH(),
+      body: formData
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEvents(events.map(e => e.id === id ? { ...e, photos: [...(e.photos ?? []), data] } : e))
+    }
+    setEventPhotosUploading(null)
+  }
+
+  const deleteEventPhoto = async (id: number, photoId: number) => {
+    const res = await fetch(`/api/clubadmin/events/${id}/photos/${photoId}`, {
+      method: 'DELETE',
+      headers: authH()
+    })
+    if (res.ok) setEvents(events.map(e => e.id === id ? { ...e, photos: (e.photos ?? []).filter(p => p.id !== photoId) } : e))
   }
 
   const updateTablePosition = async (id: number, x: number, y: number) => {
@@ -1532,6 +1558,24 @@ export default function ClubAdminPage() {
                         onChange={e => { const f = e.target.files?.[0]; if (f) uploadMissionMap(ev.id, f); e.target.value = '' }} />
                     </label>
                   )}
+                </div>
+
+                <div className="gd-flex-row gd-flex-wrap" style={{ gap: 'var(--gd-s2)', marginTop: 4, alignItems: 'flex-start' }}>
+                  <span className="gd-text-xs gd-text-muted">📷 Фото события ({(ev.photos ?? []).length}/12):</span>
+                  {(ev.photos ?? []).map(ph => (
+                    <div key={ph.id} style={{ position: 'relative' }}>
+                      <img src={ph.url} alt="Фото события" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--gd-border)' }} />
+                      <button onClick={() => deleteEventPhoto(ev.id, ph.id)} className="gd-link-danger"
+                        title="Удалить фото"
+                        style={{ position: 'absolute', top: -7, right: -7, width: 18, height: 18, borderRadius: '50%', padding: 0, lineHeight: '16px', textAlign: 'center', background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', fontSize: 12 }}>×</button>
+                    </div>
+                  ))}
+                  <label className="gd-text-xs gd-text-muted" style={{ cursor: 'pointer' }}>
+                    {eventPhotosUploading === ev.id ? 'Загрузка…' : '＋ Добавить фото (JPG/PNG/WebP/GIF, до 10 МБ)'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" style={{ display: 'none' }}
+                      disabled={eventPhotosUploading === ev.id}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadEventPhoto(ev.id, f); e.target.value = '' }} />
+                  </label>
                 </div>
               </Dataslate>
             )

@@ -1,4 +1,5 @@
-// Общая логика календаря ивентов — используется обоими дизайнами (grimdark и legacy), не дублируется
+// Общая логика календаря ивентов — используется обоими дизайнами (grimdark и legacy), не дублируется.
+// Цвет = конкретное событие (детерминированно по id), а не игровая система.
 import { GAME_SYSTEM_COLORS } from '../constants'
 
 export interface EventCalendarItem {
@@ -12,16 +13,24 @@ export interface EventCalendarItem {
   gameMasterName?: string | null
   maxParticipants?: number
   participants?: unknown[]
+  photos?: { id: number; url: string }[]
 }
 
 export const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
 
+export const MONTH_NAMES_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн',
+  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+
 export const DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
-export const NO_SYSTEM_COLOR = '#8a919c'
+// Палитра событий: у каждого события свой цвет, детерминированно по id
+export const EVENT_PALETTE: string[] = Object.values(GAME_SYSTEM_COLORS)
 
-const FALLBACK_PALETTE = Object.values(GAME_SYSTEM_COLORS)
+export function eventColor(id: number): string {
+  const n = EVENT_PALETTE.length
+  return EVENT_PALETTE[((id % n) + n) % n]
+}
 
 export function systemLabel(system?: string | null): string {
   return system?.trim() || 'Без системы'
@@ -38,14 +47,18 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-// Цвет системы: известной — из палитры, свободному тексту — детерминированный хэш в палитру
-export function systemColor(system?: string | null): string {
-  if (!system?.trim()) return NO_SYSTEM_COLOR
-  const known = GAME_SYSTEM_COLORS[system]
-  if (known) return known
-  let h = 0
-  for (let i = 0; i < system.length; i++) h = (h * 31 + system.charCodeAt(i)) >>> 0
-  return FALLBACK_PALETTE[h % FALLBACK_PALETTE.length]
+export function isCampaign(e: EventCalendarItem): boolean {
+  return e.eventType.trim().toLowerCase() === 'campaign'
+}
+
+export function isCompleted(e: EventCalendarItem): boolean {
+  return e.status === 'Completed'
+}
+
+function dayStart(iso: string): Date {
+  const d = new Date(iso)
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
 // Сетка месяца, Пн-первый (как BookingCalendar)
@@ -69,22 +82,26 @@ export function monthGrid(year: number, month: number): (Date | null)[][] {
 
 // Кампании, идущие в этот день (сравнение на уровне дат, конец включительно)
 export function campaignsCoveringDay(events: EventCalendarItem[], date: Date): EventCalendarItem[] {
-  return events.filter(e => {
-    if (e.eventType !== 'Campaign') return false
-    const s = new Date(e.startTime); s.setHours(0, 0, 0, 0)
-    const en = new Date(e.endTime); en.setHours(0, 0, 0, 0)
-    return s.getTime() <= date.getTime() && date.getTime() <= en.getTime()
-  })
+  return events.filter(e => isCampaign(e) && coversDay(e, date))
 }
 
 // Турниры и прочие не-кампании, покрывающие этот день
 export function singleEventsOnDay(events: EventCalendarItem[], date: Date): EventCalendarItem[] {
-  return events.filter(e => {
-    if (e.eventType === 'Campaign') return false
-    const s = new Date(e.startTime); s.setHours(0, 0, 0, 0)
-    const en = new Date(e.endTime); en.setHours(0, 0, 0, 0)
-    return s.getTime() <= date.getTime() && date.getTime() <= en.getTime()
-  })
+  return events.filter(e => !isCampaign(e) && coversDay(e, date))
+}
+
+function coversDay(e: EventCalendarItem, date: Date): boolean {
+  return dayStart(e.startTime).getTime() <= date.getTime() &&
+    date.getTime() <= dayStart(e.endTime).getTime()
+}
+
+// События, пересекающиеся с просматриваемым месяцем (для легенды), по возрастанию даты начала
+export function eventsInMonth(events: EventCalendarItem[], year: number, month: number): EventCalendarItem[] {
+  const monthStart = new Date(year, month, 1)
+  const monthEnd = new Date(year, month + 1, 0)
+  return events
+    .filter(e => dayStart(e.startTime) <= monthEnd && dayStart(e.endTime) >= monthStart)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 }
 
 export function formatEventRange(startTime: string, endTime: string): string {
@@ -102,6 +119,8 @@ export function formatEventTime(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-export function isCompleted(e: EventCalendarItem): boolean {
-  return e.status === 'Completed'
+// «13 сен» — для легенды турниров
+export function formatDayShort(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getDate()} ${MONTH_NAMES_SHORT[d.getMonth()]}`
 }

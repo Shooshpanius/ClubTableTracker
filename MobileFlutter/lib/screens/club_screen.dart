@@ -1498,6 +1498,40 @@ class _ClubScreenState extends State<ClubScreen>
               overflow: TextOverflow.ellipsis,
             ),
           ],
+          // Мини-галерея события
+          if (event.photos.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 68,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: event.photos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, i) {
+                  final ph = event.photos[i];
+                  return GestureDetector(
+                    onTap: () => _showPhotoViewer(resolveMediaUrl(ph.url)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        resolveMediaUrl(ph.url),
+                        width: 68,
+                        height: 68,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 68,
+                          height: 68,
+                          color: AppColors.darkBg,
+                          child: const Icon(Icons.broken_image,
+                              color: AppColors.textMuted, size: 20),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           // Документы и карты
           if (event.regulationUrl != null ||
               event.regulationUrl2 != null ||
@@ -1584,6 +1618,202 @@ class _ClubScreenState extends State<ClubScreen>
 
   // ─── Вкладка: Игроки ────────────────────────────────────────────────────
 
+  // ─── Достижения игроков (агрегация по не-архивным событиям клуба) ────────
+
+  static bool _isCampaignEvent(ClubEvent e) =>
+      e.eventType.trim().toLowerCase() == 'campaign';
+
+  List<MapEntry<ClubEvent, int?>> _playerHistory(String userId) {
+    final result = <MapEntry<ClubEvent, int?>>[];
+    for (final ev in _events) {
+      if (ev.isArchived) continue;
+      final p = ev.participants.where((pp) => pp.id == userId).firstOrNull;
+      if (p == null) continue;
+      result.add(MapEntry(ev, p.place));
+    }
+    result.sort((a, b) => b.key.startDateTime.compareTo(a.key.startDateTime));
+    return result;
+  }
+
+  Widget _buildAchievementChips(String userId, {double fontSize = 10}) {
+    var gold = 0, silver = 0, bronze = 0, campaigns = 0;
+    for (final entry in _playerHistory(userId)) {
+      if (_isCampaignEvent(entry.key)) {
+        campaigns++;
+      } else if (entry.value == 1) {
+        gold++;
+      } else if (entry.value == 2) {
+        silver++;
+      } else if (entry.value == 3) {
+        bronze++;
+      }
+    }
+    final labels = <String>[
+      if (gold > 0) '🥇 $gold',
+      if (silver > 0) '🥈 $silver',
+      if (bronze > 0) '🥉 $bronze',
+      if (campaigns > 0) '⚔️ $campaigns',
+    ];
+    if (labels.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        for (final label in labels)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.panelBg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.accentYellow.withOpacity(0.4)),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                  color: AppColors.textPrimary, fontSize: fontSize),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showPlayerProfile(ClubMember member) {
+    final history = _playerHistory(member.id);
+    final fmt = DateFormat('dd.MM.yyyy');
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => ConstrainedBox(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.8),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                UserAvatar(name: member.effectiveName, size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        member.effectiveName,
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16),
+                      ),
+                      if (member.joinedAt != null)
+                        Text(
+                          '${member.city != null ? '📍 ${member.city} · ' : ''}'
+                          'в клубе с ${_formatJoinedAt(member.joinedAt!)}',
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 11),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (member.bio != null && member.bio!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(member.bio!,
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12)),
+            ],
+            const SizedBox(height: 8),
+            _buildAchievementChips(member.id, fontSize: 12),
+            const SizedBox(height: 6),
+            Text(
+              'История событий',
+              style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13),
+            ),
+            if (history.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('Пока без участий в событиях клуба',
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12)),
+              ),
+            for (final entry in history)
+              Opacity(
+                opacity: entry.key.isCompleted ? 0.65 : 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                        bottom: BorderSide(color: AppColors.border)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(_isCampaignEvent(entry.key) ? '⚔️' : '🏆'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          entry.key.title,
+                          style: const TextStyle(
+                              color: AppColors.textPrimary, fontSize: 13),
+                        ),
+                      ),
+                      if (entry.value != null)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentYellow,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${entry.value}-е место',
+                            style: const TextStyle(
+                                color: AppColors.darkBg,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${fmt.format(entry.key.startDateTime)}'
+                        '${entry.key.gameSystem != null ? ' · ${entry.key.gameSystem}' : ''}',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatJoinedAt(String iso) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return iso;
+    return DateFormat('dd.MM.yyyy').format(d);
+  }
+
   Widget _buildPlayersTab() {
     if (_members.isEmpty) {
       return const Center(
@@ -1600,103 +1830,110 @@ class _ClubScreenState extends State<ClubScreen>
         itemCount: _members.length,
         itemBuilder: (_, i) {
           final member = _members[i];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                UserAvatar(name: member.effectiveName, size: 40),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              member.effectiveName,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13),
-                            ),
-                          ),
-                          if (member.isAdmin)
-                            const Text('👑',
-                                style: TextStyle(fontSize: 12)),
-                          if (member.isModerator)
-                            const Text('⚙️',
-                                style: TextStyle(fontSize: 12)),
-                          if (member.hasKey)
-                            const Text('🔑',
-                                style: TextStyle(fontSize: 12)),
-                          if (!member.isManualEntry) ...[
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () => _openDirectChat(member),
-                              child: const Icon(
-                                Icons.chat_bubble_outline,
-                                color: AppColors.textBlue,
-                                size: 18,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (member.city != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '📍 ${member.city}',
-                          style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
-                        ),
-                      ],
-                      if (member.bio != null &&
-                          member.bio!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          member.bio!,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      if (member.gameSystems.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: member.gameSystems.take(5).map((gs) =>
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.panelBg,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _showPlayerProfile(member),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.cardBg,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  UserAvatar(name: member.effectiveName, size: 40),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
                               child: Text(
-                                gs,
+                                member.effectiveName,
                                 style: const TextStyle(
-                                    color: AppColors.textBlue,
-                                    fontSize: 9),
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13),
                               ),
                             ),
-                          ).toList(),
+                            if (member.isAdmin)
+                              const Text('👑',
+                                  style: TextStyle(fontSize: 12)),
+                            if (member.isModerator)
+                              const Text('⚙️',
+                                  style: TextStyle(fontSize: 12)),
+                            if (member.hasKey)
+                              const Text('🔑',
+                                  style: TextStyle(fontSize: 12)),
+                            if (!member.isManualEntry) ...[
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () => _openDirectChat(member),
+                                child: const Icon(
+                                  Icons.chat_bubble_outline,
+                                  color: AppColors.textBlue,
+                                  size: 18,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
+                        if (member.city != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '📍 ${member.city}',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11),
+                          ),
+                        ],
+                        if (member.bio != null &&
+                            member.bio!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            member.bio!,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        // Достижения: 🥇🥈🥉 места, ⚔️ кампании
+                        const SizedBox(height: 4),
+                        _buildAchievementChips(member.id),
+                        if (member.gameSystems.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: member.gameSystems.take(5).map((gs) =>
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.panelBg,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    gs,
+                                    style: const TextStyle(
+                                        color: AppColors.textBlue,
+                                        fontSize: 9),
+                                  ),
+                                ),
+                              ).toList(),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

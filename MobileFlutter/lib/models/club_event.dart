@@ -1,13 +1,27 @@
 class EventParticipant {
   final String id;
   final String name;
+  final int? place;
 
-  const EventParticipant({required this.id, required this.name});
+  const EventParticipant({required this.id, required this.name, this.place});
 
   factory EventParticipant.fromJson(Map<String, dynamic> json) =>
       EventParticipant(
         id: json['id'] as String? ?? '',
         name: json['name'] as String? ?? '',
+        place: json['place'] as int?,
+      );
+}
+
+class EventPhoto {
+  final int id;
+  final String url;
+
+  const EventPhoto({required this.id, required this.url});
+
+  factory EventPhoto.fromJson(Map<String, dynamic> json) => EventPhoto(
+        id: json['id'] as int,
+        url: json['url'] as String? ?? '',
       );
 }
 
@@ -27,6 +41,7 @@ class ClubEvent {
   final String? gameMasterId;
   final String? gameMasterName;
   final List<EventParticipant> participants;
+  final List<EventPhoto> photos;
   // null = активно, 'Completed' = завершено, 'Archived' = в архиве
   final String? status;
 
@@ -46,6 +61,7 @@ class ClubEvent {
     this.gameMasterId,
     this.gameMasterName,
     this.participants = const [],
+    this.photos = const [],
     this.status,
   });
 
@@ -81,6 +97,10 @@ class ClubEvent {
         participants: (json['participants'] as List<dynamic>?)
                 ?.map((p) =>
                     EventParticipant.fromJson(p as Map<String, dynamic>))
+                .toList() ??
+            [],
+        photos: (json['photos'] as List<dynamic>?)
+                ?.map((p) => EventPhoto.fromJson(p as Map<String, dynamic>))
                 .toList() ??
             [],
         status: json['status'] as String?,

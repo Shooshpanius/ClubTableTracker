@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<BookingLog> BookingLogs => Set<BookingLog>();
     public DbSet<ClubEvent> ClubEvents => Set<ClubEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
+    public DbSet<EventPhoto> EventPhotos => Set<EventPhoto>();
     public DbSet<ClubDecoration> ClubDecorations => Set<ClubDecoration>();
     public DbSet<ClubPhoto> ClubPhotos => Set<ClubPhoto>();
     public DbSet<CampaignMap> CampaignMaps => Set<CampaignMap>();
@@ -115,6 +116,12 @@ public class AppDbContext : DbContext
             .HasOne(p => p.User)
             .WithMany()
             .HasForeignKey(p => p.UserId);
+
+        modelBuilder.Entity<EventPhoto>().HasKey(p => p.Id);
+        modelBuilder.Entity<EventPhoto>()
+            .HasOne(p => p.Event)
+            .WithMany(e => e.Photos)
+            .HasForeignKey(p => p.EventId);
 
         modelBuilder.Entity<ClubDecoration>().HasKey(d => d.Id);
         modelBuilder.Entity<ClubDecoration>()

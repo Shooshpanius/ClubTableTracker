@@ -28,6 +28,7 @@ public class EventController : ControllerBase
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
             .Include(e => e.GameMaster)
+            .Include(e => e.Photos)
             .Where(e => e.ClubId == clubId)
             .OrderBy(e => e.StartTime)
             .Select(e => new
@@ -36,7 +37,8 @@ public class EventController : ControllerBase
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
                 e.GameMasterId, e.Status,
                 GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
-                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place })
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place }),
+                Photos = e.Photos.OrderBy(p => p.OrderIndex).Select(p => new { p.Id, p.Url })
             })
             .ToList();
         return Ok(events);

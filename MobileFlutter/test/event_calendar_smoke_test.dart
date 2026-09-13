@@ -40,76 +40,76 @@ void main() {
         gameSystem: 'Age of Sigmar', maxParticipants: 16),
     _ev(5, 'Командный килл-тим', DateTime(y, 9, 14, 11), DateTime(y, 9, 14, 18),
         gameSystem: 'Kill Team', maxParticipants: 8),
-    // Архивный — не должен показываться (фильтрует вкладка, но проверим флаг)
+    // Архивный — вызывающая сторона фильтрует, в легенду попасть не должен
     _ev(6, 'Архивный турнир', DateTime(y, 9, 5, 11), DateTime(y, 9, 5, 20),
         gameSystem: 'Blood Bowl', status: 'Archived'),
   ];
+  // Как передает club_screen: без архивных
+  final visible = events.where((e) => e.status != 'Archived').toList();
 
   Widget wrap(Widget child) =>
       MaterialApp(home: Scaffold(body: SingleChildScrollView(child: child)));
 
-  testWidgets('сетка месяца и легенда рендерятся', (tester) async {
-    await tester.pumpWidget(wrap(EventCalendarWidget(events: events)));
+  testWidgets('сетка и легенда месяца рендерятся', (tester) async {
+    await tester.pumpWidget(wrap(EventCalendarWidget(events: visible)));
     await tester.pumpAndSettle();
     expect(find.text('Сентябрь $y'), findsOneWidget);
     expect(find.text('Пн'), findsOneWidget);
     expect(find.text('Вс'), findsOneWidget);
-    expect(find.text('Warhammer 40,000 · 1'), findsOneWidget);
-    expect(find.text('Kill Team · 1'), findsOneWidget);
-    expect(find.text('Без системы'), findsNothing);
+    // Легенда месяца: все 5 событий (включая завершённую кампанию из августа)
+    expect(find.textContaining('Крестовый поход Аврелия'), findsOneWidget);
+    expect(find.textContaining('Теневые войны hive-города'), findsOneWidget);
+    expect(find.textContaining('Кампания Морхейма'), findsOneWidget);
+    expect(find.textContaining('Осенний турнир 1000 очков'), findsOneWidget);
+    expect(find.textContaining('Командный килл-тим'), findsOneWidget);
+    expect(find.text('Мероприятия месяца:'), findsOneWidget);
   });
 
   testWidgets('клик по дню открывает панель с кампаниями и турнирами',
       (tester) async {
-    final visible = events.where((e) => e.status != 'Archived').toList();
     await tester.pumpWidget(wrap(EventCalendarWidget(events: visible)));
     await tester.pumpAndSettle();
 
     // 15 сентября: идут все три кампании, турниров нет
     await tester.tap(find.text('15'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Крестовый поход Аврелия'), findsOneWidget);
-    expect(find.textContaining('Теневые войны hive-города'), findsOneWidget);
-    expect(find.textContaining('Кампания Морхейма'), findsOneWidget);
+    // каждый заголовок виден дважды: в легенде месяца и в панели дня
+    expect(find.textContaining('Крестовый поход Аврелия'), findsNWidgets(2));
+    expect(find.textContaining('Теневые войны hive-города'), findsNWidgets(2));
+    expect(find.textContaining('Кампания Морхейма'), findsNWidgets(2));
     expect(find.text('Регистрация — во вкладке «События»'), findsOneWidget);
 
     // 14 сентября: обе активные кампании + турнир
     await tester.tap(find.text('14'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Командный килл-тим'), findsOneWidget);
+    expect(find.textContaining('Командный килл-тим'), findsNWidgets(2));
     expect(find.textContaining('участников: 0 / 8'), findsOneWidget);
   });
 
-  testWidgets('легенда фильтрует систему', (tester) async {
-    final visible = events.where((e) => e.status != 'Archived').toList();
+  testWidgets('тап по легенде ведёт к дате начала события', (tester) async {
     await tester.pumpWidget(wrap(EventCalendarWidget(events: visible)));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('13'));
+    final legendItem = find.textContaining('Осенний турнир 1000 очков');
+    await tester.ensureVisible(legendItem);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Осенний турнир 1000 очков'), findsOneWidget);
+    await tester.tap(legendItem);
+    await tester.pumpAndSettle();
 
-    final aosChip = find.text('Age of Sigmar · 1');
-    await tester.ensureVisible(aosChip);
-    await tester.pumpAndSettle();
-    await tester.tap(aosChip);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Осенний турнир 1000 очков'), findsNothing);
-
-    await tester.ensureVisible(aosChip);
-    await tester.pumpAndSettle();
-    await tester.tap(aosChip);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Осенний турнир 1000 очков'), findsOneWidget);
+    // Панель дня открылась на 13 сентября
+    expect(find.textContaining('13 сентября $y'), findsOneWidget);
+    expect(find.text('Сентябрь $y'), findsOneWidget);
   });
 
-  testWidgets('пустой день — заглушка', (tester) async {
-    await tester.pumpWidget(wrap(EventCalendarWidget(events: events)));
+  testWidgets('пустой день — заглушка; пустой месяц — пустая легенда',
+      (tester) async {
+    await tester.pumpWidget(wrap(EventCalendarWidget(events: visible)));
     await tester.pumpAndSettle();
     // В сентябре все дни покрыты кампаниями — уходим в пустой октябрь
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
     expect(find.text('Октябрь $y'), findsOneWidget);
+    expect(find.text('В этом месяце событий нет'), findsOneWidget);
     await tester.tap(find.text('7'));
     await tester.pumpAndSettle();
     expect(find.text('В этот день событий нет'), findsOneWidget);

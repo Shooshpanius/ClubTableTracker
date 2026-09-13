@@ -21,4 +21,5 @@ public class ClubEvent
     public string? GameMasterId { get; set; }
     public AppUser? GameMaster { get; set; }
     public List<EventParticipant> Participants { get; set; } = new();
+    public List<EventPhoto> Photos { get; set; } = new();
 }

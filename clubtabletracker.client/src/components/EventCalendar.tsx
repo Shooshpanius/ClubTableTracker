@@ -1,18 +1,18 @@
-// Календарь ивентов клуба (grimdark): кампании — фоновые полосы цвета системы,
-// пересекающиеся кампании делят клетку на равные полосы; турниры — точки цвета системы.
+// Календарь ивентов клуба (grimdark). Цвет — у каждого события свой (детерминированно по id).
+// Кампании — фоновые полосы (пересекающиеся делят клетку на равные полосы);
+// под датой — бейджи всех событий дня (квадрат — кампания, круг — турнир);
+// внизу — легенда мероприятий выбранного месяца, клик — переход к дате начала.
 // Общая логика — в utils/eventCalendar (делится с legacy-версией).
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   type EventCalendarItem, MONTH_NAMES, DAY_NAMES, monthGrid, campaignsCoveringDay,
-  singleEventsOnDay, systemColor, systemLabel, withAlpha, formatEventRange,
-  formatEventTime, isCompleted, NO_SYSTEM_COLOR,
+  singleEventsOnDay, eventsInMonth, eventColor, systemLabel, withAlpha,
+  formatEventRange, formatEventTime, formatDayShort, isCampaign, isCompleted,
 } from '../utils/eventCalendar'
 
 interface Props {
   events: EventCalendarItem[]
 }
-
-const SYSTEM_LABEL = 'Без системы'
 
 export default function EventCalendar({ events }: Props) {
   const today = new Date()
@@ -20,31 +20,9 @@ export default function EventCalendar({ events }: Props) {
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selected, setSelected] = useState<Date | null>(null)
-  const [hiddenSystems, setHiddenSystems] = useState<Set<string>>(new Set())
-
-  const toggleSystem = (label: string) => setHiddenSystems(prev => {
-    const next = new Set(prev)
-    if (next.has(label)) next.delete(label)
-    else next.add(label)
-    return next
-  })
-
-  const visibleEvents = useMemo(
-    () => events.filter(e => !hiddenSystems.has(systemLabel(e.gameSystem))),
-    [events, hiddenSystems]
-  )
-
-  // Легенда: системы, встречающиеся в событиях клуба, с количеством событий
-  const legend = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const e of events) {
-      const l = systemLabel(e.gameSystem)
-      counts.set(l, (counts.get(l) ?? 0) + 1)
-    }
-    return [...counts.entries()]
-  }, [events])
 
   const weeks = monthGrid(viewYear, viewMonth)
+  const monthEvents = eventsInMonth(events, viewYear, viewMonth)
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
@@ -58,17 +36,25 @@ export default function EventCalendar({ events }: Props) {
     setViewYear(today.getFullYear())
     setViewMonth(today.getMonth())
   }
+  // Клик по легенде: перейти к месяцу начала события и выбрать день начала
+  const goToEvent = (ev: EventCalendarItem) => {
+    const s = new Date(ev.startTime)
+    const d = new Date(s.getFullYear(), s.getMonth(), s.getDate())
+    setViewYear(d.getFullYear())
+    setViewMonth(d.getMonth())
+    setSelected(d)
+  }
 
   const navBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--gd-fg)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }
 
   // Фон клетки: полосы кампаний, пересекающиеся — по равной полосе на кампанию
   const cellBackground = (day: Date): React.CSSProperties => {
-    const camps = campaignsCoveringDay(visibleEvents, day)
+    const camps = campaignsCoveringDay(events, day)
     if (camps.length === 0) return {}
     const n = camps.length
     const stops = camps.map((c, i) => {
       const alpha = isCompleted(c) ? 0.16 : 0.4
-      const color = withAlpha(systemColor(c.gameSystem), alpha)
+      const color = withAlpha(eventColor(c.id), alpha)
       const from = Math.round((100 * i) / n)
       const to = Math.round((100 * (i + 1)) / n)
       return `${color} ${from}%, ${color} ${to}%`
@@ -78,47 +64,49 @@ export default function EventCalendar({ events }: Props) {
 
   // Маркер начала кампании — цветная насечка слева
   const startNotch = (day: Date): React.CSSProperties => {
-    const starting = visibleEvents.find(e => {
-      if (e.eventType !== 'Campaign') return false
+    const starting = events.find(e => {
+      if (!isCampaign(e)) return false
       const s = new Date(e.startTime); s.setHours(0, 0, 0, 0)
       return s.getTime() === day.getTime()
     })
-    return starting ? { boxShadow: `inset 3px 0 0 0 ${systemColor(starting.gameSystem)}` } : {}
+    return starting ? { boxShadow: `inset 3px 0 0 0 ${eventColor(starting.id)}` } : {}
   }
 
-  const cellTooltip = (day: Date): string | undefined => {
-    const lines = [
-      ...campaignsCoveringDay(visibleEvents, day).map(c => `⚔️ ${c.title} (${formatEventRange(c.startTime, c.endTime)})`),
-      ...singleEventsOnDay(visibleEvents, day).map(t => `🏆 ${t.title} ${formatEventTime(t.startTime)}`),
-    ]
-    return lines.length ? lines.join('\n') : undefined
-  }
-
-  const renderTournamentDots = (day: Date) => {
-    const list = singleEventsOnDay(visibleEvents, day)
+  // Бейджи событий дня: кампании — квадратики, турниры — кружки
+  const renderDayBadges = (day: Date) => {
+    const list = [...campaignsCoveringDay(events, day), ...singleEventsOnDay(events, day)]
     if (!list.length) return null
-    const shown = list.slice(0, 3)
+    const shown = list.slice(0, 4)
     const rest = list.length - shown.length
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginTop: 2, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 2, flexWrap: 'wrap' }}>
         {shown.map(ev => (
-          <span key={ev.id} title={`${ev.title} · ${systemLabel(ev.gameSystem)}`} style={{
-            width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-            background: systemColor(ev.gameSystem),
+          <span key={ev.id} title={ev.title} style={{
+            width: 8, height: 8, flexShrink: 0,
+            borderRadius: isCampaign(ev) ? 2 : '50%',
+            background: eventColor(ev.id),
             opacity: isCompleted(ev) ? 0.45 : 1,
           }} />
         ))}
-        {rest > 0 && <span style={{ fontSize: 9, color: 'var(--gd-fg-secondary)', lineHeight: '7px' }}>+{rest}</span>}
+        {rest > 0 && <span style={{ fontSize: 9, color: 'var(--gd-fg-secondary)', lineHeight: '9px' }}>+{rest}</span>}
       </div>
     )
   }
 
-  const selectedCampaigns = selected ? campaignsCoveringDay(visibleEvents, selected) : []
-  const selectedTournaments = selected ? singleEventsOnDay(visibleEvents, selected) : []
+  const cellTooltip = (day: Date): string | undefined => {
+    const lines = [
+      ...campaignsCoveringDay(events, day).map(c => `⚔️ ${c.title} (${formatEventRange(c.startTime, c.endTime)})`),
+      ...singleEventsOnDay(events, day).map(t => `🏆 ${t.title} ${formatEventTime(t.startTime)}`),
+    ]
+    return lines.length ? lines.join('\n') : undefined
+  }
+
+  const selectedCampaigns = selected ? campaignsCoveringDay(events, selected) : []
+  const selectedTournaments = selected ? singleEventsOnDay(events, selected) : []
 
   const swatchStyle = (e: EventCalendarItem): React.CSSProperties => ({
-    width: 12, height: 12, borderRadius: 3, flexShrink: 0,
-    background: systemColor(e.gameSystem),
+    width: 12, height: 12, borderRadius: isCampaign(e) ? 2 : '50%', flexShrink: 0,
+    background: eventColor(e.id),
     opacity: isCompleted(e) ? 0.45 : 1,
   })
 
@@ -131,6 +119,12 @@ export default function EventCalendar({ events }: Props) {
   const detailRowStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
     padding: '8px 0', borderBottom: '1px solid var(--gd-border)',
+  }
+
+  const legendItemStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
+    background: 'var(--gd-surface-active)', border: '1px solid var(--gd-border)',
+    borderRadius: 6, padding: '6px 10px', cursor: 'pointer',
   }
 
   return (
@@ -168,7 +162,7 @@ export default function EventCalendar({ events }: Props) {
                     title={cellTooltip(day)}
                     style={{
                       padding: '3px 2px 4px', textAlign: 'center', verticalAlign: 'top',
-                      cursor: 'pointer', borderRadius: 4, fontSize: 13, height: 44,
+                      cursor: 'pointer', borderRadius: 4, fontSize: 13, height: 48,
                       color: isToday ? 'var(--gd-success)' : 'var(--gd-fg)',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
                       outline: isSelected ? '2px solid var(--gd-brass)' : isToday ? '2px solid var(--gd-success)' : 'none',
@@ -178,7 +172,7 @@ export default function EventCalendar({ events }: Props) {
                     }}
                   >
                     <div>{day.getDate()}</div>
-                    {renderTournamentDots(day)}
+                    {renderDayBadges(day)}
                   </td>
                 )
               })}
@@ -187,36 +181,33 @@ export default function EventCalendar({ events }: Props) {
         </tbody>
       </table>
 
-      {/* Легенда: клик по чипу скрывает/показывает систему */}
-      {legend.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-          {legend.map(([label, count]) => {
-            const off = hiddenSystems.has(label)
-            return (
-              <button
-                key={label}
-                onClick={() => toggleSystem(label)}
-                title={off ? 'Показать события этой системы' : 'Скрыть события этой системы'}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'var(--gd-surface-active)',
-                  border: `1px solid ${off ? 'var(--gd-border)' : 'var(--gd-border-brass)'}`,
-                  color: 'var(--gd-fg)', borderRadius: 999, padding: '2px 10px',
-                  fontSize: 11, cursor: 'pointer', opacity: off ? 0.45 : 1,
-                }}
-              >
-                <span style={{
-                  width: 10, height: 10, borderRadius: 2, flexShrink: 0,
-                  background: label === SYSTEM_LABEL ? NO_SYSTEM_COLOR : systemColor(label),
-                }} />
-                {label} · {count}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {/* Легенда: мероприятия выбранного месяца, клик — к дате начала */}
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ fontSize: 11, color: 'var(--gd-fg-muted)', marginBottom: 2 }}>Мероприятия месяца:</div>
+        {monthEvents.length === 0 && (
+          <div style={{ fontSize: 12, color: 'var(--gd-fg-secondary)' }}>В этом месяце событий нет</div>
+        )}
+        {monthEvents.map(ev => (
+          <button key={ev.id} style={legendItemStyle} onClick={() => goToEvent(ev)} title="Перейти к дате начала">
+            <span style={{
+              width: 12, height: 12, borderRadius: isCampaign(ev) ? 2 : '50%', flexShrink: 0,
+              background: eventColor(ev.id),
+              opacity: isCompleted(ev) ? 0.45 : 1,
+            }} />
+            <span style={{
+              color: 'var(--gd-fg)', fontSize: 12, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{isCampaign(ev) ? '⚔️' : '🏆'} {ev.title}</span>
+            <span style={{ marginLeft: 'auto', color: 'var(--gd-fg-secondary)', fontSize: 11, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {isCampaign(ev)
+                ? formatEventRange(ev.startTime, ev.endTime)
+                : `${formatDayShort(ev.startTime)}, ${formatEventTime(ev.startTime)}`}
+            </span>
+          </button>
+        ))}
+      </div>
       <div style={{ marginTop: 8, fontSize: 11, color: 'var(--gd-fg-muted)', textAlign: 'center' }}>
-        Полосы — кампании, точки — турниры; клик по чипу легенды фильтрует систему
+        Полосы — кампании, бейджи под датой — события дня; клик по легенде — к дате начала
       </div>
 
       {/* Панель выбранного дня */}

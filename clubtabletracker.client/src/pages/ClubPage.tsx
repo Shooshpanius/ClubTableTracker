@@ -29,7 +29,7 @@ export interface Booking extends BookingBase { tableId: number; startTime: strin
 export interface UpcomingBooking extends BookingBase { tableId: number; tableNumber: string; clubName: string; clubId: number; startTime: string; endTime: string; gameSystem?: string }
 export interface ActivityLogEntry { id: number; timestamp: string; action: string; userName: string; tableNumber: string; clubId: number; bookingStartTime: string; bookingEndTime: string }
 export interface ClubMember { id: string; name: string; enabledGameSystems?: string; registrationName: string; displayName?: string; bio?: string; city?: string; joinedAt: string; isModerator?: boolean; hasKey?: boolean; isAdmin?: boolean; isManualEntry?: boolean }
-export interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[] }
+export interface ClubEventItem { id: number; title: string; startTime: string; endTime: string; maxParticipants: number; eventType: string; gameSystem?: string; tableIds?: string; description?: string; regulationUrl?: string; regulationUrl2?: string; missionMapUrl?: string; gameMasterId?: string; gameMasterName?: string; status?: string | null; participants: { id: string; name: string; place?: number | null }[]; photos?: { id: number; url: string }[] }
 export interface PlayerRosterInfo { booking: Booking | UpcomingBooking; playerName: string; isOwnerPlayer: boolean; participantId?: number; roster?: string; canEdit: boolean; isAdminEdit: boolean }
 export interface ClubDecoration { id: number; type: 'wall' | 'window' | 'door'; x: number; y: number; width: number; height: number }
 
@@ -135,6 +135,8 @@ export default function ClubPage() {
   const [members, setMembers] = useState<ClubMember[]>([])
    
   const [playerSystemsModal, setPlayerSystemsModal] = useState<ClubMember | null>(null)
+
+  const [playerProfileModal, setPlayerProfileModal] = useState<ClubMember | null>(null)
    
   const [moderatorBookingModal, setModeratorBookingModal] = useState<Booking | null>(null)
    
@@ -193,6 +195,8 @@ export default function ClubPage() {
   const [rescheduleModal, setRescheduleModal] = useState<Booking | null>(null)
    
   const [galleryPhotoModal, setGalleryPhotoModal] = useState<string | null>(null)
+
+  const [eventPhotoModal, setEventPhotoModal] = useState<string | null>(null)
    
   const [playersSystemFilter, setPlayersSystemFilter] = useState<string>('')
    
@@ -300,6 +304,42 @@ export default function ClubPage() {
     return (
       <div style={{ fontSize: 12, color: 'var(--gd-brass)', marginTop: 4 }}>
         🏆 Итоги: {placed.map(p => `${p.place}-е место — ${p.name}`).join('; ')}
+      </div>
+    )
+  }
+
+  // Достижения игрока: агрегация по не-архивным событиям клуба
+  const playerEventStats = (userId: string) => {
+    let gold = 0, silver = 0, bronze = 0, campaigns = 0, tournaments = 0
+    const history: { ev: ClubEventItem; place?: number | null }[] = []
+    for (const ev of clubEvents) {
+      if (ev.status === 'Archived') continue
+      const p = ev.participants.find(pp => pp.id === userId)
+      if (!p) continue
+      if (ev.eventType === 'Campaign') campaigns++
+      else tournaments++
+      if (p.place === 1) gold++
+      else if (p.place === 2) silver++
+      else if (p.place === 3) bronze++
+      history.push({ ev, place: p.place })
+    }
+    history.sort((a, b) => new Date(b.ev.startTime).getTime() - new Date(a.ev.startTime).getTime())
+    return { gold, silver, bronze, campaigns, tournaments, history }
+  }
+
+  const renderPlayerChips = (m: ClubMember, big = false) => {
+    const st = playerEventStats(m.id)
+    const chips: { key: string; label: string; title: string }[] = []
+    if (st.gold) chips.push({ key: 'gold', label: `🥇 ${st.gold}`, title: 'Первых мест' })
+    if (st.silver) chips.push({ key: 'silver', label: `🥈 ${st.silver}`, title: 'Вторых мест' })
+    if (st.bronze) chips.push({ key: 'bronze', label: `🥉 ${st.bronze}`, title: 'Третьих мест' })
+    if (st.campaigns) chips.push({ key: 'camp', label: `⚔️ ${st.campaigns}`, title: 'Участий в кампаниях' })
+    if (chips.length === 0) return null
+    return (
+      <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+        {chips.map(c => (
+          <span key={c.key} title={c.title} style={{ fontSize: big ? 12 : 10, padding: big ? '2px 8px' : '1px 6px', borderRadius: 999, background: 'var(--gd-surface-active)', border: '1px solid var(--gd-border-brass)', color: 'var(--gd-fg-secondary)' }}>{c.label}</span>
+        ))}
       </div>
     )
   }
@@ -1172,6 +1212,15 @@ export default function ClubPage() {
                                 title="Нажмите для просмотра" />
                             </div>
                           )}
+                          {ev.photos && ev.photos.length > 0 && (
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                              {ev.photos.map(ph => (
+                                <img key={ph.id} src={ph.url} alt={ev.title} onClick={() => setEventPhotoModal(ph.url)}
+                                  style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--gd-border)', flexShrink: 0 }}
+                                  title="Нажмите для просмотра" />
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                           {ev.eventType === "Campaign" && (
@@ -1285,7 +1334,17 @@ export default function ClubPage() {
                         {filteredMembers.map(m => (
                           <tr key={m.id} style={{ borderBottom: "1px solid var(--gd-border-soft)" }}>
                             <td style={{ padding: "6px 8px" }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
-                            <td style={{ padding: "6px 8px" }}>{m.displayName || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
+                            <td style={{ padding: "6px 8px" }}>
+                              <div>
+                                {m.displayName
+                                  ? <button onClick={() => setPlayerProfileModal(m)} title="Профиль игрока"
+                                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "var(--gd-fg)", fontSize: 13, textDecoration: "underline", textDecorationColor: "var(--gd-border-brass)", textUnderlineOffset: 3 }}>
+                                      {m.displayName}
+                                    </button>
+                                  : <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}
+                                {renderPlayerChips(m)}
+                              </div>
+                            </td>
                             <td style={{ padding: "6px 8px" }}>{m.city || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
                             <td style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>{new Date(m.joinedAt).toLocaleDateString("ru-RU")}</td>
                             <td style={{ padding: "6px 8px" }}>{m.bio || <span style={{ color: "var(--gd-fg-muted)" }}>—</span>}</td>
@@ -1645,6 +1704,15 @@ export default function ClubPage() {
                                 title="Нажмите для просмотра" />
                             </div>
                           )}
+                          {ev.photos && ev.photos.length > 0 && (
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                              {ev.photos.map(ph => (
+                                <img key={ph.id} src={ph.url} alt={ev.title} onClick={() => setEventPhotoModal(ph.url)}
+                                  style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--gd-border)', flexShrink: 0 }}
+                                  title="Нажмите для просмотра" />
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                           {ev.eventType === 'Campaign' && (
@@ -1752,7 +1820,17 @@ export default function ClubPage() {
                         {filteredMembers.map(m => (
                           <tr key={m.id} style={{ borderBottom: '1px solid var(--gd-border-soft)' }}>
                             <td style={{ padding: '8px 12px' }}>{m.isAdmin && <span style={{ marginRight: 3 }} title="Админ" aria-label="Админ" role="img">👑</span>}{m.hasKey && <span style={{ marginRight: 3 }} title="С ключом" aria-label="С ключом" role="img">🗝️</span>}{m.registrationName}</td>
-                            <td style={{ padding: '8px 12px' }}>{m.displayName || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
+                            <td style={{ padding: '8px 12px' }}>
+                              <div>
+                                {m.displayName
+                                  ? <button onClick={() => setPlayerProfileModal(m)} title="Профиль игрока"
+                                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'var(--gd-fg)', fontSize: 13, textDecoration: 'underline', textDecorationColor: 'var(--gd-border-brass)', textUnderlineOffset: 3 }}>
+                                      {m.displayName}
+                                    </button>
+                                  : <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}
+                                {renderPlayerChips(m)}
+                              </div>
+                            </td>
                             <td style={{ padding: '8px 12px' }}>{m.city || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
                             <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>{new Date(m.joinedAt).toLocaleDateString('ru-RU')}</td>
                             <td style={{ padding: '8px 12px' }}>{m.bio || <span style={{ color: 'var(--gd-fg-muted)' }}>—</span>}</td>
@@ -2463,6 +2541,41 @@ export default function ClubPage() {
         </div>
       )}
 
+      {/* Модалка: профиль игрока (достижения и история событий) */}
+      {playerProfileModal && (() => {
+        const m = playerProfileModal
+        const st = playerEventStats(m.id)
+        return (
+          <div onClick={() => setPlayerProfileModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--gd-surface)', border: '1px solid var(--gd-border)', borderRadius: 8, maxWidth: 520, width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '20px 24px' }}>
+              <h3 style={{ margin: '0 0 2px 0', fontSize: 16, color: 'var(--gd-fg)' }}>{m.displayName || m.registrationName}</h3>
+              <div style={{ fontSize: 12, color: 'var(--gd-fg-muted)', marginBottom: 8 }}>
+                {m.city ? `📍 ${m.city} · ` : ''}в клубе с {new Date(m.joinedAt).toLocaleDateString('ru-RU')}
+              </div>
+              {m.bio && <p style={{ margin: '0 0 10px 0', fontSize: 12, color: 'var(--gd-fg-secondary)' }}>{m.bio}</p>}
+              {renderPlayerChips(m, true)}
+              {st.history.length > 0 && (
+                <>
+                  <div style={{ fontSize: 13, color: 'var(--gd-fg)', fontWeight: 600, margin: '14px 0 6px 0' }}>История событий</div>
+                  {st.history.map(({ ev, place }) => (
+                    <div key={ev.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', padding: '6px 0', borderBottom: '1px solid var(--gd-border)', opacity: ev.status === 'Completed' ? 0.65 : 1 }}>
+                      <span>{ev.eventType === 'Campaign' ? '⚔️' : '🏆'}</span>
+                      <span style={{ color: 'var(--gd-fg)', fontSize: 13 }}>{ev.title}</span>
+                      {place != null && <span style={{ fontSize: 11, padding: '1px 8px', borderRadius: 999, background: 'var(--gd-brass)', color: '#fff', whiteSpace: 'nowrap' }}>{place}-е место</span>}
+                      <span style={{ marginLeft: 'auto', color: 'var(--gd-fg-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {new Date(ev.startTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}{ev.gameSystem ? ` · ${ev.gameSystem}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {st.history.length === 0 && <p style={{ color: 'var(--gd-fg-muted)', margin: '12px 0 0 0', fontSize: 13 }}>Пока без участий в событиях клуба</p>}
+              <button onClick={() => setPlayerProfileModal(null)} style={{ marginTop: 16, background: 'var(--gd-border)', color: 'var(--gd-fg-secondary)', border: '1px solid var(--gd-border-brass)', borderRadius: 4, padding: '6px 16px', cursor: 'pointer', fontSize: 13 }}>Закрыть</button>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Модалка: просмотр фото галереи */}
       {galleryPhotoModal && (
         <div
@@ -2471,6 +2584,21 @@ export default function ClubPage() {
         >
           <img
             src={galleryPhotoModal}
+            alt=""
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,0.7)', objectFit: 'contain', cursor: 'default' }}
+          />
+        </div>
+      )}
+
+      {/* Модалка: просмотр фото события */}
+      {eventPhotoModal && (
+        <div
+          onClick={() => setEventPhotoModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, cursor: 'zoom-out' }}
+        >
+          <img
+            src={eventPhotoModal}
             alt=""
             onClick={e => e.stopPropagation()}
             style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 40px rgba(0,0,0,0.7)', objectFit: 'contain', cursor: 'default' }}

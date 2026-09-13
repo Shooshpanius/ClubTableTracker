@@ -463,6 +463,7 @@ public class ClubAdminController : ControllerBase
         var events = _db.ClubEvents
             .Include(e => e.Participants).ThenInclude(p => p.User)
             .Include(e => e.GameMaster)
+            .Include(e => e.Photos)
             .Where(e => e.ClubId == club.Id)
             .OrderBy(e => e.StartTime)
             .Select(e => new
@@ -471,7 +472,8 @@ public class ClubAdminController : ControllerBase
                 e.Description, e.RegulationUrl, e.RegulationUrl2, e.MissionMapUrl,
                 e.GameMasterId, e.Status,
                 GameMasterName = e.GameMaster != null ? (e.GameMaster.DisplayName ?? e.GameMaster.Name) : null,
-                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place })
+                Participants = e.Participants.Select(p => new { p.User.Id, Name = p.User.DisplayName ?? p.User.Name, p.Place }),
+                Photos = e.Photos.OrderBy(p => p.OrderIndex).Select(p => new { p.Id, p.Url })
             })
             .ToList();
         return Ok(events);
@@ -1124,6 +1126,64 @@ public class ClubAdminController : ControllerBase
         if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
 
         _db.ClubPhotos.Remove(photo);
+        _db.SaveChanges();
+        return NoContent();
+    }
+
+    // ─── Фотографии события (мини-галерея) ──────────────────────────────────
+
+    [HttpPost("events/{id}/photos")]
+    public async Task<IActionResult> UploadEventPhoto(int id, IFormFile file)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+        if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
+        if (file.Length > 10 * 1024 * 1024) return BadRequest("Размер файла не должен превышать 10 МБ");
+        if (!AllowedImageTypes.Contains(file.ContentType)) return BadRequest("Допустимы только изображения (jpeg, png, webp, gif)");
+
+        if (_db.EventPhotos.Count(p => p.EventId == ev.Id) >= 12)
+            return BadRequest("Максимальное количество фото события — 12");
+
+        var ext = MimeToExt.TryGetValue(file.ContentType, out var e) ? e : Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!HasValidMagicBytes(file, ext))
+            return BadRequest("Содержимое файла не соответствует указанному типу");
+
+        var dir = Path.Combine(_env.ContentRootPath, "uploads", "clubs", club.Id.ToString(), "events", ev.Id.ToString(), "gallery");
+        Directory.CreateDirectory(dir);
+
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(dir, fileName);
+        await using var stream = System.IO.File.Create(filePath);
+        await file.CopyToAsync(stream);
+
+        var maxOrder = _db.EventPhotos.Where(p => p.EventId == ev.Id).Select(p => (int?)p.OrderIndex).Max() ?? -1;
+        var photo = new EventPhoto
+        {
+            EventId = ev.Id,
+            Url = $"/uploads/clubs/{club.Id}/events/{ev.Id}/gallery/{fileName}",
+            OrderIndex = maxOrder + 1
+        };
+        _db.EventPhotos.Add(photo);
+        _db.SaveChanges();
+        return Ok(new { photo.Id, photo.Url, photo.OrderIndex });
+    }
+
+    [HttpDelete("events/{id}/photos/{photoId}")]
+    public IActionResult DeleteEventPhoto(int id, int photoId)
+    {
+        var club = GetAuthorizedClub();
+        if (club == null) return Unauthorized();
+        var ev = _db.ClubEvents.FirstOrDefault(e => e.Id == id && e.ClubId == club.Id);
+        if (ev == null) return NotFound();
+        var photo = _db.EventPhotos.FirstOrDefault(p => p.Id == photoId && p.EventId == ev.Id);
+        if (photo == null) return NotFound();
+
+        var filePath = Path.Combine(_env.ContentRootPath, photo.Url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
+
+        _db.EventPhotos.Remove(photo);
         _db.SaveChanges();
         return NoContent();
     }

@@ -351,6 +351,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
   Future<void> _addEvent() async {
     final titleCtrl = TextEditingController();
     final maxCtrl = TextEditingController(text: '8');
+    final descCtrl = TextEditingController();
     String eventType = 'Tournament';
     DateTime? startDate;
     DateTime? endDate;
@@ -397,6 +398,17 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Макс. участников',
+                      labelStyle: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: descCtrl,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    maxLines: 3,
+                    maxLength: 500,
+                    decoration: const InputDecoration(
+                      labelText: 'Описание',
                       labelStyle: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
@@ -453,6 +465,7 @@ class _ClubAdminScreenState extends State<ClubAdminScreen>
         'endTime': endDate!.toUtc().toIso8601String(),
         'maxParticipants': int.tryParse(maxCtrl.text) ?? 8,
         'eventType': eventType,
+        'description': descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
       });
       await _refreshEvents();
     } catch (e) {
