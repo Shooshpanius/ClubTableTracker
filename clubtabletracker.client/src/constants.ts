@@ -43,3 +43,25 @@ export const GAME_SYSTEMS_MAIN = [
 export const GAME_SYSTEMS_BOTTOM = ['Покрас', 'Настольные игры']
 
 export const ALL_GAME_SYSTEMS = [...GAME_SYSTEMS_MAIN, ...GAME_SYSTEMS_BOTTOM]
+
+// Цвета игровых систем для календаря ивентов (различимы на тёмном фоне обоих дизайнов)
+export const GAME_SYSTEM_COLORS: Record<string, string> = {
+  'Warhammer 40,000': '#e04545',
+  'Age of Sigmar': '#4a90d9',
+  'The Horus Heresy': '#d98f2b',
+  'Necromunda': '#b3ac2f',
+  'Blood Bowl': '#46a35a',
+  'Warhammer Underworlds': '#2fc4b0',
+  'Kill Team': '#e56a9b',
+  'Warcry': '#e07038',
+  'Middle-earth Strategy Battle Game': '#8f6fd9',
+  'The Old World': '#38a0dd',
+  'Bushido': '#d4557a',
+  'Battlefleet Gothic': '#7a8fe0',
+  'Saga': '#c4825f',
+  'Trench Crusade': '#b04ac9',
+  'Battletech': '#7a9c4a',
+  'Mordheim': '#cfc95a',
+  'Покрас': '#b0b8c4',
+  'Настольные игры': '#98a08a',
+}

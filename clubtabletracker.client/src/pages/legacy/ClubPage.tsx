@@ -5,6 +5,7 @@ import TableTimeline, { TABLE_HEADER_HEIGHT } from '../../components/legacy/Tabl
 import BookingCalendar from '../../components/legacy/BookingCalendar'
 import ClubMap from '../../components/legacy/ClubMap'
 import CampaignMapView from '../../components/legacy/CampaignMapView'
+import EventCalendar from '../../components/legacy/EventCalendar'
 import { DEFAULT_BOOKING_COLORS } from '../../constants'
 import type { BookingColors } from '../../constants'
 import { shareTextOnly } from '../../utils/shareBooking'
@@ -180,9 +181,9 @@ export default function ClubPage() {
    
   const [clubChats, setClubChats] = useState<{ id: number; name: string; isPublic: boolean; memberCount: number }[]>([])
    
-  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('tables')
+  const [mobileTab, setMobileTab] = useState<'tables' | 'games' | 'events' | 'calendar' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('tables')
    
-  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('booking')
+  const [desktopTab, setDesktopTab] = useState<'booking' | 'upcoming' | 'events' | 'calendar' | 'log' | 'players' | 'map' | 'gallery' | 'chats'>('booking')
    
   const [moderatorAddPlayerId, setModeratorAddPlayerId] = useState('')
    
@@ -861,8 +862,8 @@ export default function ClubPage() {
           <div>
             {/* Mobile tab bar */}
             <div style={{ display: "flex", borderBottom: "2px solid #0f3460", flexWrap: "wrap" }}>
-              {(["tables", "games", "events", "log", "players", "map", "gallery", "chats"] as const).map((tab, i) => {
-                const labels = ["Столы", "Игры", "События", "📋", "👥", "🗺️", "🖼️", "💬"]
+              {(["tables", "games", "events", "calendar", "log", "players", "map", "gallery", "chats"] as const).map((tab, i) => {
+                const labels = ["Столы", "Игры", "События", "📅", "📋", "👥", "🗺️", "🖼️", "💬"]
                 return (
                   <button
                     key={tab}
@@ -1228,6 +1229,11 @@ export default function ClubPage() {
               </div>
             )}
 
+            {/* Tab: Календарь ивентов */}
+            {mobileTab === "calendar" && (
+              <EventCalendar events={clubEvents.filter(ev => ev.status !== 'Archived')} />
+            )}
+
             {/* Tab: Журнал */}
             {mobileTab === "log" && (
               <div>
@@ -1403,6 +1409,7 @@ export default function ClubPage() {
                 ['booking', '🎲 Бронирование столов'],
                 ['upcoming', '📅 Предстоящие игры'],
                 ['events', '🏆 События клуба'],
+                ['calendar', '🗓️ Календарь'],
                 ['log', '📋 Журнал действий'],
                 ['players', '👥 Игроки клуба'],
                 ['map', '🗺️ Схема клуба'],
@@ -1693,6 +1700,11 @@ export default function ClubPage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Tab: Календарь ивентов */}
+            {desktopTab === 'calendar' && (
+              <EventCalendar events={clubEvents.filter(ev => ev.status !== 'Archived')} />
             )}
 
             {/* Tab: Журнал действий */}
