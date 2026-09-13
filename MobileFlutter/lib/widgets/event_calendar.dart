@@ -114,6 +114,15 @@ String _formatDayShort(DateTime d) =>
 String _formatTime(DateTime d) =>
     '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
+// Инициалы события для бейджа: первые буквы первых двух слов («Крестовый поход» → «КП»)
+String _eventInitials(String title) {
+  final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return '?';
+  final first = words[0].isNotEmpty ? words[0][0] : '';
+  final second = words.length > 1 && words[1].isNotEmpty ? words[1][0] : '';
+  return (first + second).toUpperCase();
+}
+
 class EventCalendarWidget extends StatefulWidget {
   final List<ClubEvent> events;
 
@@ -167,87 +176,77 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
         _selected = s;
       });
 
-  BoxDecoration _cellDecoration(DateTime day, List<ClubEvent> camps,
-      bool isSelected, bool isToday) {
-    // Полосы кампаний: пересекающиеся — по равной полосе на кампанию
-    Gradient? gradient;
-    if (camps.isNotEmpty) {
-      final n = camps.length;
-      final colors = <Color>[];
-      final stops = <double>[];
-      for (var i = 0; i < n; i++) {
-        final c = camps[i];
-        final col = eventColor(c.id)
-            .withOpacity(c.isCompleted ? 0.16 : 0.4);
-        colors..add(col)..add(col);
-        stops..add(i / n)..add((i + 1) / n);
-      }
-      stops[stops.length - 1] = 1.0;
-      gradient = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: colors,
-        stops: stops,
-      );
-    }
-
-    // Рамка: выбранный день / сегодня / насечка старта кампании слева
-    Border? border;
-    final side = BorderSide(color: AppColors.border);
+  BoxDecoration _cellDecoration(bool isSelected, bool isToday) {
+    // Клетки не заливаются цветами событий — их несут бейджи под датой
     if (isSelected) {
-      border = Border.all(color: AppColors.accent, width: 1.5);
-    } else if (isToday) {
-      border = Border.all(color: AppColors.accentGreen, width: 1.5);
-    } else {
-      border = Border(top: side, bottom: side, right: side, left: side);
+      return BoxDecoration(
+          border: Border.all(color: AppColors.accent, width: 1.5));
     }
-    final starting = camps
-        .where((c) => _dayOnly(c.startDateTime) == day)
-        .firstOrNull;
-    if (starting != null && !isSelected) {
-      border = Border(
-        left: BorderSide(color: eventColor(starting.id), width: 3),
-        top: border.top,
-        right: border.right,
-        bottom: border.bottom,
-      );
+    if (isToday) {
+      return BoxDecoration(
+          border: Border.all(color: AppColors.accentGreen, width: 1.5));
     }
-
-    return BoxDecoration(gradient: gradient, border: border);
+    return const BoxDecoration(
+        border: Border.fromBorderSide(
+            BorderSide(color: AppColors.borderDark)));
   }
 
-  // Бейджи событий дня: кампании — квадратики, турниры — кружки
+  // Бейджи событий дня: одинаковой ширины чипы с иконкой типа и инициалами
   Widget _buildDayBadges(List<ClubEvent> dayEvents) {
     if (dayEvents.isEmpty) return const SizedBox.shrink();
-    final shown = dayEvents.take(4).toList();
+    final shown = dayEvents.take(3).toList();
     final rest = dayEvents.length - shown.length;
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 2,
-        runSpacing: 2,
-        children: [
-          for (final ev in shown)
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: _isCampaign(ev) ? BoxShape.rectangle : BoxShape.circle,
-                borderRadius: _isCampaign(ev)
-                    ? BorderRadius.circular(2)
-                    : null,
-                color: eventColor(ev.id),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final ev in shown)
+          Container(
+            height: 17,
+            margin: const EdgeInsets.symmetric(vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(3),
+              color: eventColor(ev.id)
+                  .withOpacity(ev.isCompleted ? 0.15 : 0.32),
+              border: Border.all(
+                  color: eventColor(ev.id)
+                      .withOpacity(ev.isCompleted ? 0.45 : 0.9)),
             ),
-          if (rest > 0)
-            Text(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _isCampaign(ev) ? '⚔' : '🏆',
+                  style: const TextStyle(fontSize: 9, height: 1.1),
+                ),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: Text(
+                    _eventInitials(ev.title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 9,
+                        height: 1.1,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (rest > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
               '+$rest',
+              textAlign: TextAlign.center,
               style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 9),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
@@ -273,27 +272,26 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
           ],
         ),
         for (final week in weeks)
-          Row(
-            children: [
-              for (final day in week)
-                Expanded(
-                  child: AspectRatio(
-                    aspectRatio: 0.9,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final day in week)
+                  Expanded(
                     child: day == null
-                        ? const SizedBox.shrink()
+                        ? const SizedBox.expand()
                         : GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: () => setState(() => _selected = day),
                             child: Container(
                               margin: const EdgeInsets.all(1),
-                              padding: const EdgeInsets.only(top: 3),
+                              padding: const EdgeInsets.only(top: 3, bottom: 2),
                               decoration: _cellDecoration(
-                                day,
-                                _campaignsCoveringDay(widget.events, day),
                                 _selected == day,
                                 day == _today,
                               ),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     '${day.day}',
@@ -318,8 +316,8 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
                             ),
                           ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
       ],
     );
@@ -554,7 +552,7 @@ class _EventCalendarWidgetState extends State<EventCalendarWidget> {
           const Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text(
-              'Полосы — кампании, бейджи под датой — события дня; '
+              'Бейджи под датой — события дня (⚔ — кампания, 🏆 — турнир); '
               'тап по легенде — к дате начала',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 11),

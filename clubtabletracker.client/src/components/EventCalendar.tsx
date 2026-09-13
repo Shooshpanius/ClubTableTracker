@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import {
   type EventCalendarItem, MONTH_NAMES, DAY_NAMES, monthGrid, campaignsCoveringDay,
-  singleEventsOnDay, eventsInMonth, eventColor, systemLabel, withAlpha,
+  singleEventsOnDay, eventsInMonth, eventColor, eventInitials, systemLabel, withAlpha,
   formatEventRange, formatEventTime, formatDayShort, isCampaign, isCompleted,
 } from '../utils/eventCalendar'
 
@@ -47,48 +47,34 @@ export default function EventCalendar({ events }: Props) {
 
   const navBtn: React.CSSProperties = { background: 'none', border: 'none', color: 'var(--gd-fg)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }
 
-  // Фон клетки: полосы кампаний, пересекающиеся — по равной полосе на кампанию
-  const cellBackground = (day: Date): React.CSSProperties => {
-    const camps = campaignsCoveringDay(events, day)
-    if (camps.length === 0) return {}
-    const n = camps.length
-    const stops = camps.map((c, i) => {
-      const alpha = isCompleted(c) ? 0.16 : 0.4
-      const color = withAlpha(eventColor(c.id), alpha)
-      const from = Math.round((100 * i) / n)
-      const to = Math.round((100 * (i + 1)) / n)
-      return `${color} ${from}%, ${color} ${to}%`
-    })
-    return { background: `linear-gradient(to bottom, ${stops.join(', ')})` }
-  }
-
-  // Маркер начала кампании — цветная насечка слева
-  const startNotch = (day: Date): React.CSSProperties => {
-    const starting = events.find(e => {
-      if (!isCampaign(e)) return false
-      const s = new Date(e.startTime); s.setHours(0, 0, 0, 0)
-      return s.getTime() === day.getTime()
-    })
-    return starting ? { boxShadow: `inset 3px 0 0 0 ${eventColor(starting.id)}` } : {}
-  }
-
-  // Бейджи событий дня: кампании — квадратики, турниры — кружки
+  // Бейджи событий дня: одинаковой ширины чипы с иконкой типа и инициалами
   const renderDayBadges = (day: Date) => {
     const list = [...campaignsCoveringDay(events, day), ...singleEventsOnDay(events, day)]
     if (!list.length) return null
-    const shown = list.slice(0, 4)
+    const shown = list.slice(0, 3)
     const rest = list.length - shown.length
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 2, flexWrap: 'wrap' }}>
-        {shown.map(ev => (
-          <span key={ev.id} title={ev.title} style={{
-            width: 8, height: 8, flexShrink: 0,
-            borderRadius: isCampaign(ev) ? 2 : '50%',
-            background: eventColor(ev.id),
-            opacity: isCompleted(ev) ? 0.45 : 1,
-          }} />
-        ))}
-        {rest > 0 && <span style={{ fontSize: 9, color: 'var(--gd-fg-secondary)', lineHeight: '9px' }}>+{rest}</span>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+        {shown.map(ev => {
+          const color = eventColor(ev.id)
+          return (
+            <div key={ev.id} title={ev.title} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+              height: 17, borderRadius: 3, fontSize: 9, fontWeight: 600,
+              background: withAlpha(color, isCompleted(ev) ? 0.15 : 0.32),
+              border: `1px solid ${withAlpha(color, isCompleted(ev) ? 0.45 : 0.9)}`,
+              color: 'var(--gd-fg)',
+              opacity: isCompleted(ev) ? 0.65 : 1,
+              overflow: 'hidden', whiteSpace: 'nowrap',
+            }}>
+              <span style={{ fontSize: 9, lineHeight: 1 }}>{isCampaign(ev) ? '⚔' : '🏆'}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{eventInitials(ev.title)}</span>
+            </div>
+          )
+        })}
+        {rest > 0 && (
+          <div style={{ fontSize: 9, color: 'var(--gd-fg-secondary)', textAlign: 'center', lineHeight: '12px' }}>+{rest}</div>
+        )}
       </div>
     )
   }
@@ -161,14 +147,12 @@ export default function EventCalendar({ events }: Props) {
                     onClick={() => setSelected(day)}
                     title={cellTooltip(day)}
                     style={{
-                      padding: '3px 2px 4px', textAlign: 'center', verticalAlign: 'top',
-                      cursor: 'pointer', borderRadius: 4, fontSize: 13, height: 48,
+                      padding: '3px 3px 4px', textAlign: 'center', verticalAlign: 'top',
+                      cursor: 'pointer', borderRadius: 4, fontSize: 13,
                       color: isToday ? 'var(--gd-success)' : 'var(--gd-fg)',
                       fontWeight: isToday || isSelected ? 'bold' : 'normal',
-                      outline: isSelected ? '2px solid var(--gd-brass)' : isToday ? '2px solid var(--gd-success)' : 'none',
+                      outline: isSelected ? '2px solid var(--gd-brass)' : isToday ? '2px solid var(--gd-success)' : '1px solid var(--gd-border-soft)',
                       outlineOffset: -2,
-                      ...cellBackground(day),
-                      ...startNotch(day),
                     }}
                   >
                     <div>{day.getDate()}</div>
@@ -207,7 +191,7 @@ export default function EventCalendar({ events }: Props) {
         ))}
       </div>
       <div style={{ marginTop: 8, fontSize: 11, color: 'var(--gd-fg-muted)', textAlign: 'center' }}>
-        Полосы — кампании, бейджи под датой — события дня; клик по легенде — к дате начала
+        Бейджи под датой — события дня (⚔ — кампания, 🏆 — турнир); клик по легенде — к дате начала
       </div>
 
       {/* Панель выбранного дня */}

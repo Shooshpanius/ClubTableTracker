@@ -32,6 +32,15 @@ export function eventColor(id: number): string {
   return EVENT_PALETTE[((id % n) + n) % n]
 }
 
+// Инициалы события для бейджа в клетке дня: первые буквы первых двух слов («Крестовый поход» → «КП»)
+export function eventInitials(title: string): string {
+  const words = title.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  const first = words[0][0] ?? ''
+  const second = words[1]?.[0] ?? ''
+  return (first + second).toUpperCase()
+}
+
 export function systemLabel(system?: string | null): string {
   return system?.trim() || 'Без системы'
 }
