@@ -15,6 +15,7 @@ import '../models/club_decoration.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/booking_dialog.dart';
+import '../widgets/event_calendar.dart';
 import '../widgets/user_avatar.dart';
 import 'club_admin_screen.dart';
 import 'campaign_map_screen.dart';
@@ -74,6 +75,7 @@ class _ClubScreenState extends State<ClubScreen>
     Tab(icon: Icon(Icons.calendar_today, size: 18), text: 'Предстоящие'),
     Tab(icon: Icon(Icons.history, size: 18), text: 'Лог'),
     Tab(icon: Icon(Icons.emoji_events, size: 18), text: 'События'),
+    Tab(icon: Icon(Icons.calendar_month, size: 18), text: 'Календарь'),
     Tab(icon: Icon(Icons.people, size: 18), text: 'Игроки'),
     Tab(icon: Icon(Icons.map, size: 18), text: 'Карта'),
     Tab(icon: Icon(Icons.photo_library, size: 18), text: 'Фото'),
@@ -82,7 +84,7 @@ class _ClubScreenState extends State<ClubScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _calViewYear = now.year;
@@ -461,6 +463,7 @@ class _ClubScreenState extends State<ClubScreen>
                     _buildUpcomingTab(),
                     _buildLogTab(),
                     _buildEventsTab(),
+                    _buildCalendarTab(),
                     _buildPlayersTab(),
                     _buildMapTab(),
                     _buildGalleryTab(),
@@ -1559,6 +1562,21 @@ class _ClubScreenState extends State<ClubScreen>
                     color: AppColors.textMuted, fontSize: 11),
               ),
           ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Вкладка: Календарь ивентов ─────────────────────────────────────────
+
+  Widget _buildCalendarTab() {
+    final visible = _events.where((e) => !e.isArchived).toList();
+    return RefreshIndicator(
+      onRefresh: _loadEvents,
+      color: AppColors.accent,
+      child: ListView(
+        children: [
+          EventCalendarWidget(events: visible),
         ],
       ),
     );

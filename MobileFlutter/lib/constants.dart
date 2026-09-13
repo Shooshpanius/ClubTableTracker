@@ -75,6 +75,29 @@ const Map<String, String> defaultBookingColors = {
   'othersBooking': '#FFFF00',
 };
 
+/// Цвета игровых систем для календаря ивентов
+/// (зеркало GAME_SYSTEM_COLORS из веба, clubtabletracker.client/src/constants.ts)
+const Map<String, String> gameSystemColors = {
+  'Warhammer 40,000': '#E04545',
+  'Age of Sigmar': '#4A90D9',
+  'The Horus Heresy': '#D98F2B',
+  'Necromunda': '#B3AC2F',
+  'Blood Bowl': '#46A35A',
+  'Warhammer Underworlds': '#2FC4B0',
+  'Kill Team': '#E56A9B',
+  'Warcry': '#E07038',
+  'Middle-earth Strategy Battle Game': '#8F6FD9',
+  'The Old World': '#38A0DD',
+  'Bushido': '#D4557A',
+  'Battlefleet Gothic': '#7A8FE0',
+  'Saga': '#C4825F',
+  'Trench Crusade': '#B04AC9',
+  'Battletech': '#7A9C4A',
+  'Mordheim': '#CFC95A',
+  'Покрас': '#B0B8C4',
+  'Настольные игры': '#98A08A',
+};
+
 /// Метки для цветов бронирования
 const Map<String, String> bookingColorLabels = {
   'freeSlot': 'Свободно',

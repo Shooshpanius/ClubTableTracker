@@ -27,6 +27,8 @@ class ClubEvent {
   final String? gameMasterId;
   final String? gameMasterName;
   final List<EventParticipant> participants;
+  // null = активно, 'Completed' = завершено, 'Archived' = в архиве
+  final String? status;
 
   const ClubEvent({
     required this.id,
@@ -44,6 +46,7 @@ class ClubEvent {
     this.gameMasterId,
     this.gameMasterName,
     this.participants = const [],
+    this.status,
   });
 
   DateTime get startDateTime => DateTime.parse(startTime);
@@ -55,6 +58,10 @@ class ClubEvent {
   }
 
   bool get isUpcoming => startDateTime.isAfter(DateTime.now());
+
+  bool get isCompleted => status == 'Completed';
+
+  bool get isArchived => status == 'Archived';
 
   factory ClubEvent.fromJson(Map<String, dynamic> json) => ClubEvent(
         id: json['id'] as int,
@@ -76,5 +83,6 @@ class ClubEvent {
                     EventParticipant.fromJson(p as Map<String, dynamic>))
                 .toList() ??
             [],
+        status: json['status'] as String?,
       );
 }
